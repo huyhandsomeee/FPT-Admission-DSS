@@ -1,6 +1,8 @@
-﻿# SmallTrend
+﻿# 
+FPT-Admission-DSS
 
-SmallTrend là hệ thống POS quản lý cửa hàng tiện lợi gồm backend Spring Boot và frontend React.
+
+FPT-Admission-DSS là hệ thống hỗ trợ tuyển sinh  gồm backend Spring Boot và frontend React.
 
 ## Tech Stack
 - Backend: Java 17, Spring Boot 3, Spring Security JWT, JPA, MySQL
