@@ -1,0 +1,195 @@
+package com.smalltrend.validation;
+
+import com.smalltrend.dto.shift.ShiftAssignmentRequest;
+import com.smalltrend.dto.shift.WorkShiftRequest;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.util.ArrayList;
+import java.util.List;
+
+@Component
+public class ShiftValidator {
+
+    public List<String> validateShift(WorkShiftRequest request) {
+        List<String> errors = new ArrayList<>();
+
+        if (request.getShiftCode() == null || request.getShiftCode().trim().isEmpty()) {
+            errors.add("Shift code is required");
+        }
+
+        if (request.getShiftName() == null || request.getShiftName().trim().isEmpty()) {
+            errors.add("Shift name is required");
+        }
+
+        LocalTime startTime = request.getStartTime();
+        LocalTime endTime = request.getEndTime();
+        if (startTime == null || endTime == null) {
+            errors.add("Start time and end time are required");
+        } else if (endTime.equals(startTime)) {
+            errors.add("Start time and end time cannot be equal");
+        }
+
+        LocalTime breakStart = request.getBreakStartTime();
+        LocalTime breakEnd = request.getBreakEndTime();
+        if ((breakStart == null) != (breakEnd == null)) {
+            errors.add("Break start and end must be provided together");
+        }
+
+        if (breakStart != null && breakEnd != null) {
+            if (breakEnd.equals(breakStart)) {
+                errors.add("Break end and break start cannot be equal");
+            }
+
+            if (startTime != null && endTime != null
+                    && !isRangeInsideShift(startTime, endTime, breakStart, breakEnd)) {
+                errors.add("Break time must be within shift time");
+            }
+        }
+
+        Integer minStaff = request.getMinimumStaffRequired();
+        Integer maxStaff = request.getMaximumStaffAllowed();
+        if (minStaff != null && minStaff < 0) {
+            errors.add("Minimum staff must be 0 or greater");
+        }
+        if (maxStaff != null && maxStaff < 0) {
+            errors.add("Maximum staff must be 0 or greater");
+        }
+        if (minStaff != null && maxStaff != null && minStaff > maxStaff) {
+            errors.add("Minimum staff cannot exceed maximum staff");
+        }
+
+        LocalDate effectiveFrom = request.getEffectiveFrom();
+        LocalDate effectiveTo = request.getEffectiveTo();
+        String shiftType = request.getShiftType() != null ? request.getShiftType().trim().toUpperCase() : "REGULAR";
+
+        if ("TEMPORARY".equals(shiftType)) {
+            if (effectiveFrom == null) {
+                errors.add("Effective from date is required for temporary shift");
+            }
+            if (effectiveTo == null) {
+                errors.add("Effective to date is required for temporary shift");
+            }
+        }
+
+        if (effectiveFrom != null && effectiveTo != null && effectiveTo.isBefore(effectiveFrom)) {
+            errors.add("Effective to date must be after or equal to effective from date");
+        }
+
+        validateDecimalRange(errors, request.getOvertimeMultiplier(), "Overtime multiplier", new BigDecimal("1.00"),
+                new BigDecimal("5.00"));
+        validateDecimalRange(errors, request.getNightShiftBonus(), "Night shift bonus", BigDecimal.ZERO,
+                new BigDecimal("300.00"));
+        validateDecimalRange(errors, request.getWeekendBonus(), "Weekend bonus", BigDecimal.ZERO,
+                new BigDecimal("300.00"));
+        validateDecimalRange(errors, request.getHolidayBonus(), "Holiday bonus", BigDecimal.ZERO,
+                new BigDecimal("300.00"));
+
+        validateMinutes(errors, request.getGracePeriodMinutes(), "Grace period minutes");
+        validateMinutes(errors, request.getEarlyClockInMinutes(), "Early clock in minutes");
+        validateMinutes(errors, request.getLateClockOutMinutes(), "Late clock out minutes");
+
+        return errors;
+    }
+
+    public List<String> validateAssignment(ShiftAssignmentRequest request) {
+        List<String> errors = new ArrayList<>();
+
+        if (request.getWorkShiftId() == null || request.getWorkShiftId() <= 0) {
+            errors.add("Work shift is required");
+        }
+        if (request.getUserId() == null || request.getUserId() <= 0) {
+            errors.add("User is required");
+        }
+        if (request.getShiftDate() == null) {
+            errors.add("Shift date is required");
+        }
+        return errors;
+    }
+
+    public List<String> validateId(Integer id, String fieldName) {
+        List<String> errors = new ArrayList<>();
+        if (id == null || id <= 0) {
+            errors.add(fieldName + " is invalid");
+        }
+        return errors;
+    }
+
+    public List<String> validateDateRange(LocalDate startDate, LocalDate endDate) {
+        List<String> errors = new ArrayList<>();
+        if (startDate == null || endDate == null) {
+            errors.add("Start date and end date are required");
+            return errors;
+        }
+        if (endDate.isBefore(startDate)) {
+            errors.add("End date must be after start date");
+        }
+        return errors;
+    }
+
+    public boolean hasErrors(List<String> errors) {
+        return errors != null && !errors.isEmpty();
+    }
+
+    public String errorsToString(List<String> errors) {
+        return String.join("; ", errors);
+    }
+
+    private boolean isRangeInsideShift(LocalTime shiftStart,
+            LocalTime shiftEnd,
+            LocalTime rangeStart,
+            LocalTime rangeEnd) {
+        List<long[]> shiftRanges = expandRange(shiftStart, shiftEnd);
+        List<long[]> breakRanges = expandRange(rangeStart, rangeEnd);
+
+        for (long[] breakRange : breakRanges) {
+            boolean covered = shiftRanges.stream()
+                    .anyMatch(shiftRange -> breakRange[0] >= shiftRange[0] && breakRange[1] <= shiftRange[1]);
+            if (!covered) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private List<long[]> expandRange(LocalTime start, LocalTime end) {
+        long dayMinutes = 24 * 60;
+        long from = start.toSecondOfDay() / 60;
+        long to = end.toSecondOfDay() / 60;
+
+        List<long[]> ranges = new ArrayList<>();
+        if (to <= from) {
+            ranges.add(new long[] { from, to + dayMinutes });
+            ranges.add(new long[] { from - dayMinutes, to });
+            return ranges;
+        }
+
+        ranges.add(new long[] { from, to });
+        ranges.add(new long[] { from + dayMinutes, to + dayMinutes });
+        return ranges;
+    }
+
+    private void validateDecimalRange(List<String> errors, BigDecimal value, String field, BigDecimal min,
+            BigDecimal max) {
+        if (value == null) {
+            return;
+        }
+
+        if (value.compareTo(min) < 0 || value.compareTo(max) > 0) {
+            errors.add(field + " must be between " + min + " and " + max);
+        }
+    }
+
+    private void validateMinutes(List<String> errors, Integer value, String field) {
+        if (value == null) {
+            return;
+        }
+
+        if (value < 0) {
+            errors.add(field + " must be 0 or greater");
+        }
+    }
+}

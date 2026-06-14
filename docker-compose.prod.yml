@@ -1,0 +1,53 @@
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+    env_file:
+      - ./deploy/env/backend.env
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-smalltrend}
+      MYSQL_USER: ${DB_USERNAME:-smalltrend}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-1234}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -uroot -p$$MYSQL_ROOT_PASSWORD --silent" ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+    ports:
+      - "127.0.0.1:3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/smalltrend-backend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+    env_file:
+      - ./deploy/env/backend.env
+    environment:
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/smalltrend?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8}
+      DB_USERNAME: ${DB_USERNAME:-smalltrend}
+      DB_PASSWORD: ${DB_PASSWORD:-1234}
+      SPRING_JPA_DDL_AUTO: ${SPRING_JPA_DDL_AUTO:-update}
+      SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE:-always}
+    ports:
+      - "8081:8081"
+    volumes:
+      - uploads_data:/app/uploads
+
+  frontend:
+    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/smalltrend-frontend:${IMAGE_TAG:-latest}
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+
+volumes:
+  mysql_data:
+  uploads_data:

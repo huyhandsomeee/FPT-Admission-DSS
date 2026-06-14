@@ -1,0 +1,12 @@
+package com.smalltrend.dto.CRM;
+
+import lombok.Data;
+
+@Data
+public class UpdateCustomerRequest {
+
+    private String name;
+    private String phone;
+    private Integer loyaltyPoints;
+    private Long spentAmount;
+}

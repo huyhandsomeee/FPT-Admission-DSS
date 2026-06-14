@@ -1,0 +1,21 @@
+# General OS
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# General Environment
+.env
+deploy/env/backend.env
+
+# Private keys
+swp391_key.pem
+*.pem

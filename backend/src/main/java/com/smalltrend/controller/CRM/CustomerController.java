@@ -1,0 +1,84 @@
+package com.smalltrend.controller.CRM;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+import java.util.List;
+
+import com.smalltrend.dto.CRM.CreateCustomerRequest;
+import com.smalltrend.dto.CRM.CustomerResponse;
+import com.smalltrend.dto.CRM.UpdateCustomerRequest;
+import com.smalltrend.service.CRM.CustomerService;
+
+@RestController
+@RequestMapping("/api/crm")
+@RequiredArgsConstructor
+public class CustomerController {
+
+    private final CustomerService customerService;
+
+    @GetMapping("/customers")
+    @PreAuthorize("hasAnyAuthority('ADMIN','ROLE_ADMIN','MANAGER','ROLE_MANAGER','CASHIER','ROLE_CASHIER','SALES_STAFF','ROLE_SALES_STAFF')")
+    // Lấy all customers.
+    public ResponseEntity<List<CustomerResponse>> getAllCustomers() {
+        List<CustomerResponse> customers = customerService.getAllCustomers();
+        return ResponseEntity.ok(customers);
+    }
+
+    @GetMapping("/customers/{id}")
+    // Lấy customer by id.
+    public ResponseEntity<CustomerResponse> getCustomerById(@PathVariable("id") Integer id) {
+        CustomerResponse customer = customerService.getCustomerById(id);
+        return ResponseEntity.ok(customer);
+    }
+
+    @GetMapping("/customers/phone/{phone}")
+    // Lấy customer by phone.
+    public ResponseEntity<?> getCustomerByPhone(@PathVariable("phone") String phone) {
+        try {
+            CustomerResponse customer = customerService.getCustomerByPhone(phone);
+            return ResponseEntity.ok(customer);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(new com.smalltrend.dto.common.MessageResponse(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/customers/search")
+    // Tìm customer by phone.
+    public ResponseEntity<CustomerResponse> searchCustomerByPhone(@RequestParam("phone") String phone) {
+        CustomerResponse customer = customerService.getCustomerByPhone(phone);
+        return ResponseEntity.ok(customer);
+    }
+
+    @PostMapping("/customers")
+    // Tạo customer.
+    public ResponseEntity<CustomerResponse> createCustomer(@RequestBody CreateCustomerRequest request) {
+        CustomerResponse customer = customerService.createCustomer(request.getName(), request.getPhone());
+        return ResponseEntity.status(HttpStatus.CREATED).body(customer);
+    }
+
+    @PutMapping("/customers/{id}")
+    // Cập nhật customer.
+    public ResponseEntity<CustomerResponse> updateCustomer(
+            @PathVariable("id") Integer id,
+            @RequestBody UpdateCustomerRequest request) {
+        CustomerResponse customer = customerService.updateCustomer(
+                id,
+                request.getName(),
+                request.getPhone(),
+                request.getLoyaltyPoints(),
+                request.getSpentAmount()
+        );
+        return ResponseEntity.ok(customer);
+    }
+
+    @DeleteMapping("/customers/{id}")
+    // Xóa customer.
+    public ResponseEntity<Void> deleteCustomer(@PathVariable("id") Integer id) {
+        customerService.deleteCustomer(id);
+        return ResponseEntity.noContent().build();
+    }
+}

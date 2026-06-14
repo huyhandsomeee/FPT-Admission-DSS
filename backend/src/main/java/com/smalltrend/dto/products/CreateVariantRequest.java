@@ -1,0 +1,19 @@
+package com.smalltrend.dto.products;
+
+import lombok.Data;
+import java.math.BigDecimal;
+
+@Data
+public class CreateVariantRequest {
+
+    private String sku;
+    private String barcode;
+    private String pluCode;
+    private Integer unitId;
+
+    private BigDecimal sellPrice;
+    private BigDecimal costPrice;
+    private String imageUrl;
+    private Boolean isActive;
+    private java.util.Map<String, String> attributes;
+}

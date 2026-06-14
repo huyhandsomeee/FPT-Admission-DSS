@@ -1,0 +1,92 @@
+package com.smalltrend.entity;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Entity
+@Table(name = "suppliers")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@ToString(exclude = { "brands", "purchaseOrders" })
+@EqualsAndHashCode(exclude = { "brands", "purchaseOrders" })
+public class Supplier {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(name = "tax_code", unique = true)
+    private String taxCode;
+
+    private String address;
+    private String email;
+    private String phone;
+
+    @Column(name = "contact_person")
+    private String contactPerson;
+
+    // Store contract file URLs as serialized JSON text from Cloudinary
+    @Column(name = "contract_files", columnDefinition = "LONGTEXT")
+    private String contractFiles;
+
+    @Column(name = "contract_signed_date")
+    private LocalDate contractSignedDate;
+
+    @Column(name = "contract_expiry")
+    private LocalDate contractExpiry;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private Boolean active = true;
+
+    @Column(columnDefinition = "TEXT")
+    private String notes;
+
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<PurchaseOrder> purchaseOrders;
+
+    @OneToMany(mappedBy = "supplier", cascade = CascadeType.ALL)
+    @JsonIgnore
+    private List<Brand> brands;
+
+    @CreationTimestamp
+    @Column(name = "created_at", updatable = false)
+    private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    @PreUpdate
+    private void autoCalculate() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        updatedAt = LocalDateTime.now();
+
+        // Default active if not set
+        if (active == null) {
+            active = true;
+        }
+    }
+
+    // Convenience alias used by service layer
+    @Transient
+    public String getContactInfo() {
+        return contactPerson;
+    }
+}
