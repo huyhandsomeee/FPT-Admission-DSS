@@ -8,11 +8,11 @@
         <version>3.2.5</version>
         <relativePath/>
     </parent>
-    <groupId>com.smalltrend</groupId>
-    <artifactId>backend</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
-    <name>SmallTrend Backend</name>
-    <description>SmallTrend POS System Backend</description>
+    <groupId>com.fpt.admission</groupId>
+    <artifactId>fpt-admission-dss</artifactId>
+    <version>1.0.0</version>
+    <name>FPT Admission DSS Backend</name>
+    <description>FPT University Admission Data Portal and Decision Support System</description>
 	
     <properties>
         <java.version>17</java.version>
