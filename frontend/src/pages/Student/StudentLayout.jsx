@@ -3,7 +3,7 @@ import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import {
   LayoutDashboard, FileText, FolderOpen, Bell, LogOut,
-  User, ChevronRight, Menu, X
+  User, ChevronRight, Menu, GraduationCap
 } from "lucide-react";
 
 const navItems = [
@@ -12,6 +12,7 @@ const navItems = [
   { to: "/student/applications", icon: FolderOpen, label: "Hồ sơ của tôi" },
   { to: "/student/documents", icon: FileText, label: "Tài liệu" },
   { to: "/student/notifications", icon: Bell, label: "Thông báo" },
+  { to: "/student/university-info", icon: GraduationCap, label: "Thông tin trường" },
 ];
 
 export default function StudentLayout() {

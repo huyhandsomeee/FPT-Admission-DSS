@@ -22,6 +22,7 @@ const NewApplication = lazy(() => import("./pages/Student/Application/NewApplica
 const MyApplications = lazy(() => import("./pages/Student/Application/MyApplications"));
 const StudentDocuments = lazy(() => import("./pages/Student/Documents"));
 const StudentNotifications = lazy(() => import("./pages/Student/Notifications"));
+const UniversityInfo = lazy(() => import("./pages/Student/UniversityInfo"));
 
 // Officer pages
 const OfficerDashboard = lazy(() => import("./pages/Officer/Dashboard"));
@@ -97,6 +98,7 @@ function App() {
           <Route path="applications" element={<MyApplications />} />
           <Route path="documents" element={<StudentDocuments />} />
           <Route path="notifications" element={<StudentNotifications />} />
+          <Route path="university-info" element={<UniversityInfo />} />
         </Route>
 
         {/* ========================

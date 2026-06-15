@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../config/axiosConfig";
 import {
   FileText, CheckCircle, Clock, XCircle, Bell, ArrowRight,
-  BookOpen, Award, AlertCircle, Calendar
+  BookOpen, Award, AlertCircle, Calendar, GraduationCap
 } from "lucide-react";
 
 const STATUS_CONFIG = {
@@ -70,23 +70,13 @@ export default function StudentDashboard() {
           </p>
           {!data.hasProfile && (
             <Link to="/student/apply"
-              className="student-btn-white"
               style={{
-                backgroundColor: "white",
-                color: "#E85A2A",
-                padding: "10px 20px",
-                borderRadius: "12px",
-                fontWeight: "600",
-                fontSize: "14px",
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                textDecoration: "none",
+                backgroundColor: "white", color: "#E85A2A", padding: "10px 20px",
+                borderRadius: "12px", fontWeight: "600", fontSize: "14px",
+                display: "inline-flex", alignItems: "center", gap: "8px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)", textDecoration: "none",
                 transition: "all 0.2s"
               }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = "#FFF7F4"}
-              onMouseLeave={(e) => e.target.style.backgroundColor = "white"}
             >
               Bắt đầu nộp hồ sơ <ArrowRight size={16} />
             </Link>
@@ -105,8 +95,7 @@ export default function StudentDashboard() {
           <div key={kpi.label} className="student-card">
             <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-10"
               style={{ background: kpi.textColor, transform: "translate(30%, -30%)" }}></div>
-            <div className="student-kpi-icon"
-              style={{ background: `${kpi.textColor}15` }}>
+            <div className="student-kpi-icon" style={{ background: `${kpi.textColor}15` }}>
               <kpi.icon size={20} style={{ color: kpi.textColor }} />
             </div>
             <div className="text-2xl font-bold text-gray-900">{kpi.value}</div>
@@ -126,11 +115,9 @@ export default function StudentDashboard() {
                 Xem tất cả <ArrowRight size={14} />
               </Link>
             </div>
-            
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               {currentApp ? (
                 <div>
-                  {/* Status Steps */}
                   <div className="student-step-container">
                     <div className="student-step-line"></div>
                     {steps.map((step, idx) => {
@@ -153,15 +140,7 @@ export default function StudentDashboard() {
                       );
                     })}
                   </div>
-
-                  {/* App Info Box */}
-                  <div style={{
-                    background: "#FFF7F4",
-                    borderRadius: "14px",
-                    padding: "16px",
-                    border: "1px solid #FFEDD5",
-                    marginTop: "24px"
-                  }}>
+                  <div style={{ background: "#FFF7F4", borderRadius: "14px", padding: "16px", border: "1px solid #FFEDD5", marginTop: "24px" }}>
                     <div className="flex items-start justify-between">
                       <div>
                         <div className="text-base font-semibold text-gray-900">{currentApp.majorName}</div>
@@ -181,9 +160,7 @@ export default function StudentDashboard() {
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Bạn chưa có hồ sơ nào</h4>
                   <p className="text-sm text-gray-500 mb-4">Bắt đầu hành trình vào FPT University ngay hôm nay!</p>
-                  <Link to="/student/apply" className="student-btn-primary">
-                    Nộp hồ sơ ngay
-                  </Link>
+                  <Link to="/student/apply" className="student-btn-primary">Nộp hồ sơ ngay</Link>
                 </div>
               )}
             </div>
@@ -198,15 +175,7 @@ export default function StudentDashboard() {
           <div className="space-y-3">
             {deadlines.map((d) => (
               <div key={d.label}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "between",
-                  padding: "12px",
-                  borderRadius: "12px",
-                  backgroundColor: "#F8FAFC",
-                  transition: "background-color 0.2s"
-                }}
+                style={{ display: "flex", alignItems: "center", padding: "12px", borderRadius: "12px", backgroundColor: "#F8FAFC" }}
                 className="hover:bg-orange-50"
               >
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
@@ -230,13 +199,51 @@ export default function StudentDashboard() {
         ].map((action) => (
           <Link key={action.to} to={action.to} className="student-action-card">
             <div style={{ fontSize: "28px", marginBottom: "12px" }}>{action.icon}</div>
-            <div style={{ fontWeight: "600", color: "#1E293B", fontSize: "14px" }}>
-              {action.label}
-            </div>
+            <div style={{ fontWeight: "600", color: "#1E293B", fontSize: "14px" }}>{action.label}</div>
             <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>{action.desc}</div>
           </Link>
         ))}
       </div>
+
+      {/* FPT Info Promo Card */}
+      <Link to="/student/university-info" style={{ textDecoration: "none" }}>
+        <div style={{
+          background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
+          borderRadius: "18px", padding: "24px 28px",
+          display: "flex", alignItems: "center", gap: "20px",
+          position: "relative", overflow: "hidden",
+          cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
+          boxShadow: "0 4px 16px rgba(15,23,42,0.15)"
+        }}
+          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(15,23,42,0.2)"; }}
+          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.15)"; }}
+        >
+          <div style={{ position: "absolute", right: "-10px", top: "-20px", width: "160px", height: "160px", background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
+          <div style={{ position: "absolute", right: "80px", bottom: "-30px", width: "100px", height: "100px", background: "rgba(255,107,53,0.05)", borderRadius: "50%" }} />
+
+          <div style={{ width: "52px", height: "52px", background: "rgba(255,107,53,0.15)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
+            <GraduationCap size={26} color="#FF6B35" />
+          </div>
+          <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
+            <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>
+              Thông tin tuyển sinh FPT University 2025
+            </div>
+            <div style={{ color: "rgba(148,163,184,1)", fontSize: "13px" }}>
+              Giới thiệu trường • Phương thức xét tuyển • Ngành học • Học phí • Học bổng
+            </div>
+          </div>
+          <div style={{
+            display: "flex", alignItems: "center", gap: "6px",
+            padding: "10px 18px", borderRadius: "12px",
+            background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+            color: "white", fontWeight: "600", fontSize: "13px",
+            flexShrink: 0, zIndex: 1,
+            boxShadow: "0 4px 12px rgba(232,90,42,0.35)"
+          }}>
+            Khám phá <ArrowRight size={15} />
+          </div>
+        </div>
+      </Link>
     </div>
   );
 }
