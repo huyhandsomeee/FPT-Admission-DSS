@@ -161,12 +161,12 @@ const Sidebar = ({ collapsed, onToggleSidebar }) => {
           }}
           title="Về trang chính"
         >
-          <div className="bg-indigo-600 p-2 rounded-lg">
-            <Store className="text-white" size={24} />
+          <div className="flex items-center justify-center p-1">
+            <img src="/fpt.svg" className="h-8 w-auto object-contain" alt="FPT Logo" />
           </div>
           {!collapsed && (
-            <h1 className="text-xl font-bold text-slate-800 tracking-tight">
-              Smalltrend
+            <h1 className="text-lg font-bold text-slate-800 tracking-tight">
+              FPT Admission
             </h1>
           )}
         </div>

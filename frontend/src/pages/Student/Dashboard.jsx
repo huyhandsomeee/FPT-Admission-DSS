@@ -55,40 +55,57 @@ export default function StudentDashboard() {
   const currentStepIdx = currentApp ? steps.indexOf(currentApp.status) : -1;
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "8px 0" }}>
       {/* Welcome Banner */}
-      <div className="rounded-2xl p-6 relative overflow-hidden"
-        style={{ background: "linear-gradient(135deg, #FF6B35 0%, #E85A2A 50%, #C8420E 100%)" }}>
+      <div className="student-banner">
         <div className="absolute right-0 top-0 w-64 h-full opacity-10">
           <div className="w-64 h-64 rounded-full bg-white absolute -right-16 -top-16"></div>
           <div className="w-48 h-48 rounded-full bg-white absolute -right-8 bottom-0"></div>
         </div>
         <div className="relative z-10">
-          <p className="text-orange-200 text-sm font-medium mb-1">Xin chào 👋</p>
+          <p className="text-orange-200 text-sm font-medium mb-1" style={{ opacity: 0.9 }}>Xin chào 👋</p>
           <h1 className="text-2xl font-bold text-white mb-2">{user?.fullName}</h1>
-          <p className="text-orange-100 text-sm mb-4">
+          <p className="text-orange-100 text-sm mb-4" style={{ opacity: 0.85 }}>
             Chào mừng đến với Cổng tuyển sinh FPT University 2025
           </p>
           {!data.hasProfile && (
             <Link to="/student/apply"
-              className="inline-flex items-center gap-2 bg-white text-orange-500 px-5 py-2.5 rounded-xl font-semibold text-sm hover:bg-orange-50 transition-colors shadow-lg">
+              className="student-btn-white"
+              style={{
+                backgroundColor: "white",
+                color: "#E85A2A",
+                padding: "10px 20px",
+                borderRadius: "12px",
+                fontWeight: "600",
+                fontSize: "14px",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "8px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                textDecoration: "none",
+                transition: "all 0.2s"
+              }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = "#FFF7F4"}
+              onMouseLeave={(e) => e.target.style.backgroundColor = "white"}
+            >
               Bắt đầu nộp hồ sơ <ArrowRight size={16} />
             </Link>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards Grid */}
+      <div className="student-grid-4">
         {[
           { label: "Hồ sơ đã nộp", value: data.totalApplications, icon: FileText, textColor: "#F97316" },
           { label: "Thông báo mới", value: data.unreadNotifications, icon: Bell, textColor: "#2563EB" },
           { label: "Đợt xét tuyển", value: "2025", icon: Calendar, textColor: "#7C3AED" },
           { label: "Trạng thái", value: currentStatus?.label || "Chưa nộp", icon: CheckCircle, textColor: "#059669" },
         ].map((kpi) => (
-          <div key={kpi.label} className="card p-5 relative overflow-hidden">
+          <div key={kpi.label} className="student-card">
             <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-10"
               style={{ background: kpi.textColor, transform: "translate(30%, -30%)" }}></div>
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+            <div className="student-kpi-icon"
               style={{ background: `${kpi.textColor}15` }}>
               <kpi.icon size={20} style={{ color: kpi.textColor }} />
             </div>
@@ -98,32 +115,38 @@ export default function StudentDashboard() {
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Main Sections Grid */}
+      <div className="student-grid-3">
         {/* Application Progress */}
-        <div className="lg:col-span-2">
-          <div className="card">
-            <div className="card-header">
-              <h3 className="font-semibold text-gray-900">Tiến trình hồ sơ</h3>
-              <Link to="/student/applications" className="text-sm text-orange-500 font-medium flex items-center gap-1">
+        <div>
+          <div className="student-card" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+            <div className="flex items-center justify-between mb-6" style={{ borderBottom: "1px solid #F1F5F9", paddingBottom: "16px" }}>
+              <h3 className="font-semibold text-gray-900 text-lg">Tiến trình hồ sơ</h3>
+              <Link to="/student/applications" className="text-sm text-orange-500 font-medium flex items-center gap-1" style={{ textDecoration: "none" }}>
                 Xem tất cả <ArrowRight size={14} />
               </Link>
             </div>
-            <div className="card-body">
+            
+            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               {currentApp ? (
                 <div>
                   {/* Status Steps */}
-                  <div className="flex items-center justify-between mb-6 relative">
-                    <div className="absolute left-0 right-0 top-4 h-0.5 bg-gray-200 z-0"></div>
+                  <div className="student-step-container">
+                    <div className="student-step-line"></div>
                     {steps.map((step, idx) => {
                       const isDone = idx <= currentStepIdx;
                       const isCurrent = idx === currentStepIdx;
                       return (
-                        <div key={step} className="relative z-10 flex flex-col items-center gap-2">
-                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold transition-all
-                            ${isDone ? "bg-orange-500 text-white shadow-lg shadow-orange-200" : "bg-white border-2 border-gray-200 text-gray-400"}`}>
+                        <div key={step} className="student-step-node">
+                          <div className="student-step-circle" style={{
+                            background: isDone ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "white",
+                            color: isDone ? "white" : "#94A3B8",
+                            border: isDone ? "none" : "2px solid #E2E8F0",
+                            boxShadow: isDone ? "0 4px 12px rgba(255,107,53,0.25)" : "none"
+                          }}>
                             {isDone && !isCurrent ? "✓" : idx + 1}
                           </div>
-                          <span className={`text-xs font-medium ${isDone ? "text-orange-600" : "text-gray-400"}`}>
+                          <span style={{ fontSize: "11px", fontWeight: "600", color: isDone ? "#E85A2A" : "#94A3B8" }}>
                             {STATUS_CONFIG[step]?.label}
                           </span>
                         </div>
@@ -131,28 +154,34 @@ export default function StudentDashboard() {
                     })}
                   </div>
 
-                  {/* App Info */}
-                  <div className="bg-orange-50 rounded-xl p-4 border border-orange-100">
+                  {/* App Info Box */}
+                  <div style={{
+                    background: "#FFF7F4",
+                    borderRadius: "14px",
+                    padding: "16px",
+                    border: "1px solid #FFEDD5",
+                    marginTop: "24px"
+                  }}>
                     <div className="flex items-start justify-between">
                       <div>
-                        <div className="text-sm font-semibold text-gray-900">{currentApp.majorName}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">{currentApp.campusName}</div>
+                        <div className="text-base font-semibold text-gray-900">{currentApp.majorName}</div>
+                        <div className="text-xs text-gray-500 mt-1">{currentApp.campusName}</div>
                         <div className="text-xs text-gray-400 mt-1">Mã HS: {currentApp.code}</div>
                       </div>
-                      <span className={`badge ${currentStatus?.color}`}>
+                      <span className={`badge ${currentStatus?.color}`} style={{ borderRadius: "20px", padding: "6px 12px" }}>
                         {currentStatus?.label}
                       </span>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center py-8">
-                  <div className="w-16 h-16 bg-orange-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <FileText size={28} className="text-orange-400" />
+                <div className="text-center py-6">
+                  <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ color: "#FF6B35" }}>
+                    <FileText size={28} />
                   </div>
-                  <h4 className="font-semibold text-gray-900 mb-2">Bạn chưa có hồ sơ nào</h4>
+                  <h4 className="font-semibold text-gray-900 mb-1">Bạn chưa có hồ sơ nào</h4>
                   <p className="text-sm text-gray-500 mb-4">Bắt đầu hành trình vào FPT University ngay hôm nay!</p>
-                  <Link to="/student/apply" className="btn btn-primary btn-sm">
+                  <Link to="/student/apply" className="student-btn-primary">
                     Nộp hồ sơ ngay
                   </Link>
                 </div>
@@ -162,40 +191,49 @@ export default function StudentDashboard() {
         </div>
 
         {/* Important Deadlines */}
-        <div className="card">
-          <div className="card-header">
-            <h3 className="font-semibold text-gray-900">Lịch quan trọng</h3>
+        <div className="student-card">
+          <div className="flex items-center mb-6" style={{ borderBottom: "1px solid #F1F5F9", paddingBottom: "16px" }}>
+            <h3 className="font-semibold text-gray-900 text-lg">Lịch quan trọng</h3>
           </div>
-          <div className="card-body space-y-3">
+          <div className="space-y-3">
             {deadlines.map((d) => (
               <div key={d.label}
-                className="flex items-center justify-between p-3 rounded-xl bg-gray-50 hover:bg-orange-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${d.urgent ? "bg-red-500" : "bg-orange-400"}`}></div>
-                  <span className="text-sm text-gray-700">{d.label}</span>
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "between",
+                  padding: "12px",
+                  borderRadius: "12px",
+                  backgroundColor: "#F8FAFC",
+                  transition: "background-color 0.2s"
+                }}
+                className="hover:bg-orange-50"
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
+                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: d.urgent ? "#EF4444" : "#FF6B35" }}></div>
+                  <span style={{ fontSize: "13px", fontWeight: "500", color: "#334155" }}>{d.label}</span>
                 </div>
-                <span className="text-xs font-medium text-gray-500">{d.date}</span>
+                <span style={{ fontSize: "11px", fontWeight: "600", color: "#64748B" }}>{d.date}</span>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Quick Actions Grid */}
+      <div className="student-action-grid">
         {[
           { to: "/student/apply", icon: "📝", label: "Nộp hồ sơ", desc: "Tạo hồ sơ mới" },
           { to: "/student/applications", icon: "📋", label: "Hồ sơ của tôi", desc: "Xem trạng thái" },
           { to: "/student/documents", icon: "📁", label: "Tài liệu", desc: "Upload giấy tờ" },
           { to: "/student/notifications", icon: "🔔", label: "Thông báo", desc: "Xem tin nhắn" },
         ].map((action) => (
-          <Link key={action.to} to={action.to}
-            className="card p-5 hover:border-orange-200 hover:shadow-lg transition-all group">
-            <div className="text-3xl mb-3">{action.icon}</div>
-            <div className="font-semibold text-gray-900 text-sm group-hover:text-orange-600 transition-colors">
+          <Link key={action.to} to={action.to} className="student-action-card">
+            <div style={{ fontSize: "28px", marginBottom: "12px" }}>{action.icon}</div>
+            <div style={{ fontWeight: "600", color: "#1E293B", fontSize: "14px" }}>
               {action.label}
             </div>
-            <div className="text-xs text-gray-500 mt-1">{action.desc}</div>
+            <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>{action.desc}</div>
           </Link>
         ))}
       </div>

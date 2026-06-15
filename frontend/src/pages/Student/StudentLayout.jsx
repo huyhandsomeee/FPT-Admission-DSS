@@ -36,20 +36,39 @@ export default function StudentLayout() {
           overflow: "hidden"
         }}
       >
-        {/* Logo */}
-        <div style={{ padding: "20px 16px", borderBottom: "1px solid rgba(255,255,255,0.1)", display: "flex", alignItems: "center", gap: 12 }}>
+        <div style={{
+          padding: collapsed ? "16px 0" : "20px 16px",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          display: "flex",
+          flexDirection: collapsed ? "column" : "row",
+          alignItems: "center",
+          gap: collapsed ? 10 : 12,
+          justifyContent: "center"
+        }}>
           <div style={{ width: 40, height: 40, background: "white", borderRadius: 12, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <span style={{ color: "#EA580C", fontWeight: 900, fontSize: 18 }}>F</span>
           </div>
           {!collapsed && (
-            <div style={{ overflow: "hidden" }}>
+            <div style={{ overflow: "hidden", flex: 1 }}>
               <div style={{ color: "white", fontWeight: 700, fontSize: 14 }}>FPT University</div>
               <div style={{ color: "rgba(254,215,170,1)", fontSize: 12 }}>Cổng thí sinh</div>
             </div>
           )}
           <button
             onClick={() => setCollapsed(!collapsed)}
-            style={{ marginLeft: "auto", color: "rgba(254,215,170,1)", background: "none", border: "none", cursor: "pointer" }}
+            style={{
+              marginLeft: collapsed ? "0" : "auto",
+              color: "rgba(254,215,170,1)",
+              background: "rgba(255,255,255,0.1)",
+              border: "none",
+              cursor: "pointer",
+              width: "32px",
+              height: "32px",
+              borderRadius: "8px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center"
+            }}
           >
             {collapsed ? <ChevronRight size={18} /> : <Menu size={18} />}
           </button>
@@ -110,23 +129,47 @@ export default function StudentLayout() {
       {/* Main Content */}
       <main style={{ marginLeft: collapsed ? 72 : 260, flex: 1, minHeight: "100vh", background: "#F9FAFB", transition: "margin-left 0.3s" }}>
         {/* Header */}
-        <header className="portal-header justify-between" style={{ borderBottom: "1px solid #E2E8F0" }}>
+        <header className="portal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #E2E8F0", padding: "0 24px", height: "64px" }}>
           <div>
-            <h2 className="text-lg font-semibold text-gray-800">Cổng thí sinh</h2>
-            <p className="text-xs text-gray-500">FPT University Admission Portal 2025</p>
+            <h2 className="text-lg font-semibold text-gray-800" style={{ margin: 0 }}>Cổng thí sinh</h2>
+            <p className="text-xs text-gray-500" style={{ margin: 0, marginTop: "2px" }}>FPT University Admission Portal 2025</p>
           </div>
-          <div className="flex items-center gap-3">
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <NavLink to="/student/notifications"
-              className="relative w-9 h-9 flex items-center justify-center rounded-xl bg-orange-50 hover:bg-orange-100 cursor-pointer transition-colors">
-              <Bell size={18} className="text-orange-600" />
-              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+              style={{
+                position: "relative",
+                width: "36px",
+                height: "36px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                borderRadius: "10px",
+                backgroundColor: "#FFF7F4",
+                cursor: "pointer",
+                textDecoration: "none"
+              }}
+            >
+              <Bell size={18} style={{ color: "#FF6B35" }} />
+              <span style={{ position: "absolute", top: "8px", right: "8px", width: "8px", height: "8px", backgroundColor: "#EF4444", borderRadius: "50%", border: "1.5px solid white" }}></span>
             </NavLink>
             <NavLink to="/student/dashboard"
-              className="flex items-center gap-2 px-3 py-2 rounded-xl hover:bg-gray-100 transition-colors">
-              <div className="w-8 h-8 rounded-full bg-orange-100 flex items-center justify-center">
-                <User size={16} className="text-orange-500" />
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "6px 12px",
+                borderRadius: "10px",
+                textDecoration: "none",
+                cursor: "pointer",
+                backgroundColor: "transparent"
+              }}
+            >
+              <div style={{ width: "32px", height: "32px", borderRadius: "50%", backgroundColor: "#FFF7F4", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <User size={16} style={{ color: "#FF6B35" }} />
               </div>
-              <span className="text-sm font-medium text-gray-700 hidden sm:block">{user?.fullName?.split(' ').slice(-1)[0]}</span>
+              <span style={{ fontSize: "14px", fontWeight: "500", color: "#334155" }} className="hidden sm:block">
+                {user?.fullName?.split(' ').slice(-1)[0]}
+              </span>
             </NavLink>
           </div>
         </header>

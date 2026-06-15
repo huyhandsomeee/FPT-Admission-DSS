@@ -1,3 +1,4 @@
+@import "tailwindcss";
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
 
 /* ==========================================
@@ -394,3 +395,171 @@ body {
 }
 
 .page-fade { animation: fadeIn 0.3s ease-out; }
+
+/* ==========================================
+   Student Portal Custom Styles (No-Tailwind Fallback)
+   ========================================== */
+.student-banner {
+  background: linear-gradient(135deg, #FF6B35 0%, #E85A2A 50%, #C8420E 100%) !important;
+  border-radius: 20px !important;
+  padding: 28px !important;
+  color: white !important;
+  position: relative !important;
+  overflow: hidden !important;
+  box-shadow: 0 10px 25px -5px rgba(232, 90, 42, 0.3) !important;
+}
+
+.student-grid-4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+}
+
+@media (max-width: 1024px) {
+  .student-grid-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-grid-4 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.student-grid-3 {
+  display: grid !important;
+  grid-template-columns: 2fr 1fr !important;
+  gap: 24px !important;
+}
+
+@media (max-width: 1024px) {
+  .student-grid-3 {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.student-card {
+  background: white !important;
+  border-radius: 18px !important;
+  border: 1px solid #F1F5F9 !important;
+  padding: 24px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.025) !important;
+  transition: all 0.25s ease !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+.student-card:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 12px 20px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+}
+
+.student-btn-primary {
+  background: linear-gradient(135deg, #FF6B35, #E85A2A) !important;
+  color: white !important;
+  padding: 12px 24px !important;
+  border-radius: 14px !important;
+  font-weight: 600 !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  box-shadow: 0 4px 12px rgba(232, 90, 42, 0.2) !important;
+  transition: all 0.2s !important;
+  text-decoration: none !important;
+  border: none !important;
+  cursor: pointer !important;
+}
+
+.student-btn-primary:hover {
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 16px rgba(232, 90, 42, 0.3) !important;
+}
+
+.student-kpi-icon {
+  width: 48px !important;
+  height: 48px !important;
+  border-radius: 14px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-bottom: 16px !important;
+}
+
+.student-step-container {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  margin-bottom: 24px !important;
+  position: relative !important;
+  padding: 0 10px !important;
+}
+
+.student-step-line {
+  position: absolute !important;
+  left: 30px !important;
+  right: 30px !important;
+  top: 18px !important;
+  height: 3px !important;
+  background-color: #E2E8F0 !important;
+  z-index: 0 !important;
+}
+
+.student-step-node {
+  position: relative !important;
+  z-index: 10 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+.student-step-circle {
+  width: 36px !important;
+  height: 36px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  transition: all 0.2s ease !important;
+}
+
+.student-action-grid {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+  margin-top: 24px !important;
+}
+
+@media (max-width: 1024px) {
+  .student-action-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .student-action-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+.student-action-card {
+  background: white !important;
+  border-radius: 18px !important;
+  border: 1px solid #F1F5F9 !important;
+  padding: 24px !important;
+  text-align: left !important;
+  text-decoration: none !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.25s ease !important;
+  display: block !important;
+}
+
+.student-action-card:hover {
+  border-color: #FF8C5A !important;
+  transform: translateY(-3px) !important;
+  box-shadow: 0 12px 24px rgba(255, 107, 53, 0.1) !important;
+}
+

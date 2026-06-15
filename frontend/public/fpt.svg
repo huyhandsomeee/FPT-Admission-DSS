@@ -1,0 +1,11 @@
+<svg viewBox="0 0 120 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- FPT corporate logo shapes: Three stylized colored ribbons/curves -->
+  <g transform="translate(10, 5)">
+    <!-- Orange curve -->
+    <path d="M 12 60 C 12 35, 30 15, 60 10 C 42 28, 30 50, 24 70 Z" fill="#F27125" />
+    <!-- Green curve -->
+    <path d="M 34 75 C 38 48, 52 28, 82 25 C 64 43, 52 65, 46 85 Z" fill="#00A550" />
+    <!-- Blue curve -->
+    <path d="M 56 90 C 62 62, 74 42, 104 40 C 86 58, 74 80, 68 100 Z" fill="#0072BC" />
+  </g>
+</svg>
