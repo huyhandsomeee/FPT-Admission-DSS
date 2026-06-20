@@ -44,56 +44,87 @@ const STATUS_STYLE = {
   REJECTED: { bg: "#FEE2E2", color: "#991B1B", label: "REJECTED" },
 };
 
-// Custom donut center label
-const DonutLabel = ({ viewBox, total }) => {
-  const { cx, cy } = viewBox;
-  return (
-    <g>
-      <text x={cx} y={cy - 6} textAnchor="middle" fill="#1E293B" fontSize={22} fontWeight={800}>
-        20k
-      </text>
-      <text x={cx} y={cy + 14} textAnchor="middle" fill="#94A3B8" fontSize={11} fontWeight={500}>
-        TOTAL
-      </text>
-    </g>
-  );
+const getInitials = (name) => {
+  if (!name) return "??";
+  const parts = name.trim().split(" ");
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
 export default function ManagerDashboard() {
-  const [stats, setStats] = useState(MOCK_STATS);
+  const [stats, setStats] = useState(null);
+  const [trendData, setTrendData] = useState([]);
+  const [recentRecords, setRecentRecords] = useState([]);
 
   useEffect(() => {
-    api.get("/api/manager/dashboard").then(r => setStats(r.data)).catch(() => {});
+    api.get("/api/manager/dashboard")
+      .then(r => {
+        if (r.data) setStats(r.data);
+      })
+      .catch(() => {});
+
+    api.get("/api/manager/analytics/trends")
+      .then(r => {
+        if (Array.isArray(r.data)) {
+          const mapped = r.data.map(item => ({
+            year: String(item.year),
+            hồSơ: item.applications,
+            nhậpHọc: item.enrolled
+          }));
+          setTrendData(mapped);
+        }
+      })
+      .catch(() => {});
+
+    api.get("/api/officer/applications?page=0&size=5")
+      .then(r => {
+        const data = r.data?.content;
+        if (Array.isArray(data)) {
+          const mapped = data.map(app => ({
+            id: app.id,
+            name: app.studentName,
+            initials: getInitials(app.studentName),
+            major: app.majorName,
+            region: app.campusName,
+            status: app.status,
+            gpa: app.totalScore
+          }));
+          setRecentRecords(mapped);
+        }
+      })
+      .catch(() => {});
   }, []);
+
+  const displayStats = stats || MOCK_STATS;
+  const enrolledRate = displayStats.quota > 0 ? Math.round((displayStats.enrolled / displayStats.quota) * 100) : 0;
+  const approvedRate = displayStats.totalApplications > 0 ? Math.round((displayStats.approved / displayStats.totalApplications) * 100) : 0;
 
   const kpis = [
     {
-      label: "Tổng hồ sơ 2025", value: "20,000",
-      badge: { text: "+18% VS 2024", bg: "#E8F0FD", color: "#1D4ED8" },
+      label: `Tổng hồ sơ ${displayStats.activeYear || 2026}`, value: displayStats.totalApplications?.toLocaleString() || "0",
+      badge: { text: `Năm học ${displayStats.activeYear || 2026}`, bg: "#E8F0FD", color: "#1D4ED8" },
       icon: "👥", iconBg: "#EFF6FF",
       borderColor: "#2563EB",
     },
     {
-      label: "Đã chấp thuận", value: "14,500",
-      badge: { text: "72.5% APPROVED", bg: "#D1FAE5", color: "#065F46" },
+      label: "Đã chấp thuận", value: displayStats.approved?.toLocaleString() || "0",
+      badge: { text: `${approvedRate}% APPROVED`, bg: "#D1FAE5", color: "#065F46" },
       icon: "✅", iconBg: "#ECFDF5",
       borderColor: "#059669",
     },
     {
-      label: "Đã nhập học", value: "12,000",
-      badge: { text: "60% CHỈ TIÊU", bg: "#EFF6FF", color: "#1D4ED8" },
+      label: "Đã nhập học", value: displayStats.enrolled?.toLocaleString() || "0",
+      badge: { text: `${enrolledRate}% CHỈ TIÊU`, bg: "#EFF6FF", color: "#1D4ED8" },
       icon: "🎓", iconBg: "#EFF6FF",
       borderColor: "#2563EB",
     },
     {
-      label: "Chỉ tiêu 2025", value: "20,000",
-      badge: { text: "ĐẠT 60%", bg: "#FEF3C7", color: "#92400E" },
+      label: `Chỉ tiêu ${displayStats.activeYear || 2026}`, value: displayStats.quota?.toLocaleString() || "0",
+      badge: { text: `ĐẠT ${enrolledRate}%`, bg: "#FEF3C7", color: "#92400E" },
       icon: "🎯", iconBg: "#FFF7ED",
       borderColor: "#D97706",
     },
   ];
-
-  const totalStatus = STATUS_DATA.reduce((s, d) => s + d.value, 0);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -102,7 +133,7 @@ export default function ManagerDashboard() {
         <div>
           <h1 style={{ margin: 0, fontWeight: 800, fontSize: 26, color: "#0F172A" }}>Dashboard Trưởng phòng</h1>
           <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-            Tổng quan tuyển sinh năm 2025 - Cập nhật thời gian thực
+            Tổng quan tuyển sinh năm {displayStats.activeYear || 2026} - Cập nhật thời gian thực
           </p>
         </div>
         <div style={{
@@ -165,10 +196,10 @@ export default function ManagerDashboard() {
             ))}
           </div>
           <ResponsiveContainer width="100%" height={240}>
-            <LineChart data={TREND_DATA} margin={{ right: 10 }}>
+            <LineChart data={trendData.length > 0 ? trendData : TREND_DATA} margin={{ right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+              <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
               <Tooltip
                 contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0", boxShadow: "0 4px 16px rgba(0,0,0,0.1)" }}
                 formatter={(v) => v.toLocaleString()}
@@ -181,24 +212,38 @@ export default function ManagerDashboard() {
 
         {/* Donut Chart */}
         <div style={{ background: "white", borderRadius: 16, padding: 24, border: "1px solid #E8EDF5", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
-          <h3 style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Trạng thái hồ sơ 2025</h3>
+          <h3 style={{ margin: "0 0 4px", fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Trạng thái hồ sơ {displayStats.activeYear || 2026}</h3>
           <ResponsiveContainer width="100%" height={200}>
             <PieChart>
               <Pie
-                data={STATUS_DATA}
+                data={[
+                  { name: "Đã duyệt", value: displayStats.approved || 0, color: "#059669" },
+                  { name: "Đang xét", value: displayStats.underReview || 0, color: "#D97706" },
+                  { name: "Từ chối", value: displayStats.rejected || 0, color: "#DC2626" },
+                ]}
                 cx="50%" cy="50%"
                 innerRadius={62} outerRadius={90}
                 paddingAngle={3} dataKey="value"
                 startAngle={90} endAngle={-270}
               >
-                {STATUS_DATA.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                {[
+                  { name: "Đã duyệt", value: displayStats.approved || 0, color: "#059669" },
+                  { name: "Đang xét", value: displayStats.underReview || 0, color: "#D97706" },
+                  { name: "Từ chối", value: displayStats.rejected || 0, color: "#DC2626" },
+                ].map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Pie>
-              <text x="50%" y="44%" textAnchor="middle" dominantBaseline="middle" fill="#1E293B" fontSize={22} fontWeight={800}>20k</text>
+              <text x="50%" y="44%" textAnchor="middle" dominantBaseline="middle" fill="#1E293B" fontSize={22} fontWeight={800}>
+                {displayStats.totalApplications || 0}
+              </text>
               <text x="50%" y="57%" textAnchor="middle" dominantBaseline="middle" fill="#94A3B8" fontSize={11}>TOTAL</text>
             </PieChart>
           </ResponsiveContainer>
           <div style={{ display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
-            {STATUS_DATA.map(item => (
+            {[
+              { name: "Đã duyệt", value: displayStats.approved || 0, color: "#059669" },
+              { name: "Đang xét", value: displayStats.underReview || 0, color: "#D97706" },
+              { name: "Từ chối", value: displayStats.rejected || 0, color: "#DC2626" },
+            ].map(item => (
               <div key={item.name} style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ width: 10, height: 10, borderRadius: "50%", background: item.color }} />

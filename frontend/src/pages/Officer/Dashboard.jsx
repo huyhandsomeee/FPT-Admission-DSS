@@ -52,14 +52,27 @@ function getInitials(name) {
 
 export default function OfficerDashboard() {
   const [stats, setStats] = useState(MOCK_STATS);
+  const [recentApps, setRecentApps] = useState([]);
+  const [loadingRecent, setLoadingRecent] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     api.get("/api/officer/dashboard")
       .then(r => {
-        if (r.data && r.data.totalApplications > 0) setStats(r.data);
+        if (r.data) setStats(r.data);
       })
       .catch(() => {});
+
+    setLoadingRecent(true);
+    api.get("/api/officer/applications?page=0&size=5")
+      .then(r => {
+        const data = r.data?.content;
+        if (Array.isArray(data)) {
+          setRecentApps(data);
+        }
+      })
+      .catch(err => console.error("Error fetching recent apps:", err))
+      .finally(() => setLoadingRecent(false));
   }, []);
 
   const kpis = [
@@ -119,7 +132,7 @@ export default function OfficerDashboard() {
           Dashboard - Nhân viên tuyển sinh
         </h1>
         <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-          Tổng quan tình hình tuyển sinh năm học 2024-2025
+          Tổng quan tình hình tuyển sinh năm học {stats.activeYear || 2026}
         </p>
       </div>
 
@@ -199,7 +212,7 @@ export default function OfficerDashboard() {
                 fontSize: 13, color: i === 0 ? "#FF6B35" : "#64748B",
                 cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s"
               }}>
-                {tab.label} ({tab.count.toLocaleString()})
+                {tab.label} ({(tab.count || 0).toLocaleString()})
               </button>
             ))}
           </div>
@@ -217,7 +230,7 @@ export default function OfficerDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {MOCK_RECENT.map((app, idx) => {
+                {(recentApps.length > 0 ? recentApps : MOCK_RECENT).map((app, idx) => {
                   const avatarC = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                   const statusC = STATUS_COLORS[app.status] || STATUS_COLORS.DRAFT;
                   return (
@@ -240,12 +253,12 @@ export default function OfficerDashboard() {
                           </div>
                           <div>
                             <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
-                            <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.email}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.studentEmail || app.email}</div>
                           </div>
                         </div>
                       </td>
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748B", borderBottom: "1px solid #F8FAFC" }}>
-                        {app.submittedAt}
+                        {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp"}
                       </td>
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
                         <span style={{
@@ -272,7 +285,9 @@ export default function OfficerDashboard() {
 
           {/* Pagination */}
           <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #F1F5F9" }}>
-            <span style={{ fontSize: 13, color: "#64748B" }}>Hiển thị 10 trong tổng số 1,248 hồ sơ</span>
+            <span style={{ fontSize: 13, color: "#64748B" }}>
+              Hiển thị {recentApps.length} trong tổng số {(stats.totalApplications || recentApps.length).toLocaleString()} hồ sơ
+            </span>
             <div style={{ display: "flex", gap: 6 }}>
               {["‹", "1", "2", "3", "›"].map((p, i) => (
                 <button key={i} style={{
@@ -299,16 +314,23 @@ export default function OfficerDashboard() {
             <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, background: "rgba(255,107,53,0.15)", borderRadius: "50%" }} />
             <div style={{ position: "absolute", bottom: -30, right: 20, width: 60, height: 60, background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
             <div style={{ fontSize: 13, fontWeight: 700, color: "white", marginBottom: 4 }}>Chỉ tiêu Tuyển sinh</div>
-            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.8)", marginBottom: 14 }}>Năm học 2024-2025</div>
+            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.8)", marginBottom: 14 }}>Năm học {stats.activeYear || 2026}</div>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 34, fontWeight: 900, color: "white" }}>85%</span>
-              <span style={{ fontSize: 13, color: "#22C55E", fontWeight: 700 }}>↑ 12%</span>
+              <span style={{ fontSize: 34, fontWeight: 900, color: "white" }}>
+                {stats.quota > 0 ? Math.round((stats.enrolled / stats.quota) * 100) : 0}%
+              </span>
+              <span style={{ fontSize: 13, color: "#22C55E", fontWeight: 700 }}>↑ Động</span>
             </div>
             <div style={{ fontSize: 11, color: "rgba(148,163,184,0.7)", marginBottom: 12 }}>
-              Đã đạt 4,250 / 5,000 chỉ tiêu
+              Đã đạt {(stats.enrolled || 0).toLocaleString()} / {(stats.quota || 18000).toLocaleString()} chỉ tiêu
             </div>
             <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{ width: "85%", height: "100%", background: "linear-gradient(90deg, #FF6B35, #FF8C5A)", borderRadius: 99 }} />
+              <div style={{
+                width: `${stats.quota > 0 ? Math.min(100, Math.round((stats.enrolled / stats.quota) * 100)) : 0}%`,
+                height: "100%",
+                background: "linear-gradient(90deg, #FF6B35, #FF8C5A)",
+                borderRadius: 99
+              }} />
             </div>
             {/* Graduation icon */}
             <div style={{ position: "absolute", bottom: 14, right: 16, opacity: 0.15 }}>

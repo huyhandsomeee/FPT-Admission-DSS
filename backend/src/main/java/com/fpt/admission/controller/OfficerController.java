@@ -10,6 +10,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.*;
 
 @RestController
@@ -20,6 +21,8 @@ public class OfficerController {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
+    private final JdbcTemplate jdbcTemplate;
+    private final AdmissionYearRepository admissionYearRepository;
 
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard() {
@@ -30,6 +33,16 @@ public class OfficerController {
         data.put("approved", applicationRepository.countByStatus(ApplicationStatus.APPROVED));
         data.put("rejected", applicationRepository.countByStatus(ApplicationStatus.REJECTED));
         data.put("enrolled", applicationRepository.countByStatus(ApplicationStatus.ENROLLED));
+
+        var activeYear = admissionYearRepository.findByStatus("ACTIVE")
+            .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElse(null));
+        if (activeYear != null) {
+            data.put("activeYear", activeYear.getYear());
+            data.put("quota", activeYear.getQuotaTotal());
+        } else {
+            data.put("activeYear", 2026);
+            data.put("quota", 18000);
+        }
         return ResponseEntity.ok(data);
     }
 
@@ -111,6 +124,48 @@ public class OfficerController {
         m.put("officerNotes", a.getOfficerNotes());
         m.put("reviewedAt", a.getReviewedAt());
         m.put("studentPhone", a.getStudentProfile().getUser().getPhone());
+
+        // Fetch academic background
+        try {
+            List<Map<String, Object>> academicList = jdbcTemplate.queryForList(
+                "SELECT school_name as schoolName, graduation_year as graduationYear, " +
+                "gpa_10 as gpa10, gpa_11 as gpa11, gpa_12 as gpa12, " +
+                "math_score as mathScore, literature_score as literatureScore, english_score as englishScore, " +
+                "total_score as totalScore, ielts_score as ieltsScore, sat_score as satScore, toefl_score as toeflScore " +
+                "FROM academic_backgrounds WHERE student_profile_id = ?",
+                a.getStudentProfile().getId()
+            );
+            if (!academicList.isEmpty()) {
+                m.put("academicBackground", academicList.get(0));
+            } else {
+                m.put("academicBackground", null);
+            }
+        } catch (Exception e) {
+            m.put("academicBackground", null);
+        }
+
+        // Fetch documents
+        try {
+            List<Map<String, Object>> docs = jdbcTemplate.queryForList(
+                "SELECT ad.file_name as name, dt.name as descName, ad.status " +
+                "FROM application_documents ad " +
+                "JOIN document_types dt ON ad.document_type_id = dt.id " +
+                "WHERE ad.application_id = ?",
+                a.getId()
+            );
+            List<Map<String, Object>> formattedDocs = docs.stream().map(doc -> {
+                Map<String, Object> docMap = new LinkedHashMap<>();
+                docMap.put("name", doc.get("name"));
+                docMap.put("desc", doc.get("descName"));
+                String statusStr = String.valueOf(doc.get("status")).toLowerCase();
+                docMap.put("status", statusStr.equals("verified") ? "uploaded" : statusStr);
+                return docMap;
+            }).toList();
+            m.put("documents", formattedDocs);
+        } catch (Exception e) {
+            m.put("documents", List.of());
+        }
+
         return m;
     }
 }

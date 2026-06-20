@@ -31,13 +31,44 @@ function getInitials(name) {
 export default function ApplicationReview() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [app] = useState(MOCK_APP);
+  const [app, setApp] = useState(null);
+  const [docs, setDocs] = useState([]);
   const [notes, setNotes] = useState("");
   const [score, setScore] = useState("");
   const [decision, setDecision] = useState("Duyệt");
   const [showDecisionDropdown, setShowDecisionDropdown] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingApp, setLoadingApp] = useState(true);
   const [action, setAction] = useState("");
+
+  useEffect(() => {
+    setLoadingApp(true);
+    api.get(`/api/officer/applications/${id}`)
+      .then(r => {
+        if (r.data) {
+          setApp(r.data);
+          if (r.data.documents) {
+            setDocs(r.data.documents);
+          } else {
+            setDocs(MOCK_DOCS);
+          }
+          if (r.data.officerNotes) {
+            setNotes(r.data.officerNotes);
+          }
+          if (r.data.totalScore) {
+            setScore(r.data.totalScore);
+          }
+          if (r.data.status) {
+            const statusLabelMap = { "APPROVED": "Duyệt", "UNDER_REVIEW": "Bổ sung", "REJECTED": "Từ chối" };
+            setDecision(statusLabelMap[r.data.status] || "Duyệt");
+          }
+        }
+      })
+      .catch(err => {
+        console.error("Lỗi khi tải chi tiết hồ sơ:", err);
+      })
+      .finally(() => setLoadingApp(false));
+  }, [id]);
 
   const updateStatus = async (status) => {
     setLoading(true);
@@ -56,6 +87,14 @@ export default function ApplicationReview() {
     const statusMap = { "Duyệt": "APPROVED", "Bổ sung": "UNDER_REVIEW", "Từ chối": "REJECTED" };
     updateStatus(statusMap[decision] || "UNDER_REVIEW");
   };
+
+  if (loadingApp || !app) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "400px", fontSize: "16px", color: "#64748B", fontWeight: 600 }}>
+        Đang tải dữ liệu hồ sơ thí sinh...
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -113,31 +152,46 @@ export default function ApplicationReview() {
                     CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM<br />
                     <strong>Độc lập - Tự do - Hạnh phúc</strong>
                   </div>
-                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 800, color: "#111827" }}>HỌC BẠ THPT</div>
+                  <div style={{ marginTop: 10, fontSize: 15, fontWeight: 800, color: "#111827" }}>BẢNG ĐIỂM XÉT TUYỂN CHI TIẾT</div>
                   <div style={{ fontSize: 10, color: "#9CA3AF", marginTop: 4 }}>Mã hồ sơ: {app.applicationCode}</div>
                 </div>
-                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
-                  <thead>
-                    <tr style={{ background: "#F3F4F6" }}>
-                      {["STT", "Môn học", "Điểm TB", "Điểm tốt nghiệp"].map(h => (
-                        <th key={h} style={{ padding: "5px 8px", textAlign: "left", border: "1px solid #E5E7EB", color: "#374151" }}>{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[["1", "Toán", "8.5", "8.2"], ["2", "Vật lý", "7.5", "7.8"], ["3", "Hóa học", "8.0", "7.9"], ["4", "Tiếng Anh", "9.0", "8.5"]].map(([n, m, d1, d2]) => (
-                      <tr key={n}>
-                        <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB" }}>{n}</td>
-                        <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB" }}>{m}</td>
-                        <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB" }}>{d1}</td>
-                        <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB" }}>{d2}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {app.academicBackground ? (
+                  <div>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: "#374151", marginBottom: 8, paddingBottom: 6, borderBottom: "1px solid #E5E7EB" }}>
+                      Trường THPT: {app.academicBackground.schoolName || "N/A"} ({app.academicBackground.graduationYear || "N/A"})
+                    </div>
+                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 10 }}>
+                      <thead>
+                        <tr style={{ background: "#F3F4F6" }}>
+                          {["Môn học / GPA", "Điểm số thực tế"].map(h => (
+                            <th key={h} style={{ padding: "6px 8px", textAlign: "left", border: "1px solid #E5E7EB", color: "#374151", fontWeight: 700 }}>{h}</th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {[
+                          ["Điểm Toán", app.academicBackground.mathScore],
+                          ["Điểm Ngữ văn", app.academicBackground.literatureScore],
+                          ["Điểm Tiếng Anh", app.academicBackground.englishScore],
+                          ["GPA Lớp 10", app.academicBackground.gpa10],
+                          ["GPA Lớp 11", app.academicBackground.gpa11],
+                          ["GPA Lớp 12", app.academicBackground.gpa12],
+                          ["IELTS Score", app.academicBackground.ieltsScore],
+                          ["SAT Score", app.academicBackground.satScore],
+                        ].filter(([_, v]) => v !== null && v !== undefined).map(([name, scoreVal]) => (
+                          <tr key={name}>
+                            <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB", fontWeight: 600 }}>{name}</td>
+                            <td style={{ padding: "5px 8px", border: "1px solid #E5E7EB", color: "#FF6B35", fontWeight: 700 }}>{scoreVal}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p style={{ fontSize: 11, color: "#6B7280", textAlign: "center" }}>Chưa có thông tin điểm số học tập</p>
+                )}
                 <div style={{ marginTop: 16, textAlign: "right", fontSize: 10, color: "#6B7280" }}>
-                  <em>Hà Nội, ngày 12 tháng 11 năm 2022</em>
-                  <div style={{ marginTop: 8, fontWeight: 700, color: "#374151" }}>HIỆU TRƯỞNG<br />Nguyễn Văn Xuân</div>
+                  <em>Hệ thống FPT Admission DSS</em>
                 </div>
               </div>
             </div>
@@ -174,7 +228,7 @@ export default function ApplicationReview() {
           }}>
             <h3 style={{ margin: "0 0 16px", fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Danh sách tài liệu</h3>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {MOCK_DOCS.map((doc, i) => (
+              {docs.map((doc, i) => (
                 <div key={i} style={{
                   display: "flex", alignItems: "center", justifyContent: "space-between",
                   padding: "12px 16px", background: "#F8FAFC", borderRadius: 12,
@@ -189,10 +243,10 @@ export default function ApplicationReview() {
                   </div>
                   <span style={{
                     fontSize: 12, fontWeight: 700, padding: "4px 10px", borderRadius: 999,
-                    background: doc.status === "uploaded" ? "#D1FAE5" : "#FEF3C7",
-                    color: doc.status === "uploaded" ? "#065F46" : "#92400E"
+                    background: doc.status === "uploaded" ? "#D1FAE5" : doc.status === "rejected" ? "#FEE2E2" : "#FEF3C7",
+                    color: doc.status === "uploaded" ? "#065F46" : doc.status === "rejected" ? "#991B1B" : "#92400E"
                   }}>
-                    {doc.status === "uploaded" ? "✓ Đã tải lên" : "Đang chờ"}
+                    {doc.status === "uploaded" ? "✓ Đã tải lên" : doc.status === "rejected" ? "Từ chối" : "Đang chờ"}
                   </span>
                 </div>
               ))}

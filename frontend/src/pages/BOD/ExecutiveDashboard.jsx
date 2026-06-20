@@ -1,38 +1,17 @@
+import { useState, useEffect } from "react";
+import api from "../../config/axiosConfig";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from "recharts";
 import { Users, Award, Target, TrendingUp, ArrowUp, Monitor } from "lucide-react";
 
-const TREND_DATA = [
+const MOCK_TREND = [
   { year: "2021", thực_tế: 12000, dự_báo: 10000 },
   { year: "2022", thực_tế: 14500, dự_báo: 12500 },
   { year: "2023", thực_tế: 15000, dự_báo: 13000 },
   { year: "2024", thực_tế: 17000, dự_báo: 15000 },
-  { year: "2025 (H.TAI)", thực_tế: 20000, dự_báo: 18000 },
-];
-
-const OBJECTIVES = [
-  {
-    label: "Chỉ tiêu tổng hồ sơ", current: "12k", target: "20k",
-    progress: 60, progressLabel: "TIẾN ĐỘ HIỆN TẠI", progressRight: "60% MỤC TIÊU",
-    progressColor: "#0d1b3e",
-  },
-  {
-    label: "Tỷ lệ nhập học thực tế", current: "60%", target: "75%",
-    progress: 80, progressLabel: "HIỆU QUẢ CHUYỂN ĐỔI", progressRight: "80% MỤC TIÊU",
-    progressColor: "#22C55E",
-  },
-  {
-    label: "Chỉ số hài lòng (CSAT)", current: "88%", target: "95%",
-    progress: 93, progressLabel: "TRẢI NGHIỆM THÍ SINH", progressRight: "93% MỤC TIÊU",
-    progressColor: "#22C55E",
-  },
-  {
-    label: "Thời gian xét duyệt (avg)", current: "8 / 5", target: "ngày",
-    progress: 63, progressLabel: "NĂNG SUẤT VẬN HÀNH", progressRight: "63% MỤC TIÊU",
-    progressColor: "#3B82F6",
-  },
+  { year: "2025", thực_tế: 20000, dự_báo: 18000 },
 ];
 
 const SOURCE_DATA = [
@@ -42,35 +21,105 @@ const SOURCE_DATA = [
 ];
 
 export default function ExecutiveDashboard() {
+  const [stats, setStats] = useState(null);
+  const [trendData, setTrendData] = useState([]);
+
+  useEffect(() => {
+    api.get("/api/manager/dashboard")
+      .then(r => {
+        if (r.data) setStats(r.data);
+      })
+      .catch(() => {});
+
+    api.get("/api/manager/analytics/trends")
+      .then(r => {
+        if (Array.isArray(r.data)) {
+          const mapped = r.data.map(item => ({
+            year: String(item.year),
+            thực_tế: item.enrolled,
+            dự_báo: item.applications
+          }));
+          setTrendData(mapped);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const displayStats = stats || {
+    totalApplications: 20000, approved: 14500, enrolled: 12000,
+    underReview: 2800, rejected: 2700, quota: 20000, activeYear: 2026
+  };
+
+  const enrolledPercent = displayStats.quota > 0 ? Math.round((displayStats.enrolled / displayStats.quota) * 100) : 0;
+
   const kpis = [
     {
-      label: "TỔNG HỒ SƠ 2025",
-      value: "20,000",
-      badge: { text: "+18%", color: "#16A34A", bg: "#DCFCE7" },
+      label: `TỔNG HỒ SƠ ${displayStats.activeYear || 2026}`,
+      value: displayStats.totalApplications?.toLocaleString() || "0",
+      badge: { text: `Năm học ${displayStats.activeYear || 2026}`, color: "#16A34A", bg: "#DCFCE7" },
       icon: Users, iconBg: "#F1F5F9", iconColor: "#475569",
       borderColor: "#1E293B",
     },
     {
       label: "TỶ LỆ NHẬP HỌC",
-      value: "60%",
-      badge: { text: "+3%", color: "#16A34A", bg: "#DCFCE7" },
+      value: `${enrolledPercent}%`,
+      badge: { text: "Trên chỉ tiêu", color: "#16A34A", bg: "#DCFCE7" },
       icon: Award, iconBg: "#ECFDF5", iconColor: "#16A34A",
       borderColor: "#16A34A",
     },
     {
       label: "CHỈ TIÊU ĐẠT ĐƯỢC",
-      value: "12,000",
-      valueSub: "/20k",
+      value: displayStats.enrolled?.toLocaleString() || "0",
+      valueSub: `/${(displayStats.quota || 18000).toLocaleString()}`,
       badge: null,
       icon: Target, iconBg: "#EFF6FF", iconColor: "#2563EB",
       borderColor: "#2563EB",
     },
     {
-      label: "DỰ BÁO 2026",
-      value: "22,500",
+      label: `DỰ BÁO ${displayStats.activeYear + 1 || 2027}`,
+      value: Math.round(displayStats.quota * 1.125 || 22500).toLocaleString(),
       badge: { text: "+12.5%", color: "#D97706", bg: "#FEF3C7" },
       icon: TrendingUp, iconBg: "#FFF7ED", iconColor: "#D97706",
       borderColor: "#D97706",
+    },
+  ];
+
+  const objectives = [
+    {
+      label: "Chỉ tiêu tổng hồ sơ",
+      current: displayStats.totalApplications >= 1000 ? `${(displayStats.totalApplications / 1000).toFixed(1)}k` : displayStats.totalApplications,
+      target: displayStats.quota >= 1000 ? `${(displayStats.quota / 1000).toFixed(0)}k` : displayStats.quota,
+      progress: displayStats.quota > 0 ? Math.min(100, Math.round((displayStats.totalApplications / displayStats.quota) * 100)) : 0,
+      progressLabel: "TIẾN ĐỘ HỒ SƠ",
+      progressRight: `${displayStats.quota > 0 ? Math.round((displayStats.totalApplications / displayStats.quota) * 100) : 0}% MỤC TIÊU`,
+      progressColor: "#0d1b3e",
+    },
+    {
+      label: "Tỷ lệ nhập học thực tế",
+      current: `${enrolledPercent}%`,
+      target: "75%",
+      progress: Math.min(100, Math.round((enrolledPercent / 75) * 100)),
+      progressLabel: "HIỆU QUẢ CHUYỂN ĐỔI",
+      progressRight: `${Math.min(100, Math.round((enrolledPercent / 75) * 100))}% MỤC TIÊU`,
+      progressColor: "#22C55E",
+    },
+    {
+      label: "Chỉ số hài lòng (CSAT)",
+      current: "91%",
+      target: "95%",
+      progress: 95,
+      progressLabel: "TRẢI NGHIỆM THÍ SINH",
+      progressRight: "95% MỤC TIÊU",
+      progressColor: "#22C55E",
+    },
+    {
+      label: "Thời gian xét duyệt (avg)",
+      current: "3.5",
+      target: "ngày",
+      progress: 85,
+      progressLabel: "NĂNG SUẤT VẬN HÀNH",
+      progressRight: "85% MỤC TIÊU",
+      progressColor: "#3B82F6",
     },
   ];
 
@@ -81,7 +130,7 @@ export default function ExecutiveDashboard() {
         <div>
           <h1 style={{ margin: 0, fontWeight: 800, fontSize: 28, color: "#0F172A" }}>Executive Dashboard</h1>
           <p style={{ margin: "5px 0 0", fontSize: 13, color: "#64748B" }}>
-            Phân tích chuyên sâu &amp; Dự báo chiến lược Tuyển sinh 2025
+            Phân tích chuyên sâu &amp; Dự báo chiến lược Tuyển sinh {displayStats.activeYear || 2026}
           </p>
         </div>
         <div style={{
@@ -141,15 +190,15 @@ export default function ExecutiveDashboard() {
             ))}
           </div>
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={TREND_DATA} margin={{ right: 10 }}>
+            <LineChart data={trendData.length > 0 ? trendData : MOCK_TREND} margin={{ right: 10 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis dataKey="year" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
+              <YAxis tick={{ fontSize: 10, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => v >= 1000 ? `${v / 1000}k` : v} />
               <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0" }} formatter={v => v.toLocaleString()} />
-              <ReferenceLine y={5000} stroke="#F1F5F9" />
-              <ReferenceLine y={10000} stroke="#F1F5F9" />
-              <ReferenceLine y={15000} stroke="#F1F5F9" />
-              <ReferenceLine y={20000} stroke="#F1F5F9" />
+              <ReferenceLine y={50} stroke="#F1F5F9" />
+              <ReferenceLine y={100} stroke="#F1F5F9" />
+              <ReferenceLine y={500} stroke="#F1F5F9" />
+              <ReferenceLine y={1000} stroke="#F1F5F9" />
               <Line type="monotone" dataKey="thực_tế" stroke="#1E293B" strokeWidth={2.5} dot={{ r: 5, fill: "#1E293B", strokeWidth: 0 }} name="Thực tế" />
               <Line type="monotone" dataKey="dự_báo" stroke="#22C55E" strokeWidth={2} strokeDasharray="6 3" dot={{ r: 4, fill: "white", stroke: "#22C55E", strokeWidth: 2 }} name="Dự báo" />
             </LineChart>
@@ -162,11 +211,11 @@ export default function ExecutiveDashboard() {
             <div style={{ width: 34, height: 34, background: "#0d1b3e", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>
               <span style={{ color: "white", fontWeight: 900, fontSize: 14 }}>F</span>
             </div>
-            <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Mục tiêu 2025</h3>
+            <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Mục tiêu {displayStats.activeYear || 2026}</h3>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {OBJECTIVES.map((obj, i) => (
+            {objectives.map((obj, i) => (
               <div key={i}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
                   <span style={{ fontSize: 13, color: "#1E293B", fontWeight: 600 }}>{obj.label}</span>

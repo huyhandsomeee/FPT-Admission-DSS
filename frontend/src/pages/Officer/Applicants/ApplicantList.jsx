@@ -52,27 +52,44 @@ function getInitials(name) {
 
 export default function ApplicantList() {
   const navigate = useNavigate();
-  const [apps, setApps] = useState(MOCK_APPS);
+  const [apps, setApps] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [statusCounts, setStatusCounts] = useState({
+    "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, ENROLLED: 0
+  });
+
+  useEffect(() => {
+    api.get("/api/officer/dashboard")
+      .then(r => {
+        if (r.data) {
+          const d = r.data;
+          setStatusCounts({
+            "": d.totalApplications || 0,
+            SUBMITTED: d.submitted || 0,
+            UNDER_REVIEW: d.underReview || 0,
+            APPROVED: d.approved || 0,
+            REJECTED: d.rejected || 0,
+            ENROLLED: d.enrolled || 0
+          });
+        }
+      })
+      .catch(err => console.error("Error fetching stats:", err));
+  }, [apps]); // reload stats counts when apps change
 
   useEffect(() => {
     setLoading(true);
     api.get(`/api/officer/applications?status=${statusFilter}&search=${search}`)
       .then(r => {
         const data = r.data?.content;
-        setApps(Array.isArray(data) && data.length > 0 ? data : MOCK_APPS);
+        setApps(Array.isArray(data) ? data : []);
       })
-      .catch(() => setApps(MOCK_APPS))
+      .catch(() => setApps([]))
       .finally(() => setLoading(false));
   }, [statusFilter, search]);
 
-  const filtered = apps.filter(a =>
-    (statusFilter === "" || a.status === statusFilter) &&
-    (search === "" || a.studentName?.toLowerCase().includes(search.toLowerCase()) ||
-      a.applicationCode?.includes(search))
-  );
+  const filtered = apps;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -131,7 +148,7 @@ export default function ApplicantList() {
               color: statusFilter === s ? "#FF6B35" : "#64748B",
               cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s"
             }}>
-              {STATUS_LABELS[s]} ({(STATUS_COUNTS[s] || 0).toLocaleString()})
+              {STATUS_LABELS[s]} ({(statusCounts[s] || 0).toLocaleString()})
             </button>
           ))}
         </div>
@@ -176,7 +193,7 @@ export default function ApplicantList() {
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
-                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.email}</div>
+                          <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.studentEmail || app.email}</div>
                         </div>
                       </div>
                     </td>
@@ -186,7 +203,9 @@ export default function ApplicantList() {
                     </td>
                     <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748B", borderBottom: "1px solid #F8FAFC" }}>{app.methodName}</td>
                     <td style={{ padding: "14px 16px", fontWeight: 800, fontSize: 14, color: "#2563EB", borderBottom: "1px solid #F8FAFC" }}>{app.totalScore}</td>
-                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>{app.submittedAt}</td>
+                    <td style={{ padding: "14px 16px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>
+                      {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp"}
+                    </td>
                     <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
                       <span style={{
                         display: "inline-block", padding: "4px 10px", borderRadius: 999,
@@ -217,7 +236,7 @@ export default function ApplicantList() {
         {/* Pagination */}
         <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #F1F5F9" }}>
           <span style={{ fontSize: 13, color: "#64748B" }}>
-            Hiển thị 10 trong tổng số {filtered.length.toLocaleString()} hồ sơ
+            Hiển thị {filtered.length} trong tổng số {(statusCounts[statusFilter] || filtered.length).toLocaleString()} hồ sơ
           </span>
           <div style={{ display: "flex", gap: 6 }}>
             {["‹", "1", "2", "3", "›"].map((p, i) => (
