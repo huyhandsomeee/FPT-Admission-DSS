@@ -25,4 +25,16 @@ public class FptAdmissionApplication {
         });
         SpringApplication.run(FptAdmissionApplication.class, args);
     }
+
+    @org.springframework.context.annotation.Bean
+    public org.springframework.boot.CommandLineRunner databaseCleanup(org.springframework.jdbc.core.JdbcTemplate jdbcTemplate) {
+        return args -> {
+            try {
+                jdbcTemplate.update("UPDATE applications SET admission_method_id = 2 WHERE admission_method_id = 5");
+                System.out.println("[DB-MIGRATION] Database clean-up query executed successfully.");
+            } catch (Exception e) {
+                System.err.println("[DB-MIGRATION] Failed to clean up database: " + e.getMessage());
+            }
+        };
+    }
 }

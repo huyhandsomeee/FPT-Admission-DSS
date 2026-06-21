@@ -20,6 +20,7 @@ public class Major {
     private String faculty;
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "campus_id")
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private Campus campus;
     private Integer quota = 0;
     @Column(name = "tuition_fee")

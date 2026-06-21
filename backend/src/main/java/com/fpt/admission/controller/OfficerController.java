@@ -2,6 +2,7 @@ package com.fpt.admission.controller;
 
 import com.fpt.admission.entity.Application;
 import com.fpt.admission.entity.enums.ApplicationStatus;
+import com.fpt.admission.entity.enums.UserRole;
 import com.fpt.admission.repository.*;
 import com.fpt.admission.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class OfficerController {
 
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
+    private final StudentProfileRepository studentProfileRepository;
     private final JwtUtil jwtUtil;
     private final JdbcTemplate jdbcTemplate;
     private final AdmissionYearRepository admissionYearRepository;
@@ -60,9 +62,11 @@ public class OfficerController {
         if (status != null && !status.isEmpty()) {
             try { appStatus = ApplicationStatus.valueOf(status); } catch (Exception ignored) {}
         }
+        // Convert empty string to null for JPQL IS NULL check
+        String searchParam = (search != null && !search.isBlank()) ? search : null;
 
         Page<Application> apps = applicationRepository.findWithFilters(
-            appStatus, campusId, majorId, methodId, search,
+            appStatus, campusId, majorId, methodId, searchParam,
             PageRequest.of(page, size, Sort.by("createdAt").descending())
         );
 
@@ -70,6 +74,46 @@ public class OfficerController {
             "content", apps.getContent().stream().map(this::toSummary).toList(),
             "totalElements", apps.getTotalElements(),
             "totalPages", apps.getTotalPages(),
+            "currentPage", page
+        ));
+    }
+
+    @GetMapping("/students")
+    public ResponseEntity<?> getStudents(
+            @RequestParam(required = false) String search,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        var pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        // Convert empty string to null for JPQL IS NULL check
+        String searchParam = (search != null && !search.isBlank()) ? search : null;
+        var users = userRepository.findByRoleAndSearch(UserRole.STUDENT, searchParam, pageable);
+        return ResponseEntity.ok(Map.of(
+            "content", users.getContent().stream().map(u -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", u.getId());
+                m.put("email", u.getEmail());
+                m.put("fullName", u.getFullName());
+                m.put("phone", u.getPhone() != null ? u.getPhone() : "");
+                m.put("isActive", u.getIsActive());
+                m.put("createdAt", u.getCreatedAt());
+                // Get student profile and application info
+                var profile = studentProfileRepository.findByUserId(u.getId()).orElse(null);
+                m.put("hasProfile", profile != null);
+                m.put("studentCode", profile != null ? profile.getStudentCode() : null);
+                if (profile != null) {
+                    var apps = applicationRepository.findByStudentProfileId(profile.getId());
+                    m.put("totalApplications", apps.size());
+                    m.put("latestStatus", apps.isEmpty() ? null : apps.get(0).getStatus().name());
+                    m.put("latestApplicationCode", apps.isEmpty() ? null : apps.get(0).getApplicationCode());
+                } else {
+                    m.put("totalApplications", 0);
+                    m.put("latestStatus", null);
+                    m.put("latestApplicationCode", null);
+                }
+                return m;
+            }).toList(),
+            "totalElements", users.getTotalElements(),
+            "totalPages", users.getTotalPages(),
             "currentPage", page
         ));
     }
@@ -94,6 +138,18 @@ public class OfficerController {
                 app.setStatus(ApplicationStatus.valueOf(newStatus));
                 if (reason != null) app.setRejectionReason(reason);
                 if (body.containsKey("notes")) app.setOfficerNotes(body.get("notes"));
+                
+                // Parse and save total score if provided
+                if (body.containsKey("score") || body.containsKey("totalScore")) {
+                    String scoreStr = body.containsKey("score") ? body.get("score") : body.get("totalScore");
+                    if (scoreStr != null && !scoreStr.isBlank()) {
+                        app.setTotalScore(new java.math.BigDecimal(scoreStr.trim()));
+                    } else {
+                        app.setTotalScore(null);
+                    }
+                }
+                
+                app.setReviewedAt(java.time.LocalDateTime.now());
                 applicationRepository.save(app);
                 return ResponseEntity.ok(Map.of("message", "Cập nhật trạng thái thành công"));
             } catch (Exception e) {
@@ -147,7 +203,7 @@ public class OfficerController {
         // Fetch documents
         try {
             List<Map<String, Object>> docs = jdbcTemplate.queryForList(
-                "SELECT ad.file_name as name, dt.name as descName, ad.status " +
+                "SELECT ad.file_name as name, dt.name as descName, ad.status, ad.file_path as filePath " +
                 "FROM application_documents ad " +
                 "JOIN document_types dt ON ad.document_type_id = dt.id " +
                 "WHERE ad.application_id = ?",
@@ -157,6 +213,7 @@ public class OfficerController {
                 Map<String, Object> docMap = new LinkedHashMap<>();
                 docMap.put("name", doc.get("name"));
                 docMap.put("desc", doc.get("descName"));
+                docMap.put("filePath", doc.get("filePath"));
                 String statusStr = String.valueOf(doc.get("status")).toLowerCase();
                 docMap.put("status", statusStr.equals("verified") ? "uploaded" : statusStr);
                 return docMap;

@@ -30,8 +30,15 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @Query("SELECT a.status, COUNT(a) FROM Application a WHERE a.admissionYear.id = :yearId GROUP BY a.status")
     List<Object[]> countByStatusForYear(@Param("yearId") Long yearId);
 
-    @Query("SELECT a FROM Application a " +
+    @Query(value = "SELECT a FROM Application a " +
            "JOIN FETCH a.studentProfile sp JOIN FETCH sp.user u " +
+           "WHERE (:status IS NULL OR a.status = :status) AND " +
+           "(:campusId IS NULL OR a.campus.id = :campusId) AND " +
+           "(:majorId IS NULL OR a.major.id = :majorId) AND " +
+           "(:methodId IS NULL OR a.admissionMethod.id = :methodId) AND " +
+           "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.applicationCode) LIKE LOWER(CONCAT('%',:search,'%')))",
+           countQuery = "SELECT COUNT(a) FROM Application a " +
+           "JOIN a.studentProfile sp JOIN sp.user u " +
            "WHERE (:status IS NULL OR a.status = :status) AND " +
            "(:campusId IS NULL OR a.campus.id = :campusId) AND " +
            "(:majorId IS NULL OR a.major.id = :majorId) AND " +

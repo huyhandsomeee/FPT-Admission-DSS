@@ -2,12 +2,22 @@
     -- FPT University Admission Management System
     -- Database Setup Script (Run once in MySQL Workbench)
     -- Mật khẩu mặc định tất cả users: 1234
+    -- Năm tuyển sinh hiện tại: 2026
+    -- Cập nhật lần cuối: 2026-06-21
     -- ============================================================
     -- HƯỚNG DẪN:
     --   1. Mở MySQL Workbench, kết nối server
     --   2. Mở file này (File > Open SQL Script)
     --   3. Nhấn Ctrl+Shift+Enter để chạy toàn bộ
     --   4. Sau đó khởi động backend Spring Boot
+    -- ============================================================
+    -- LƯU Ý VỀ ĐỒNG BỘ USERS:
+    --   - Users tạo mới qua API đăng ký sẽ được lưu trực tiếp vào database
+    --   - File này chỉ là dữ liệu mẫu ban đầu (seed data)
+    --   - Để xuất users hiện có ra file SQL, chạy lệnh sau trong MySQL Workbench:
+    --     SELECT CONCAT("INSERT IGNORE INTO users (id,email,password_hash,full_name,phone,role,is_active) VALUES (",
+    --            id,",''",email,"'',''",password_hash,"'',''",full_name,"'',''",IFNULL(phone,''),"'',''",role,"'',",is_active,");") 
+    --     FROM users WHERE role='STUDENT' AND id > 25;
     -- ============================================================
 
     -- Tạo database nếu chưa tồn tại và chọn nó
@@ -428,7 +438,7 @@
     (4,  'FPT2026-004', 4,  3, 4, 16, 2, 1, 21.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
     (5,  'FPT2026-005', 5,  3, 1, 2,  3, 1, 27.00, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
     (6,  'FPT2026-006', 6,  3, 1, 1,  3, 1, 24.30, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
-    (7,  'FPT2026-007', 7,  3, 1, 1,  5, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
+    (7,  'FPT2026-007', 7,  3, 1, 1,  2, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
     (8,  'FPT2026-008', 8,  3, 2, 8,  4, 1, 26.30, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
     (9,  'FPT2026-009', 9,  3, 3, 13, 2, 2, 21.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
     (10, 'FPT2026-010', 10, 3, 4, 16, 1, 1, 24.50, 'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),

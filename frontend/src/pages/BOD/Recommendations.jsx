@@ -198,13 +198,13 @@ export default function BodRecommendations() {
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             {[
               {
-                phase: 1, title: "Chuẩn bị cơ sở hạ tầng (Q1/2025)",
+                phase: 1, title: "Chuẩn bị cơ sở hạ tầng (Q1/2026)",
                 desc: "Mua sắm thiết bị GPU, thiết kế lại chương trình AI nâng cao.",
                 budget: "Ngân sách dự toán: 12 tỷ VNĐ",
                 active: true,
               },
               {
-                phase: 2, title: "Truyền thông & Tuyển sinh (Q2/2025)",
+                phase: 2, title: "Truyền thông & Tuyển sinh (Q2/2026)",
                 desc: "Chiến dịch FPT Pioneer thu hút học sinh giỏi từ các trường chuyên.",
                 budget: "Nhân sự: 15 chuyên viên Marketing",
                 active: false,

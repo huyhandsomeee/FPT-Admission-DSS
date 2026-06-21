@@ -19,7 +19,7 @@ const PAGE_TITLES = {
 };
 
 const PAGE_SUBTITLES = {
-  "/bod/dashboard": "FPT University • 2025 Admissions Cycle",
+  "/bod/dashboard": "FPT University • 2026 Admissions Cycle",
   "/bod/forecast": "Board of Directors Portal • FPT University",
   "/bod/risks": "Board of Directors Portal • FPT University",
   "/bod/recommendations": "Board of Directors Portal • FPT University",
@@ -38,7 +38,7 @@ export default function BodLayout() {
   const ORANGE = "#FF6B35";
 
   const title = PAGE_TITLES[pathname] || "Executive Decision Portal";
-  const subtitle = PAGE_SUBTITLES[pathname] || "FPT University • 2025 Admissions Cycle";
+  const subtitle = PAGE_SUBTITLES[pathname] || "FPT University • 2026 Admissions Cycle";
 
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "#F8FAFC" }}>

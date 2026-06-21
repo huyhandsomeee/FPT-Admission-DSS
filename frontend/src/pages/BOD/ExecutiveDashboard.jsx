@@ -7,11 +7,11 @@ import {
 import { Users, Award, Target, TrendingUp, ArrowUp, Monitor } from "lucide-react";
 
 const MOCK_TREND = [
-  { year: "2021", thực_tế: 12000, dự_báo: 10000 },
   { year: "2022", thực_tế: 14500, dự_báo: 12500 },
   { year: "2023", thực_tế: 15000, dự_báo: 13000 },
   { year: "2024", thực_tế: 17000, dự_báo: 15000 },
   { year: "2025", thực_tế: 20000, dự_báo: 18000 },
+  { year: "2026", thực_tế: 22000, dự_báo: 22500 },
 ];
 
 const SOURCE_DATA = [
@@ -205,7 +205,7 @@ export default function ExecutiveDashboard() {
           </ResponsiveContainer>
         </div>
 
-        {/* Mục tiêu 2025 */}
+        {/* Mục tiêu 2026 */}
         <div style={{ background: "white", borderRadius: 16, padding: 24, border: "1px solid #E8EDF5", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
             <div style={{ width: 34, height: 34, background: "#0d1b3e", borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center" }}>

@@ -3,7 +3,7 @@ import { Download, FileText, BarChart3, Users, TrendingUp, Filter, FolderOpen } 
 
 const REPORTS = [
   {
-    name: "Báo cáo tổng hợp tuyển sinh 2025",
+    name: "Báo cáo tổng hợp tuyển sinh 2026",
     type: "EXCEL", typeColor: "#16A34A", typeBg: "#DCFCE7",
     size: "2.4 MB",
     updated: "Cập nhật 2 giờ trước",
@@ -27,7 +27,7 @@ const REPORTS = [
     iconBg: "#EFF6FF", iconColor: "#2563EB",
   },
   {
-    name: "Dự báo tuyển sinh 2026-2028",
+    name: "Dự báo tuyển sinh 2027-2029",
     type: "PDF", typeColor: "#DC2626", typeBg: "#FEE2E2",
     size: "1.5 MB",
     updated: "Cập nhật 3 ngày trước",
@@ -48,7 +48,7 @@ const SUMMARY_STATS = [
     icon: Download, iconBg: "#FFF7ED", iconColor: "#D97706",
   },
   {
-    label: "Cập nhật lần cuối", value: "15/10/2024, 08:30",
+    label: "Cập nhật lần cuối", value: "21/06/2026, 08:30",
     icon: null, iconBg: "#F1F5F9", iconColor: "#475569",
     small: true,
   },

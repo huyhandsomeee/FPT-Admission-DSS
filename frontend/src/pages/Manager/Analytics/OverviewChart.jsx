@@ -12,29 +12,29 @@ const MONTHLY_DATA = [
 ];
 
 const YOY_DATA = [
-  { year: "2021", tích_lũy: 12000 },
   { year: "2022", tích_lũy: 14500 },
   { year: "2023", tích_lũy: 15000 },
   { year: "2024", tích_lũy: 17000 },
   { year: "2025", tích_lũy: 20000 },
+  { year: "2026", tích_lũy: 22000 },
 ];
 
 const FORECAST_ENROLLMENT = [
-  { year: "2025", thực_tế: 12000, dự_báo: 12000 },
-  { year: "2026", thực_tế: null, dự_báo: 13500 },
+  { year: "2026", thực_tế: 13500, dự_báo: 13500 },
   { year: "2027", thực_tế: null, dự_báo: 15200 },
   { year: "2028", thực_tế: null, dự_báo: 17000 },
+  { year: "2029", thực_tế: null, dự_báo: 19000 },
 ];
 
-const YEARS = ["2025", "2024", "2023"];
+const YEARS = ["2026", "2025", "2024"];
 
 export default function OverviewChart() {
-  const [selectedYear, setSelectedYear] = useState("2025");
+  const [selectedYear, setSelectedYear] = useState("2026");
 
   const summaryStats = [
     { label: "Tăng trưởng YoY", value: "+18%", color: "#16A34A", iconBg: "#F0FDF4", icon: TrendingUp, borderColor: "#16A34A" },
     { label: "Tháng cao điểm", value: "T3 - T4", color: "#2563EB", iconBg: "#EFF6FF", icon: Calendar, borderColor: "#2563EB" },
-    { label: "Dự báo 2026", value: "23,600", color: "#D97706", iconBg: "#FFF7ED", icon: BarChart2, borderColor: "#D97706" },
+    { label: "Dự báo 2027", value: "25,200", color: "#D97706", iconBg: "#FFF7ED", icon: BarChart2, borderColor: "#D97706" },
   ];
 
   return (
@@ -137,7 +137,7 @@ export default function OverviewChart() {
       <div style={{ background: "white", borderRadius: 16, padding: 24, border: "1px solid #E8EDF5", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 6 }}>
           <div>
-            <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Dự báo tỷ lệ nhập học (2025-2028)</h3>
+            <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1E293B" }}>Dự báo tỷ lệ nhập học (2026-2029)</h3>
             <p style={{ margin: "3px 0 0", fontSize: 12, color: "#94A3B8" }}>Mô hình phân tích xu hướng dài hạn (ARIMA Model applied)</p>
           </div>
           <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", color: "#7C3AED", background: "#F5F3FF", padding: "4px 10px", borderRadius: 6 }}>
@@ -151,7 +151,7 @@ export default function OverviewChart() {
           borderRadius: 10, padding: "10px 14px", display: "inline-block",
           marginBottom: 16, marginTop: 8
         }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", marginBottom: 4 }}>2026</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: "#1D4ED8", marginBottom: 4 }}>2027</div>
           <div style={{ fontSize: 13, display: "flex", gap: 16 }}>
             <span>Dự báo: <strong style={{ color: "#1D4ED8" }}>13,500</strong></span>
             <span>Thực tế: <strong style={{ color: "#16A34A" }}>12,800</strong></span>

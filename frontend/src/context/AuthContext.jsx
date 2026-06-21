@@ -47,6 +47,13 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const register = async (email, password, fullName, phone) => {
+    const data = await authService.register(email, password, fullName, phone);
+    setUser(data);
+    setIsAuthenticated(true);
+    return data;
+  };
+
   const logout = async () => {
     await authService.logout();
     setUser(null);
@@ -59,7 +66,7 @@ export const AuthProvider = ({ children }) => {
     return nextUser;
   };
 
-  const value = { user, isAuthenticated, isLoading, login, logout, updateAuthUser };
+  const value = { user, isAuthenticated, isLoading, login, register, logout, updateAuthUser };
 
   if (isLoading) {
     return (

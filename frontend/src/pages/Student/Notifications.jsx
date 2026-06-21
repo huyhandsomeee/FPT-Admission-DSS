@@ -11,9 +11,9 @@ const TYPE_CONFIG = {
 };
 
 const MOCK_NOTIFS = [
-  { id: 1, title: "Hồ sơ đang được xét duyệt", message: "Hồ sơ APP2025001001 của bạn đang được xem xét. Chúng tôi sẽ thông báo kết quả trong 3-5 ngày làm việc.", type: "ADMISSION_UPDATE", isRead: false, createdAt: "2025-03-20T10:00:00" },
-  { id: 2, title: "Chào mừng đến với FPT University!", message: "Cảm ơn bạn đã đăng ký xét tuyển vào FPT University năm 2025.", type: "SYSTEM", isRead: true, createdAt: "2025-03-15T08:00:00" },
-  { id: 3, title: "Nhắc nhở: Deadline nộp hồ sơ", message: "Đợt 1 kết thúc vào 30/03/2025. Bạn có 5 ngày để hoàn thiện hồ sơ.", type: "REMINDER", isRead: false, createdAt: "2025-03-14T09:00:00" },
+  { id: 1, title: "Hồ sơ đang được xét duyệt", message: "Hồ sơ APP2026001001 của bạn đang được xem xét. Chúng tôi sẽ thông báo kết quả trong 3-5 ngày làm việc.", type: "ADMISSION_UPDATE", isRead: false, createdAt: "2026-03-20T10:00:00" },
+  { id: 2, title: "Chào mừng đến với FPT University!", message: "Cảm ơn bạn đã đăng ký xét tuyển vào FPT University năm 2026.", type: "SYSTEM", isRead: true, createdAt: "2026-03-15T08:00:00" },
+  { id: 3, title: "Nhắc nhở: Deadline nộp hồ sơ", message: "Đợt 1 kết thúc vào 30/03/2026. Bạn có 5 ngày để hoàn thiện hồ sơ.", type: "REMINDER", isRead: false, createdAt: "2026-03-14T09:00:00" },
 ];
 
 export default function StudentNotifications() {

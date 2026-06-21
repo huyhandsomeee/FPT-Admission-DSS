@@ -8,7 +8,7 @@ export default function Register() {
   const [showPwd, setShowPwd] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (field) => (e) => setForm({ ...form, [field]: e.target.value });
@@ -26,8 +26,7 @@ export default function Register() {
     setLoading(true);
     setError("");
     try {
-      const { default: authService } = await import("../../services/authService");
-      const user = await authService.register(form.email, form.password, form.fullName, form.phone);
+      const user = await register(form.email, form.password, form.fullName, form.phone);
       navigate("/student/dashboard", { replace: true });
     } catch (err) {
       setError(err?.response?.data?.message || "Đăng ký thất bại. Vui lòng thử lại.");

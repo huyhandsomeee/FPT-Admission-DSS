@@ -86,7 +86,7 @@ export default function StudentLayout() {
                 <div style={{ color: "white", fontWeight: 600, fontSize: 13, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", maxWidth: 140 }}>
                   {user?.fullName || "Sinh viên"}
                 </div>
-                <div style={{ color: "rgba(254,215,170,1)", fontSize: 11 }}>Thí sinh 2025</div>
+                <div style={{ color: "rgba(254,215,170,1)", fontSize: 11 }}>Thí sinh 2026</div>
               </div>
             </div>
           </div>
@@ -133,7 +133,7 @@ export default function StudentLayout() {
         <header className="portal-header" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", borderBottom: "1px solid #E2E8F0", padding: "0 24px", height: "64px" }}>
           <div>
             <h2 className="text-lg font-semibold text-gray-800" style={{ margin: 0 }}>Cổng thí sinh</h2>
-            <p className="text-xs text-gray-500" style={{ margin: 0, marginTop: "2px" }}>FPT University Admission Portal 2025</p>
+            <p className="text-xs text-gray-500" style={{ margin: 0, marginTop: "2px" }}>FPT University Admission Portal 2026</p>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <NavLink to="/student/notifications"

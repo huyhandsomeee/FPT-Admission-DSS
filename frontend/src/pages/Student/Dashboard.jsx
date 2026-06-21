@@ -23,7 +23,7 @@ const MOCK_DATA = {
   applications: [
     {
       id: 1,
-      code: "APP2025001001",
+      code: "APP2026001001",
       status: "UNDER_REVIEW",
       majorName: "Kỹ thuật phần mềm",
       campusName: "FPT University Hà Nội",
@@ -32,10 +32,10 @@ const MOCK_DATA = {
 };
 
 const deadlines = [
-  { label: "Nộp hồ sơ đợt 1", date: "30/03/2025", urgent: false },
-  { label: "Nộp hồ sơ đợt 2", date: "30/04/2025", urgent: false },
-  { label: "Công bố kết quả", date: "15/05/2025", urgent: false },
-  { label: "Xác nhận nhập học", date: "30/06/2025", urgent: false },
+  { label: "Nộp hồ sơ đợt 1", date: "30/03/2026", urgent: false },
+  { label: "Nộp hồ sơ đợt 2", date: "30/04/2026", urgent: false },
+  { label: "Công bố kết quả", date: "15/07/2026", urgent: false },
+  { label: "Xác nhận nhập học", date: "30/08/2026", urgent: false },
 ];
 
 export default function StudentDashboard() {
@@ -66,7 +66,7 @@ export default function StudentDashboard() {
           <p className="text-orange-200 text-sm font-medium mb-1" style={{ opacity: 0.9 }}>Xin chào 👋</p>
           <h1 className="text-2xl font-bold text-white mb-2">{user?.fullName}</h1>
           <p className="text-orange-100 text-sm mb-4" style={{ opacity: 0.85 }}>
-            Chào mừng đến với Cổng tuyển sinh FPT University 2025
+            Chào mừng đến với Cổng tuyển sinh FPT University 2026
           </p>
           {!data.hasProfile && (
             <Link to="/student/apply"
@@ -89,7 +89,7 @@ export default function StudentDashboard() {
         {[
           { label: "Hồ sơ đã nộp", value: data.totalApplications, icon: FileText, textColor: "#F97316" },
           { label: "Thông báo mới", value: data.unreadNotifications, icon: Bell, textColor: "#2563EB" },
-          { label: "Đợt xét tuyển", value: "2025", icon: Calendar, textColor: "#7C3AED" },
+          { label: "Đợt xét tuyển", value: "2026", icon: Calendar, textColor: "#7C3AED" },
           { label: "Trạng thái", value: currentStatus?.label || "Chưa nộp", icon: CheckCircle, textColor: "#059669" },
         ].map((kpi) => (
           <div key={kpi.label} className="student-card">
@@ -226,7 +226,7 @@ export default function StudentDashboard() {
           </div>
           <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
             <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>
-              Thông tin tuyển sinh FPT University 2025
+              Thông tin tuyển sinh FPT University 2026
             </div>
             <div style={{ color: "rgba(148,163,184,1)", fontSize: "13px" }}>
               Giới thiệu trường • Phương thức xét tuyển • Ngành học • Học phí • Học bổng

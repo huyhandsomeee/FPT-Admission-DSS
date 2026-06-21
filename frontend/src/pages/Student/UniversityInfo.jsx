@@ -205,9 +205,9 @@ function AdmissionSection() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
       <div style={{ padding: "16px 20px", background: "#FFF7F4", borderRadius: "14px", border: "1px solid #FFEDD5" }}>
-        <div style={{ fontWeight: "700", color: "#C2410C", fontSize: "14px", marginBottom: "4px" }}>📅 Lịch xét tuyển 2025</div>
+        <div style={{ fontWeight: "700", color: "#C2410C", fontSize: "14px", marginBottom: "4px" }}>📅 Lịch xét tuyển 2026</div>
         <div style={{ fontSize: "13px", color: "#9A3412", lineHeight: "1.6" }}>
-          Đợt 1: 01/03 - 30/03/2025 &nbsp;|&nbsp; Đợt 2: 01/04 - 30/04/2025 &nbsp;|&nbsp; Đợt 3: 01/05 - 31/05/2025
+          Đợt 1: 01/03 - 30/03/2026 &nbsp;|&nbsp; Đợt 2: 01/04 - 30/04/2026 &nbsp;|&nbsp; Đợt 3: 01/05 - 31/07/2026
         </div>
       </div>
 
@@ -397,7 +397,7 @@ function TuitionSection() {
 
       <div style={{ padding: "14px 18px", background: "#FFF7F4", borderRadius: "12px", border: "1px solid #FFEDD5" }}>
         <p style={{ fontSize: "13px", color: "#9A3412", lineHeight: "1.6", margin: 0 }}>
-          <strong>📌 Lưu ý:</strong> Học phí trên đây là mức của năm học 2024-2025 và có thể điều chỉnh.
+          <strong>📌 Lưu ý:</strong> Học phí trên đây là mức của năm học 2025-2026 và có thể điều chỉnh.
           Chưa bao gồm chi phí ký túc xá (~1.5-2 triệu/tháng), giáo trình và các khoản phát sinh khác.
         </p>
       </div>
@@ -409,7 +409,7 @@ function ScholarshipSection() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
       <div style={{ padding: "20px 24px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)", borderRadius: "16px", color: "white" }}>
-        <div style={{ fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>🎁 Chương trình học bổng 2025</div>
+        <div style={{ fontSize: "20px", fontWeight: "800", marginBottom: "6px" }}>🎁 Chương trình học bổng 2026</div>
         <div style={{ fontSize: "13px", opacity: 0.9 }}>FPT University dành tổng giá trị học bổng <strong>hơn 100 tỷ đồng</strong> mỗi năm cho sinh viên xuất sắc</div>
       </div>
 
@@ -500,7 +500,7 @@ export default function UniversityInfo() {
           <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "8px" }}>
             <GraduationCap size={24} color="#FF6B35" />
             <h1 style={{ color: "white", fontWeight: "800", fontSize: "20px", margin: 0 }}>
-              Thông tin tuyển sinh FPT University 2025
+              Thông tin tuyển sinh FPT University 2026
             </h1>
           </div>
           <p style={{ color: "rgba(148,163,184,1)", fontSize: "13px", margin: 0 }}>
