@@ -59,6 +59,12 @@ public class StudentProfile {
     @Column(name = "parent_email")
     private String parentEmail;
 
+    @Column(name = "allow_new_application")
+    private Boolean allowNewApplication = false;
+
+    @Column(name = "new_application_request")
+    private String newApplicationRequest = "NONE";
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

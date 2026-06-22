@@ -72,6 +72,10 @@ body {
   padding: 0;
 }
 
+select, optgroup, option, input, textarea, button {
+  font-family: inherit;
+}
+
 /* ==========================================
    Animations & Transitions
    ========================================== */

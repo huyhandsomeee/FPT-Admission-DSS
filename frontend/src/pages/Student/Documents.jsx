@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Upload, FileCheck, X, AlertCircle } from "lucide-react";
+import api from "../../config/axiosConfig";
 
 const DOCUMENT_TYPES = [
   { id: 1, code: "CCCD", name: "CCCD/CMND", required: true, description: "Ảnh 2 mặt CCCD/CMND rõ nét", accepted: "image/*,.pdf" },
@@ -13,14 +14,50 @@ export default function StudentDocuments() {
   const [files, setFiles] = useState({});
   const [uploading, setUploading] = useState({});
 
-  const handleFileChange = (typeCode, e) => {
+  useEffect(() => {
+    api.get("/api/student/documents").then(res => {
+      const docs = res.data || [];
+      const filesMap = {};
+      docs.forEach(doc => {
+        filesMap[doc.typeCode] = {
+          name: doc.name,
+          size: doc.size || 0,
+          status: doc.status || "PENDING",
+          filePath: doc.filePath
+        };
+      });
+      setFiles(filesMap);
+    }).catch(err => {
+      console.error("Lỗi tải tài liệu:", err);
+    });
+  }, []);
+
+  const handleFileChange = async (typeCode, e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading({ ...uploading, [typeCode]: true });
-    setTimeout(() => {
-      setFiles({ ...files, [typeCode]: { name: file.name, size: file.size, status: "PENDING" } });
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("typeCode", typeCode);
+      
+      await api.post("/api/student/documents", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data"
+        }
+      });
+
+      setFiles(prev => ({
+        ...prev,
+        [typeCode]: { name: file.name, size: file.size, status: "PENDING" }
+      }));
+      alert("Tải tài liệu lên thành công!");
+    } catch (err) {
+      console.error(err);
+      alert("Lỗi upload tài liệu: " + (err.response?.data?.message || err.message));
+    } finally {
       setUploading({ ...uploading, [typeCode]: false });
-    }, 1200);
+    }
   };
 
   const removeFile = (typeCode) => {

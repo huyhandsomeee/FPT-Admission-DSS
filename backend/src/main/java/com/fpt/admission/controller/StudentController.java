@@ -36,6 +36,7 @@ public class StudentController {
     private final JwtUtil jwtUtil;
     private final ProvinceRepository provinceRepository;
     private final AcademicBackgroundRepository academicBackgroundRepository;
+    private final HighSchoolRepository highSchoolRepository;
     private final JdbcTemplate jdbcTemplate;
 
     private Long getUserId(String authHeader) {
@@ -60,10 +61,14 @@ public class StudentController {
                 "campusName", a.getCampus().getName()
             )).toList());
             data.put("hasProfile", true);
+            data.put("allowNewApplication", profile.getAllowNewApplication() != null ? profile.getAllowNewApplication() : false);
+            data.put("newApplicationRequest", profile.getNewApplicationRequest() != null ? profile.getNewApplicationRequest() : "NONE");
         } else {
             data.put("totalApplications", 0);
             data.put("applications", List.of());
             data.put("hasProfile", false);
+            data.put("allowNewApplication", false);
+            data.put("newApplicationRequest", "NONE");
         }
 
         long unreadNotifications = profile != null ?
@@ -107,9 +112,9 @@ public class StudentController {
             @RequestParam(value = "parentPhone", required = false) String parentPhone,
             @RequestParam("schoolName") String schoolName,
             @RequestParam("graduationYear") int graduationYear,
-            @RequestParam("mathScore") double mathScore,
-            @RequestParam("literatureScore") double literatureScore,
-            @RequestParam("englishScore") double englishScore,
+            @RequestParam(value = "mathScore", required = false, defaultValue = "0") double mathScore,
+            @RequestParam(value = "literatureScore", required = false, defaultValue = "0") double literatureScore,
+            @RequestParam(value = "englishScore", required = false, defaultValue = "0") double englishScore,
             @RequestParam("gpa10") double gpa10,
             @RequestParam("gpa11") double gpa11,
             @RequestParam("gpa12") double gpa12,
@@ -120,7 +125,7 @@ public class StudentController {
             @RequestParam("hocBaFile") MultipartFile hocBaFile,
             @RequestParam("bangTNFile") MultipartFile bangTNFile,
             @RequestParam("anhTheFile") MultipartFile anhTheFile,
-            @RequestParam("giayKhaiSinhFile") MultipartFile giayKhaiSinhFile,
+            @RequestParam(value = "giayKhaiSinhFile", required = false) MultipartFile giayKhaiSinhFile,
             @RequestParam(value = "chungChiFile", required = false) MultipartFile chungChiFile,
             @RequestParam(value = "hoKhauFile", required = false) MultipartFile hoKhauFile,
             @RequestHeader("Authorization") String authHeader) {
@@ -194,7 +199,9 @@ public class StudentController {
             saveAppDoc(app.getId(), 2L, hocBaFile, userId);
             saveAppDoc(app.getId(), 3L, bangTNFile, userId);
             saveAppDoc(app.getId(), 5L, anhTheFile, userId);
-            saveAppDoc(app.getId(), 6L, giayKhaiSinhFile, userId);
+            if (giayKhaiSinhFile != null && !giayKhaiSinhFile.isEmpty()) {
+                saveAppDoc(app.getId(), 6L, giayKhaiSinhFile, userId);
+            }
             if (chungChiFile != null && !chungChiFile.isEmpty()) {
                 saveAppDoc(app.getId(), 4L, chungChiFile, userId);
             }
@@ -204,6 +211,22 @@ public class StudentController {
         } catch (Exception e) {
             throw new RuntimeException("Lỗi lưu file tài liệu: " + e.getMessage());
         }
+
+        // Reset new application permission & request
+        profile.setAllowNewApplication(false);
+        profile.setNewApplicationRequest("NONE");
+        studentProfileRepository.save(profile);
+
+        // Create student notification
+        Notification studentNotif = Notification.builder()
+            .user(user)
+            .title("Nộp hồ sơ thành công")
+            .message("Bạn đã nộp hồ sơ xét tuyển thành công (Mã HS: " + code + "). Hồ sơ đang được chờ xét duyệt.")
+            .type(com.fpt.admission.entity.enums.NotificationType.ADMISSION_UPDATE)
+            .isRead(false)
+            .createdAt(LocalDateTime.now())
+            .build();
+        notificationRepository.save(studentNotif);
 
         return ResponseEntity.ok(Map.of("message", "Nộp hồ sơ thành công", "applicationCode", code, "id", app.getId()));
     }
@@ -253,8 +276,22 @@ public class StudentController {
         Long userId = getUserId(authHeader);
         var pageable = org.springframework.data.domain.PageRequest.of(page, size);
         var notifs = notificationRepository.findByUserIdOrderByCreatedAtDesc(userId, pageable);
+        
+        List<Map<String, Object>> contentList = notifs.getContent().stream().map(n -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", n.getId());
+            m.put("title", n.getTitle());
+            m.put("message", n.getMessage());
+            m.put("type", n.getType() != null ? n.getType().name() : "SYSTEM");
+            m.put("isRead", n.getIsRead() != null ? n.getIsRead() : false);
+            m.put("relatedEntityType", n.getRelatedEntityType());
+            m.put("relatedEntityId", n.getRelatedEntityId());
+            m.put("createdAt", n.getCreatedAt() != null ? n.getCreatedAt().toString() : "");
+            return m;
+        }).toList();
+
         return ResponseEntity.ok(Map.of(
-            "content", notifs.getContent(),
+            "content", contentList,
             "totalElements", notifs.getTotalElements(),
             "unreadCount", notificationRepository.countByUserIdAndIsReadFalse(userId)
         ));
@@ -276,5 +313,256 @@ public class StudentController {
     @GetMapping("/config/provinces")
     public ResponseEntity<?> getProvinces() {
         return ResponseEntity.ok(provinceRepository.findAllByOrderByName());
+    }
+
+    @GetMapping("/config/schools")
+    public ResponseEntity<?> getSchoolsByProvince(@RequestParam Long provinceId) {
+        var schools = highSchoolRepository.findByProvinceIdOrderByName(provinceId);
+        var result = schools.stream().map(s -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", s.getId());
+            m.put("name", s.getName());
+            m.put("schoolType", s.getSchoolType());
+            return m;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/applications/{id}")
+    public ResponseEntity<?> getApplicationDetails(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        var profile = studentProfileRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Hồ sơ sinh viên chưa được tạo"));
+        
+        return applicationRepository.findById(id).map(a -> {
+            if (!a.getStudentProfile().getId().equals(profile.getId())) {
+                return ResponseEntity.status(403).body(Map.of("message", "Bạn không có quyền xem hồ sơ này"));
+            }
+            
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", a.getId());
+            m.put("applicationCode", a.getApplicationCode());
+            m.put("status", a.getStatus().name());
+            m.put("majorName", a.getMajor().getName());
+            m.put("campusName", a.getCampus().getName());
+            m.put("methodName", a.getAdmissionMethod().getName());
+            m.put("totalScore", a.getTotalScore());
+            m.put("rejectionReason", a.getRejectionReason());
+            m.put("officerNotes", a.getOfficerNotes());
+            m.put("submittedAt", a.getSubmittedAt());
+            m.put("createdAt", a.getCreatedAt());
+            m.put("fullName", profile.getUser().getFullName());
+            m.put("dob", profile.getDob() != null ? profile.getDob().toString() : "");
+            m.put("gender", profile.getGender());
+            m.put("phone", profile.getUser().getPhone());
+            m.put("cccd", profile.getCccdNumber());
+            m.put("permanentAddress", profile.getPermanentAddress());
+            m.put("provinceId", profile.getProvince() != null ? profile.getProvince().getId() : "");
+            m.put("parentName", profile.getParentName());
+            m.put("parentPhone", profile.getParentPhone());
+
+            // Fetch academic background
+            try {
+                List<Map<String, Object>> academicList = jdbcTemplate.queryForList(
+                    "SELECT school_name as schoolName, graduation_year as graduationYear, " +
+                    "gpa_10 as gpa10, gpa_11 as gpa11, gpa_12 as gpa12, " +
+                    "math_score as mathScore, literature_score as literatureScore, english_score as englishScore, " +
+                    "total_score as totalScore, ielts_score as ieltsScore, sat_score as satScore, toefl_score as toeflScore " +
+                    "FROM academic_backgrounds WHERE student_profile_id = ?",
+                    profile.getId()
+                );
+                if (!academicList.isEmpty()) {
+                    m.put("academicBackground", academicList.get(0));
+                } else {
+                    m.put("academicBackground", null);
+                }
+            } catch (Exception e) {
+                m.put("academicBackground", null);
+            }
+
+            // Fetch documents
+            try {
+                List<Map<String, Object>> docs = jdbcTemplate.queryForList(
+                    "SELECT ad.file_name as name, dt.name as descName, dt.code as typeCode, ad.status, ad.file_path as filePath " +
+                    "FROM application_documents ad " +
+                    "JOIN document_types dt ON ad.document_type_id = dt.id " +
+                    "WHERE ad.application_id = ?",
+                    a.getId()
+                );
+                List<Map<String, Object>> formattedDocs = docs.stream().map(doc -> {
+                    Map<String, Object> docMap = new LinkedHashMap<>();
+                    docMap.put("name", doc.get("name"));
+                    docMap.put("desc", doc.get("descName"));
+                    docMap.put("typeCode", doc.get("typeCode"));
+                    docMap.put("filePath", doc.get("filePath"));
+                    docMap.put("status", doc.get("status"));
+                    return docMap;
+                }).toList();
+                m.put("documents", formattedDocs);
+            } catch (Exception e) {
+                m.put("documents", List.of());
+            }
+            
+            return ResponseEntity.ok(m);
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/applications/request-new")
+    public ResponseEntity<?> requestNewApplication(@RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Hồ sơ sinh viên chưa được tạo"));
+
+        profile.setNewApplicationRequest("PENDING");
+        studentProfileRepository.save(profile);
+
+        // Notify officers
+        List<User> officers = userRepository.findAll().stream()
+            .filter(u -> u.getRole() == com.fpt.admission.entity.enums.UserRole.ADMISSION_OFFICER 
+                      || u.getRole() == com.fpt.admission.entity.enums.UserRole.ADMISSION_MANAGER)
+            .toList();
+        
+        for (User officer : officers) {
+            Notification notif = Notification.builder()
+                .user(officer)
+                .title("Yêu cầu tạo hồ sơ mới")
+                .message("Thí sinh " + profile.getUser().getFullName() + " (Mã HS: " + profile.getStudentCode() + ") đã gửi yêu cầu được tạo hồ sơ mới.")
+                .type(com.fpt.admission.entity.enums.NotificationType.MESSAGE)
+                .isRead(false)
+                .createdAt(LocalDateTime.now())
+                .build();
+            notificationRepository.save(notif);
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Gửi yêu cầu tạo hồ sơ mới thành công"));
+    }
+
+    @GetMapping("/documents")
+    public ResponseEntity<?> getUploadedDocuments(@RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        var profile = studentProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null) return ResponseEntity.ok(List.of());
+
+        // Get the latest application of the student
+        var apps = applicationRepository.findByStudentProfileId(profile.getId());
+        if (apps.isEmpty()) return ResponseEntity.ok(List.of());
+        
+        var latestApp = apps.stream()
+            .max(Comparator.comparing(Application::getCreatedAt))
+            .orElse(null);
+            
+        if (latestApp == null) return ResponseEntity.ok(List.of());
+
+        try {
+            List<Map<String, Object>> docs = jdbcTemplate.queryForList(
+                "SELECT ad.file_name as name, dt.name as descName, dt.code as typeCode, dt.id as typeId, ad.status, ad.file_path as filePath, ad.file_size as size " +
+                "FROM application_documents ad " +
+                "JOIN document_types dt ON ad.document_type_id = dt.id " +
+                "WHERE ad.application_id = ?",
+                latestApp.getId()
+            );
+            List<Map<String, Object>> formattedDocs = docs.stream().map(doc -> {
+                Map<String, Object> docMap = new LinkedHashMap<>();
+                docMap.put("name", doc.get("name"));
+                docMap.put("desc", doc.get("descName"));
+                String dbCode = String.valueOf(doc.get("typeCode"));
+                String feCode = switch (dbCode) {
+                    case "CCCD" -> "CCCD";
+                    case "HOC_BA" -> "TRANSCRIPT";
+                    case "BANG_TN" -> "CERTIFICATE";
+                    case "ANH_THE" -> "PHOTO";
+                    default -> "OTHER";
+                };
+                docMap.put("typeCode", feCode);
+                docMap.put("typeId", doc.get("typeId"));
+                docMap.put("filePath", doc.get("filePath"));
+                docMap.put("status", doc.get("status"));
+                docMap.put("size", doc.get("size"));
+                return docMap;
+            }).toList();
+            return ResponseEntity.ok(formattedDocs);
+        } catch (Exception e) {
+            return ResponseEntity.ok(List.of());
+        }
+    }
+
+    @PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadOrReplaceDocument(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("typeCode") String typeCode,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        Long userId = getUserId(authHeader);
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        StudentProfile profile = studentProfileRepository.findByUserId(userId).orElse(null);
+        if (profile == null) {
+            profile = new StudentProfile();
+            profile.setUser(user);
+            String studentCode = "TS2026" + String.format("%04d", (long)(Math.random() * 9999));
+            profile.setStudentCode(studentCode);
+            profile = studentProfileRepository.save(profile);
+        }
+
+        var apps = applicationRepository.findByStudentProfileId(profile.getId());
+        Application app;
+        if (apps.isEmpty()) {
+            var campus = campusRepository.findAll().stream().findFirst().orElseThrow();
+            var major = majorRepository.findAll().stream().findFirst().orElseThrow();
+            var method = admissionMethodRepository.findAll().stream().findFirst().orElseThrow();
+            var year = admissionYearRepository.findByStatus("ACTIVE")
+                .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
+
+            String code = "APP" + year.getYear() + String.format("%06d", (long)(Math.random() * 999999));
+            app = Application.builder()
+                .applicationCode(code)
+                .studentProfile(profile)
+                .admissionYear(year)
+                .campus(campus)
+                .major(major)
+                .admissionMethod(method)
+                .status(ApplicationStatus.DRAFT)
+                .build();
+            app = applicationRepository.save(app);
+        } else {
+            app = apps.stream()
+                .max(Comparator.comparing(Application::getCreatedAt))
+                .orElseThrow();
+        }
+
+        Long docTypeId = switch (typeCode) {
+            case "CCCD" -> 1L;
+            case "TRANSCRIPT" -> 2L;
+            case "CERTIFICATE" -> 3L;
+            case "PHOTO" -> 5L;
+            default -> 4L;
+        };
+
+        try {
+            jdbcTemplate.update("DELETE FROM application_documents WHERE application_id = ? AND document_type_id = ?", app.getId(), docTypeId);
+            saveAppDoc(app.getId(), docTypeId, file, userId);
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi lưu file: " + e.getMessage());
+        }
+
+        return ResponseEntity.ok(Map.of("message", "Upload tài liệu thành công", "typeCode", typeCode));
+    }
+
+    @PostMapping("/notifications/{id}/read")
+    public ResponseEntity<?> markAsRead(@PathVariable Long id, @RequestHeader("Authorization") String authHeader) {
+        return notificationRepository.findById(id).map(notif -> {
+            notif.setIsRead(true);
+            notificationRepository.save(notif);
+            return ResponseEntity.ok(Map.of("message", "Đã đọc thông báo"));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    @PostMapping("/notifications/read-all")
+    public ResponseEntity<?> markAllAsRead(@RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        notificationRepository.markAllAsRead(userId);
+        return ResponseEntity.ok(Map.of("message", "Đã đọc tất cả thông báo"));
     }
 }

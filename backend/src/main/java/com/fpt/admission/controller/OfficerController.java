@@ -1,6 +1,6 @@
 package com.fpt.admission.controller;
-
-import com.fpt.admission.entity.Application;
+ 
+import com.fpt.admission.entity.*;
 import com.fpt.admission.entity.enums.ApplicationStatus;
 import com.fpt.admission.entity.enums.UserRole;
 import com.fpt.admission.repository.*;
@@ -22,6 +22,7 @@ public class OfficerController {
     private final ApplicationRepository applicationRepository;
     private final UserRepository userRepository;
     private final StudentProfileRepository studentProfileRepository;
+    private final NotificationRepository notificationRepository;
     private final JwtUtil jwtUtil;
     private final JdbcTemplate jdbcTemplate;
     private final AdmissionYearRepository admissionYearRepository;
@@ -151,6 +152,39 @@ public class OfficerController {
                 
                 app.setReviewedAt(java.time.LocalDateTime.now());
                 applicationRepository.save(app);
+
+                // Create student notification
+                try {
+                    Notification studentNotif = Notification.builder()
+                        .user(app.getStudentProfile().getUser())
+                        .relatedEntityType("APPLICATION")
+                        .relatedEntityId(app.getId())
+                        .isRead(false)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build();
+
+                    if ("APPROVED".equals(newStatus)) {
+                        studentNotif.setTitle("Hồ sơ đã được duyệt");
+                        studentNotif.setMessage("Chúc mừng! Hồ sơ " + app.getApplicationCode() + " của bạn đã được chấp thuận.");
+                        studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.RESULT);
+                    } else if ("REJECTED".equals(newStatus)) {
+                        studentNotif.setTitle("Hồ sơ bị từ chối");
+                        studentNotif.setMessage("Rất tiếc! Hồ sơ xét tuyển của bạn bị từ chối. Lý do: " + reason);
+                        studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.RESULT);
+                    } else if ("UNDER_REVIEW".equals(newStatus)) {
+                        studentNotif.setTitle("Nhắc nhở: Bổ sung tài liệu");
+                        studentNotif.setMessage("Hồ sơ xét tuyển của bạn cần bổ sung tài liệu. Chi tiết yêu cầu: " + body.get("notes"));
+                        studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.REMINDER);
+                    } else {
+                        studentNotif.setTitle("Cập nhật trạng thái hồ sơ");
+                        studentNotif.setMessage("Trạng thái hồ sơ của bạn đã được cập nhật thành: " + newStatus);
+                        studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.ADMISSION_UPDATE);
+                    }
+                    notificationRepository.save(studentNotif);
+                } catch (Exception notifEx) {
+                    System.err.println("Lỗi tạo thông báo: " + notifEx.getMessage());
+                }
+
                 return ResponseEntity.ok(Map.of("message", "Cập nhật trạng thái thành công"));
             } catch (Exception e) {
                 return ResponseEntity.<Object>badRequest().body(Map.of("message", "Trạng thái không hợp lệ"));
@@ -224,5 +258,60 @@ public class OfficerController {
         }
 
         return m;
+    }
+
+    @GetMapping("/applications/new-requests")
+    public ResponseEntity<?> getNewApplicationRequests() {
+        List<StudentProfile> profiles = studentProfileRepository.findAll().stream()
+            .filter(p -> "PENDING".equals(p.getNewApplicationRequest()))
+            .toList();
+
+        var result = profiles.stream().map(p -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("profileId", p.getId());
+            m.put("userId", p.getUser().getId());
+            m.put("fullName", p.getUser().getFullName());
+            m.put("email", p.getUser().getEmail());
+            m.put("phone", p.getUser().getPhone() != null ? p.getUser().getPhone() : "");
+            m.put("studentCode", p.getStudentCode());
+            m.put("requestedAt", p.getUpdatedAt() != null ? p.getUpdatedAt().toString() : "");
+            return m;
+        }).toList();
+
+        return ResponseEntity.ok(result);
+    }
+
+    @PostMapping("/students/{userId}/allow-new-application")
+    public ResponseEntity<?> handleAllowNewApplication(
+            @PathVariable Long userId,
+            @RequestParam boolean allow,
+            @RequestHeader("Authorization") String authHeader) {
+        
+        StudentProfile profile = studentProfileRepository.findByUserId(userId)
+            .orElseThrow(() -> new RuntimeException("Không tìm thấy hồ sơ sinh viên"));
+        
+        if (allow) {
+            profile.setAllowNewApplication(true);
+            profile.setNewApplicationRequest("APPROVED");
+        } else {
+            profile.setAllowNewApplication(false);
+            profile.setNewApplicationRequest("REJECTED");
+        }
+        studentProfileRepository.save(profile);
+
+        // Notify the student
+        Notification notif = Notification.builder()
+            .user(profile.getUser())
+            .title(allow ? "Yêu cầu tạo hồ sơ mới được phê duyệt" : "Yêu cầu tạo hồ sơ mới bị từ chối")
+            .message(allow 
+                ? "Cán bộ tuyển sinh đã chấp thuận yêu cầu tạo hồ sơ mới của bạn. Bạn có thể nộp hồ sơ xét tuyển mới ngay bây giờ." 
+                : "Cán bộ tuyển sinh đã từ chối yêu cầu tạo hồ sơ mới của bạn.")
+            .type(com.fpt.admission.entity.enums.NotificationType.ADMISSION_UPDATE)
+            .isRead(false)
+            .createdAt(java.time.LocalDateTime.now())
+            .build();
+        notificationRepository.save(notif);
+
+        return ResponseEntity.ok(Map.of("message", "Xử lý yêu cầu thành công"));
     }
 }

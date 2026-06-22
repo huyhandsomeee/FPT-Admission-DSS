@@ -24,7 +24,25 @@ export default function StudentNotifications() {
     api.get("/api/student/notifications").then(r => setNotifs(r.data.content || MOCK_NOTIFS)).catch(() => {});
   }, []);
 
-  const markAll = () => setNotifs(notifs.map(n => ({ ...n, isRead: true })));
+  const markAll = () => {
+    api.post("/api/student/notifications/read-all")
+      .then(() => {
+        setNotifs(notifs.map(n => ({ ...n, isRead: true })));
+      })
+      .catch(err => console.error(err));
+  };
+
+  const handleMarkRead = (id) => {
+    const notif = notifs.find(n => n.id === id);
+    if (notif && !notif.isRead) {
+      api.post(`/api/student/notifications/${id}/read`)
+        .then(() => {
+          setNotifs(notifs.map(n => n.id === id ? { ...n, isRead: true } : n));
+        })
+        .catch(err => console.error(err));
+    }
+  };
+
   const unread = notifs.filter(n => !n.isRead).length;
   const filtered = filter === "unread" ? notifs.filter(n => !n.isRead) : notifs;
 
@@ -73,7 +91,7 @@ export default function StudentNotifications() {
                 border: !notif.isRead ? "1px solid #FFD8A8" : "1px solid #F1F5F9",
                 background: !notif.isRead ? "#FFF9F6" : "white"
               }}
-              onClick={() => setNotifs(notifs.map(n => n.id === notif.id ? { ...n, isRead: true } : n))}>
+              onClick={() => handleMarkRead(notif.id)}>
               <div className="flex items-start gap-4" style={{ display: "flex", gap: "16px" }}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}
                   style={{
