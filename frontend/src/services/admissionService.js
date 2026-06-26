@@ -2,33 +2,35 @@ import axiosClient from "../config/axiosConfig";
 
 const admissionService = {
   // Configs
-  getCampuses: () => axiosClient.get("/api/v1/config/campuses"),
-  getMajors: () => axiosClient.get("/api/v1/config/majors"),
-  getAdmissionMethods: () => axiosClient.get("/api/v1/config/methods"),
-  getProvinces: () => axiosClient.get("/api/v1/config/provinces"),
+  getCampuses: () => axiosClient.get("/api/student/config/campuses"),
+  getMajors: (campusId) => axiosClient.get(`/api/student/config/majors${campusId ? `?campusId=${campusId}` : ""}`),
+  getAdmissionMethods: () => axiosClient.get("/api/student/config/methods"),
+  getProvinces: () => axiosClient.get("/api/student/config/provinces"),
 
   // Student Profile
-  getStudentProfile: () => axiosClient.get("/api/v1/student/profile"),
-  updateStudentProfile: (data) => axiosClient.put("/api/v1/student/profile", data),
+  getStudentProfile: () => axiosClient.get("/api/student/dashboard"),
+  updateStudentProfile: (data) => axiosClient.put("/api/student/profile", data),
 
   // Application
-  createApplication: (data) => axiosClient.post("/api/v1/student/applications", data),
-  getMyApplications: () => axiosClient.get("/api/v1/student/applications"),
-  getApplicationDetails: (id) => axiosClient.get(`/api/v1/student/applications/${id}`),
+  createApplication: (data) => axiosClient.post("/api/student/applications", data, {
+    headers: { "Content-Type": "multipart/form-data" },
+  }),
+  getMyApplications: () => axiosClient.get("/api/student/applications"),
+  getApplicationDetails: (id) => axiosClient.get(`/api/student/applications/${id}`),
 
   // Documents
   uploadDocument: (applicationId, file) => {
     const formData = new FormData();
     formData.append("file", file);
-    return axiosClient.post(`/api/v1/student/applications/${applicationId}/documents`, formData, {
+    return axiosClient.post(`/api/student/documents`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
 
   // Officer / Manager actions
-  getAllApplications: (params) => axiosClient.get("/api/v1/officer/applications", { params }),
-  reviewApplication: (id, data) => axiosClient.post(`/api/v1/officer/applications/${id}/review`, data),
-  verifyDocument: (docId, data) => axiosClient.post(`/api/v1/officer/documents/${docId}/verify`, data),
+  getAllApplications: (params) => axiosClient.get("/api/officer/applications", { params }),
+  reviewApplication: (id, data) => axiosClient.patch(`/api/officer/applications/${id}/status`, data),
+  verifyDocument: (docId, data) => axiosClient.post(`/api/officer/documents/${docId}/verify`, data),
 };
 
 export default admissionService;

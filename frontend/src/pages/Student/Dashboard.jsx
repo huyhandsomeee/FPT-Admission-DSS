@@ -4,32 +4,9 @@ import { useAuth } from "../../context/AuthContext";
 import api from "../../config/axiosConfig";
 import {
   FileText, CheckCircle, Clock, XCircle, Bell, ArrowRight,
-  BookOpen, Award, AlertCircle, Calendar, GraduationCap
+  BookOpen, Award, Calendar, GraduationCap
 } from "lucide-react";
-
-const STATUS_CONFIG = {
-  DRAFT: { label: "Bản nháp", color: "badge-draft", icon: FileText },
-  SUBMITTED: { label: "Đã nộp", color: "badge-submitted", icon: Clock },
-  UNDER_REVIEW: { label: "Đang xét duyệt", color: "badge-review", icon: Clock },
-  APPROVED: { label: "Được chấp thuận", color: "badge-approved", icon: CheckCircle },
-  REJECTED: { label: "Bị từ chối", color: "badge-rejected", icon: XCircle },
-  ENROLLED: { label: "Đã nhập học", color: "badge-enrolled", icon: Award },
-};
-
-const MOCK_DATA = {
-  totalApplications: 1,
-  hasProfile: true,
-  unreadNotifications: 2,
-  applications: [
-    {
-      id: 1,
-      code: "APP2026001001",
-      status: "UNDER_REVIEW",
-      majorName: "Kỹ thuật phần mềm",
-      campusName: "FPT University Hà Nội",
-    },
-  ],
-};
+import { STATUS_CONFIG, STEPS } from "../../utils/statusUtils";
 
 const deadlines = [
   { label: "Nộp hồ sơ đợt 1", date: "30/03/2026", urgent: false },
@@ -40,19 +17,30 @@ const deadlines = [
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState(MOCK_DATA);
+  const [data, setData] = useState(null);
 
   useEffect(() => {
     api.get("/api/student/dashboard")
-      .then((r) => setData(r.data))
-      .catch(() => setData(MOCK_DATA));
+      .then(r => setData(r.data))
+      .catch(() => {
+        setData({
+          totalApplications: 0, hasProfile: false, unreadNotifications: 0, applications: [],
+          allowNewApplication: false, newApplicationRequest: "NONE"
+        });
+      });
   }, []);
+
+  if (!data) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
+      </div>
+    );
+  }
 
   const currentApp = data.applications?.[0];
   const currentStatus = currentApp ? STATUS_CONFIG[currentApp.status] : null;
-
-  const steps = ["DRAFT", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "ENROLLED"];
-  const currentStepIdx = currentApp ? steps.indexOf(currentApp.status) : -1;
+  const currentStepIdx = currentApp ? STEPS.indexOf(currentApp.status) : -1;
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "8px 0" }}>
@@ -74,8 +62,7 @@ export default function StudentDashboard() {
                 backgroundColor: "white", color: "#E85A2A", padding: "10px 20px",
                 borderRadius: "12px", fontWeight: "600", fontSize: "14px",
                 display: "inline-flex", alignItems: "center", gap: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)", textDecoration: "none",
-                transition: "all 0.2s"
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)", textDecoration: "none"
               }}
             >
               Bắt đầu nộp hồ sơ <ArrowRight size={16} />
@@ -90,7 +77,7 @@ export default function StudentDashboard() {
           { label: "Hồ sơ đã nộp", value: data.totalApplications, icon: FileText, textColor: "#F97316" },
           { label: "Thông báo mới", value: data.unreadNotifications, icon: Bell, textColor: "#2563EB" },
           { label: "Đợt xét tuyển", value: "2026", icon: Calendar, textColor: "#7C3AED" },
-          { label: "Trạng thái", value: currentStatus?.label || "Chưa nộp", icon: CheckCircle, textColor: "#059669" },
+          { label: "Trạng thái", value: currentStatus?.label || "Chưa nộp", icon: currentStatus?.icon || CheckCircle, textColor: "#059669" },
         ].map((kpi) => (
           <div key={kpi.label} className="student-card">
             <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-10"
@@ -120,9 +107,10 @@ export default function StudentDashboard() {
                 <div>
                   <div className="student-step-container">
                     <div className="student-step-line"></div>
-                    {steps.map((step, idx) => {
+                    {STEPS.map((step, idx) => {
                       const isDone = idx <= currentStepIdx;
                       const isCurrent = idx === currentStepIdx;
+                      const sConfig = STATUS_CONFIG[step];
                       return (
                         <div key={step} className="student-step-node">
                           <div className="student-step-circle" style={{
@@ -134,7 +122,7 @@ export default function StudentDashboard() {
                             {isDone && !isCurrent ? "✓" : idx + 1}
                           </div>
                           <span style={{ fontSize: "11px", fontWeight: "600", color: isDone ? "#E85A2A" : "#94A3B8" }}>
-                            {STATUS_CONFIG[step]?.label}
+                            {sConfig?.label}
                           </span>
                         </div>
                       );
@@ -147,7 +135,7 @@ export default function StudentDashboard() {
                         <div className="text-xs text-gray-500 mt-1">{currentApp.campusName}</div>
                         <div className="text-xs text-gray-400 mt-1">Mã HS: {currentApp.code}</div>
                       </div>
-                      <span className={`badge ${currentStatus?.color}`} style={{ borderRadius: "20px", padding: "6px 12px" }}>
+                      <span className={`badge ${currentStatus?.badge}`} style={{ borderRadius: "20px", padding: "6px 12px" }}>
                         {currentStatus?.label}
                       </span>
                     </div>
@@ -211,16 +199,11 @@ export default function StudentDashboard() {
           background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
           borderRadius: "18px", padding: "24px 28px",
           display: "flex", alignItems: "center", gap: "20px",
-          position: "relative", overflow: "hidden",
-          cursor: "pointer", transition: "transform 0.2s, box-shadow 0.2s",
+          position: "relative", overflow: "hidden", cursor: "pointer",
           boxShadow: "0 4px 16px rgba(15,23,42,0.15)"
-        }}
-          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px)"; e.currentTarget.style.boxShadow = "0 8px 24px rgba(15,23,42,0.2)"; }}
-          onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 4px 16px rgba(15,23,42,0.15)"; }}
-        >
+        }}>
           <div style={{ position: "absolute", right: "-10px", top: "-20px", width: "160px", height: "160px", background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
           <div style={{ position: "absolute", right: "80px", bottom: "-30px", width: "100px", height: "100px", background: "rgba(255,107,53,0.05)", borderRadius: "50%" }} />
-
           <div style={{ width: "52px", height: "52px", background: "rgba(255,107,53,0.15)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
             <GraduationCap size={26} color="#FF6B35" />
           </div>
@@ -233,12 +216,9 @@ export default function StudentDashboard() {
             </div>
           </div>
           <div style={{
-            display: "flex", alignItems: "center", gap: "6px",
-            padding: "10px 18px", borderRadius: "12px",
-            background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
-            color: "white", fontWeight: "600", fontSize: "13px",
-            flexShrink: 0, zIndex: 1,
-            boxShadow: "0 4px 12px rgba(232,90,42,0.35)"
+            display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "12px",
+            background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", fontWeight: "600", fontSize: "13px",
+            flexShrink: 0, zIndex: 1, boxShadow: "0 4px 12px rgba(232,90,42,0.35)"
           }}>
             Khám phá <ArrowRight size={15} />
           </div>
