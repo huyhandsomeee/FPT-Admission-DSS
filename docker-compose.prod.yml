@@ -8,8 +8,8 @@ services:
     env_file:
       - ./deploy/env/backend.env
     environment:
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-smalltrend}
-      MYSQL_USER: ${DB_USERNAME:-smalltrend}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-fpt_admission}
+      MYSQL_USER: ${DB_USERNAME:-fpt_admission}
       MYSQL_PASSWORD: ${DB_PASSWORD:-1234}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root1234}
     healthcheck:
@@ -24,7 +24,7 @@ services:
       - mysql_data:/var/lib/mysql
 
   backend:
-    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/smalltrend-backend:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/fpt-admission-backend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       mysql:
@@ -32,8 +32,8 @@ services:
     env_file:
       - ./deploy/env/backend.env
     environment:
-      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/smalltrend?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8}
-      DB_USERNAME: ${DB_USERNAME:-smalltrend}
+      DB_URL: ${DB_URL:-jdbc:mysql://mysql:3306/fpt_admission?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true&useUnicode=true&characterEncoding=UTF-8}
+      DB_USERNAME: ${DB_USERNAME:-fpt_admission}
       DB_PASSWORD: ${DB_PASSWORD:-1234}
       SPRING_JPA_DDL_AUTO: ${SPRING_JPA_DDL_AUTO:-update}
       SPRING_SQL_INIT_MODE: ${SPRING_SQL_INIT_MODE:-always}
@@ -43,7 +43,7 @@ services:
       - uploads_data:/app/uploads
 
   frontend:
-    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/smalltrend-frontend:${IMAGE_TAG:-latest}
+    image: ${REGISTRY:-docker.io}/${IMAGE_NAMESPACE:-hungnq315}/fpt-admission-frontend:${IMAGE_TAG:-latest}
     restart: unless-stopped
     ports:
       - "3000:80"

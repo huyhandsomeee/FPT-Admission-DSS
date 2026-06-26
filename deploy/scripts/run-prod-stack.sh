@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SmallTrend production stack runner for Azure VM
+# FPT-Admission production stack runner for Azure VM
 # - Loads DB credentials from deploy/env/backend.env
 # - Starts MySQL container first and waits for healthy state
 # - Brings up backend + frontend after DB is ready
@@ -53,9 +53,9 @@ set -a
 . "$ENV_FILE"
 set +a
 
-: "${DB_USERNAME:=smalltrend}"
+: "${DB_USERNAME:=fpt_admission}"
 : "${DB_PASSWORD:=1234}"
-: "${MYSQL_DATABASE:=smalltrend}"
+: "${MYSQL_DATABASE:=fpt_admission}"
 : "${MYSQL_ROOT_PASSWORD:=root1234}"
 : "${REGISTRY:=docker.io}"
 : "${IMAGE_NAMESPACE:=}"
@@ -149,26 +149,9 @@ echo "\nQuick DB integrity diagnostics:"
 docker compose -f "$COMPOSE_FILE" exec -T mysql \
   mysql -N -s -uroot -p"$MYSQL_ROOT_PASSWORD" "$MYSQL_DATABASE" -e "
     SELECT
-      (SELECT COUNT(*) FROM products) AS products_count,
-      (SELECT COUNT(*) FROM product_variants) AS variants_count,
-      (SELECT COUNT(*) FROM units) AS units_count,
-      (SELECT COUNT(*) FROM inventory_stock) AS stock_rows,
-      (SELECT COUNT(*)
-         FROM product_variants pv
-         LEFT JOIN products p ON p.id = pv.product_id
-         LEFT JOIN units u ON u.id = pv.unit_id
-        WHERE p.id IS NOT NULL AND u.id IS NOT NULL) AS joinable_variants,
-      (SELECT COUNT(*)
-         FROM product_variants pv
-         LEFT JOIN products p ON p.id = pv.product_id
-        WHERE p.id IS NULL) AS orphan_product_refs,
-      (SELECT COUNT(*)
-         FROM product_variants pv
-         LEFT JOIN units u ON u.id = pv.unit_id
-        WHERE u.id IS NULL) AS orphan_unit_refs,
-      (SELECT COUNT(DISTINCT variant_id)
-         FROM inventory_stock
-        WHERE COALESCE(quantity, 0) > 0) AS stocked_variants;
+      (SELECT COUNT(*) FROM applications) AS applications_count,
+      (SELECT COUNT(*) FROM users) AS users_count,
+      (SELECT COUNT(*) FROM student_profiles) AS profiles_count;
   " || true
 
 echo "\nDone. If backend is still unhealthy, check logs:"

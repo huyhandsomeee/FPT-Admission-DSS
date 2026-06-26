@@ -3,7 +3,7 @@
 # Strict mode: fail fast on SQL errors, then verify critical domains.
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/smalltrend}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/fpt-admission}"
 COMPOSE_FILE="${COMPOSE_FILE:-$DEPLOY_PATH/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-$DEPLOY_PATH/deploy/env/backend.env}"
 SEED_FILE="${SEED_FILE:-$DEPLOY_PATH/deploy/fix_seed.sql}"
@@ -238,7 +238,7 @@ get_env_value() {
 MYSQL_DATABASE="$(get_env_value MYSQL_DATABASE)"
 MYSQL_ROOT_PASSWORD="$(get_env_value MYSQL_ROOT_PASSWORD)"
 
-: "${MYSQL_DATABASE:=smalltrend}"
+: "${MYSQL_DATABASE:=fpt_admission}"
 : "${MYSQL_ROOT_PASSWORD:=root1234}"
 
 log "3/10" "Starting mysql service"

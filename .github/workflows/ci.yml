@@ -77,7 +77,7 @@ jobs:
         working-directory: backend
 
     env:
-      DB_URL: jdbc:h2:mem:smalltrend-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
+      DB_URL: jdbc:h2:mem:fpt_admission-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE
       DB_USERNAME: sa
       DB_PASSWORD: ""
       JWT_SECRET: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
@@ -112,7 +112,7 @@ jobs:
         run: chmod +x mvnw
 
       - name: Build and run tests
-        run: ./mvnw -B clean verify -Dspring.datasource.url="jdbc:h2:mem:smalltrend-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE" -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password= -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect -Dspring.jpa.hibernate.ddl-auto=create-drop -Dspring.sql.init.mode=never
+        run: ./mvnw -B clean verify -Dspring.datasource.url="jdbc:h2:mem:fpt_admission-test;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_LOWER=TRUE" -Dspring.datasource.driver-class-name=org.h2.Driver -Dspring.datasource.username=sa -Dspring.datasource.password= -Dspring.jpa.database-platform=org.hibernate.dialect.H2Dialect -Dspring.jpa.hibernate.ddl-auto=create-drop -Dspring.sql.init.mode=never
 
       - name: Upload test reports
         if: always()

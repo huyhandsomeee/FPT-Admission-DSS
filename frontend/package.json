@@ -1,7 +1,7 @@
 {
-  "name": "smalltrend-fe",
+  "name": "fpt-admission-fe",
   "version": "1.0.0",
-  "description": "SmallTrend POS System - Frontend",
+  "description": "FPT Admission DSS - Frontend",
   "type": "module",
   "scripts": {
     "dev": "vite",

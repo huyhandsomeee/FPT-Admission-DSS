@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# Initialize MySQL container and seed SmallTrend data.sql on Azure VM.
+# Initialize MySQL container and seed FPT Admission data.sql on Azure VM.
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/smalltrend}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/fpt-admission}"
 COMPOSE_FILE="$DEPLOY_PATH/docker-compose.prod.yml"
 ENV_FILE="$DEPLOY_PATH/deploy/env/backend.env"
 SEED_FILE="${SEED_FILE:-$DEPLOY_PATH/deploy/fix_seed.sql}"
@@ -44,7 +44,7 @@ get_env_value() {
 MYSQL_DATABASE="$(get_env_value MYSQL_DATABASE)"
 MYSQL_ROOT_PASSWORD="$(get_env_value MYSQL_ROOT_PASSWORD)"
 
-: "${MYSQL_DATABASE:=smalltrend}"
+: "${MYSQL_DATABASE:=fpt_admission}"
 : "${MYSQL_ROOT_PASSWORD:=root1234}"
 
 log "3/7" "Starting mysql service"

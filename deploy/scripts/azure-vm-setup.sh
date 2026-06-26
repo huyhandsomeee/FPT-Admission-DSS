@@ -1,16 +1,16 @@
 #!/bin/bash
-# SmallTrend Azure VM One-Time Setup Script
+# FPT Admission Azure VM One-Time Setup Script
 # Run this once on Ubuntu Azure VM to prepare for deployment
 
 set -e
 
 echo "=========================================="
-echo "SmallTrend Azure VM Setup"
+echo "FPT Admission Azure VM Setup"
 echo "=========================================="
 
 # Variables
-REPO_URL="https://github.com/YOUR_USERNAME/SmallTrend.git"
-DEPLOY_PATH="/opt/smalltrend"
+REPO_URL="https://github.com/YOUR_USERNAME/fpt-admission-dss.git"
+DEPLOY_PATH="/opt/fpt-admission"
 TARGET_USER="${SUDO_USER:-$USER}"
 TARGET_BRANCH="main"
 
@@ -57,7 +57,7 @@ sudo mkdir -p "$DEPLOY_PATH"
 sudo chown -R "$TARGET_USER":"$TARGET_USER" "$DEPLOY_PATH"
 
 # Step 6: Clone repository
-echo "[6/7] Cloning SmallTrend repository..."
+echo "[6/7] Cloning FPT Admission repository..."
 cd "$DEPLOY_PATH"
 if [ -d .git ]; then
   echo "Existing git repository detected. Updating source..."
@@ -95,14 +95,14 @@ echo "   nano $DEPLOY_PATH/deploy/env/backend.env"
 echo "   Update: DB_PASSWORD, JWT_SECRET, Cloudinary, Mail settings"
 echo ""
 echo "3. Copy Nginx config:"
-echo "   sudo cp $DEPLOY_PATH/deploy/nginx/smalltrend.conf /etc/nginx/sites-available/smalltrend"
-echo "   sudo ln -s /etc/nginx/sites-available/smalltrend /etc/nginx/sites-enabled/smalltrend"
+echo "   sudo cp $DEPLOY_PATH/deploy/nginx/fpt-admission.conf /etc/nginx/sites-available/fpt-admission"
+echo "   sudo ln -s /etc/nginx/sites-available/fpt-admission /etc/nginx/sites-enabled/fpt-admission"
 echo "   sudo rm -f /etc/nginx/sites-enabled/default"
 echo "   sudo nginx -t"
 echo "   sudo systemctl reload nginx"
 echo ""
 echo "4. Issue SSL certificate:"
-echo "   sudo certbot --nginx -d smalltrend.me -d www.smalltrend.me"
+echo "   sudo certbot --nginx -d fpt-admission.me -d www.fpt-admission.me"
 echo ""
 echo "5. Verify Certbot timer:"
 echo "   sudo systemctl status certbot.timer"
@@ -116,5 +116,5 @@ echo "   docker compose -f docker-compose.prod.yml pull"
 echo "   docker compose -f docker-compose.prod.yml up -d --remove-orphans"
 echo ""
 echo "7. Verify deployment:"
-echo "   curl -f https://smalltrend.me/api/ai/health"
+echo "   curl -f https://fpt-admission.me/api/ai/health"
 echo ""

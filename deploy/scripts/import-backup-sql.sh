@@ -3,7 +3,7 @@
 # Core approach: stop backend -> import SQL -> start backend with DDL=none -> revert to update
 set -euo pipefail
 
-DEPLOY_PATH="${DEPLOY_PATH:-/opt/smalltrend}"
+DEPLOY_PATH="${DEPLOY_PATH:-/opt/fpt-admission}"
 COMPOSE_FILE="${COMPOSE_FILE:-$DEPLOY_PATH/docker-compose.prod.yml}"
 ENV_FILE="${ENV_FILE:-$DEPLOY_PATH/deploy/env/backend.env}"
 BACKUP_DIR="${BACKUP_DIR:-$DEPLOY_PATH/backup_data_value}"
@@ -16,7 +16,7 @@ get_env_value() {
 }
 MYSQL_DATABASE="$(get_env_value MYSQL_DATABASE)"
 MYSQL_ROOT_PASSWORD="$(get_env_value MYSQL_ROOT_PASSWORD)"
-: "${MYSQL_DATABASE:=smalltrend}"
+: "${MYSQL_DATABASE:=fpt_admission}"
 : "${MYSQL_ROOT_PASSWORD:=root1234}"
 
 log "1/7" "Stopping backend to prevent JPA schema conflicts..."

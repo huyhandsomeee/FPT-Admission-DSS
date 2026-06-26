@@ -52,7 +52,7 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_ROOT_PASSWORD: test1234
-          MYSQL_DATABASE: smalltrend_test
+          MYSQL_DATABASE: fpt_admission_test
         ports:
           - 3306:3306
         options: >-
@@ -61,7 +61,7 @@ jobs:
           --health-timeout=5s
           --health-retries=5
     env:
-      DB_URL: jdbc:mysql://localhost:3306/smalltrend_test?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
+      DB_URL: jdbc:mysql://localhost:3306/fpt_admission_test?allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC&createDatabaseIfNotExist=true
       DB_USERNAME: root
       DB_PASSWORD: test1234
       JWT_SECRET: 5367566B59703373367639792F423F4528482B4D6251655468576D5A71347437
@@ -111,7 +111,7 @@ jobs:
         id: backend-meta
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/smalltrend-backend
+          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fpt-admission-backend
           tags: |
             type=raw,value=latest
             type=sha,format=long
@@ -130,7 +130,7 @@ jobs:
         id: frontend-meta
         uses: docker/metadata-action@v5
         with:
-          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/smalltrend-frontend
+          images: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/fpt-admission-frontend
           tags: |
             type=raw,value=latest
             type=sha,format=long
@@ -215,9 +215,9 @@ jobs:
             SPRING_SQL_INIT_MODE="$(get_env_value SPRING_SQL_INIT_MODE)"
             SPRING_JPA_DDL_AUTO="$(get_env_value SPRING_JPA_DDL_AUTO)"
 
-            : "${DB_USERNAME:=smalltrend}"
+            : "${DB_USERNAME:=fpt_admission}"
             : "${DB_PASSWORD:=1234}"
-            : "${MYSQL_DATABASE:=smalltrend}"
+            : "${MYSQL_DATABASE:=fpt_admission}"
             : "${MYSQL_ROOT_PASSWORD:=root1234}"
             : "${SPRING_SQL_INIT_MODE:=always}"
             : "${SPRING_JPA_DDL_AUTO:=update}"
@@ -274,8 +274,8 @@ jobs:
 
             verify_tag_exists() {
               tag="$1"
-              image_exists "$REGISTRY/$IMAGE_NAMESPACE/smalltrend-backend:$tag" && \
-                image_exists "$REGISTRY/$IMAGE_NAMESPACE/smalltrend-frontend:$tag"
+              image_exists "$REGISTRY/$IMAGE_NAMESPACE/fpt-admission-backend:$tag" && \
+                image_exists "$REGISTRY/$IMAGE_NAMESPACE/fpt-admission-frontend:$tag"
             }
 
             deploy_tag() {
@@ -294,7 +294,7 @@ jobs:
 
             # ─── Pre-deploy: backup database ───
             echo "Backing up database before deploy..."
-            BACKUP_FILE="/tmp/smalltrend_backup_$(date +%Y%m%d_%H%M%S).sql"
+            BACKUP_FILE="/tmp/fpt_admission_backup_$(date +%Y%m%d_%H%M%S).sql"
             sudo docker compose -f docker-compose.prod.yml exec -T mysql \
               mysqldump -u"$DB_USERNAME" -p"$DB_PASSWORD" "$MYSQL_DATABASE" \
               --single-transaction --routines --triggers --events \
