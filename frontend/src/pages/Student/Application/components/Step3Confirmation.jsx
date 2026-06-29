@@ -13,11 +13,19 @@ export default function Step3Confirmation({ form, campuses, majors, methods, fil
     ["Số điện thoại", form.phone],
     ["Số CCCD", form.cccd],
     ["Trường THPT tốt nghiệp", `${form.schoolName} (${form.graduationYear})`],
-    ["GPA Lớp 10 / 11 / 12", `${form.gpa10} / ${form.gpa11} / ${form.gpa12}`],
+  ];
+
+  if (selectedMethod?.code === 'HOC_BA') {
+    summary.push(["Điểm TB năm lớp 12", form.gpa12]);
+  } else if (selectedMethod?.code === 'SAT_IELTS') {
+    summary.push(["Thuộc diện tuyển thẳng", form.academicAchievement || "—"]);
+  }
+
+  summary.push(
     ["Cơ sở đăng ký", campuses.find(c => c.id == form.campusId)?.name || "—"],
     ["Ngành học đăng ký", majors.find(m => m.id == form.majorId)?.name || "—"],
-    ["Tài liệu đã tải lên", `${uploadedCount} tệp tài liệu đính kèm`],
-  ];
+    ["Tài liệu đã tải lên", `${uploadedCount} tệp tài liệu đính kèm`]
+  );
 
   return (
     <>

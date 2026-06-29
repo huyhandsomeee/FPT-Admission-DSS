@@ -4,14 +4,13 @@ import { CheckCircle, ChevronRight, ChevronLeft } from "lucide-react";
 import api from "../../../config/axiosConfig";
 import { formatDateDisplay } from "../../../utils/dateUtils";
 import useConfigData from "../../../hooks/useConfigData";
-import useAddressFields from "../../../hooks/useAddressFields";
 import useFileUpload from "../../../hooks/useFileUpload";
+import { useAuth } from "../../../context/AuthContext";
 import StepIndicator from "./components/StepIndicator";
 import Step1MethodSelect from "./components/Step1MethodSelect";
 import SectionPersonalInfo from "./components/SectionPersonalInfo";
 import SectionAcademic from "./components/SectionAcademic";
 import SectionCampusMajor from "./components/SectionCampusMajor";
-import SectionDocuments from "./components/SectionDocuments";
 import Step3Confirmation from "./components/Step3Confirmation";
 import ExistingApplicationView from "./components/ExistingApplicationView";
 import SubmitSuccessView from "./components/SubmitSuccessView";
@@ -24,6 +23,7 @@ const steps = [
 
 export default function NewApplication() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -40,24 +40,31 @@ export default function NewApplication() {
 
   // Form state
   const [form, setForm] = useState({
-    fullName: "", dob: "", gender: "MALE", phone: "", cccd: "",
-    permanentAddress: "", provinceId: "",
-    parentName: "", parentPhone: "",
-    schoolName: "", graduationYear: "2026",
-    gpa10: "", gpa11: "", gpa12: "",
-    campusId: "", majorId: "", methodId: "",
+    fullName: user?.fullName || "",
+    dob: "",
+    gender: "MALE",
+    phone: user?.phone || "",
+    cccd: "",
+    permanentAddress: "",
+    provinceId: "",
+    parentName: "",
+    parentPhone: "",
+    schoolName: "",
+    graduationYear: "2026",
+    gpa10: "0",
+    gpa11: "0",
+    gpa12: "",
+    campusId: "",
+    majorId: "",
+    methodId: "",
+    email: user?.email || "",
+    cccdIssueDate: "",
+    cccdIssuePlace: "",
+    academicAchievement: "",
   });
-
-  // Address fields
-  const address = useAddressFields(form.provinceId, provinces);
 
   // File upload
   const { files, setFiles } = useFileUpload();
-
-  // Update permanent address from address fields
-  useEffect(() => {
-    setForm(prev => ({ ...prev, permanentAddress: address.permanentAddress }));
-  }, [address.permanentAddress]);
 
   // Load existing application
   useEffect(() => {
@@ -98,21 +105,48 @@ export default function NewApplication() {
         return false;
       }
     } else if (currentStep === 2) {
-      if (!form.fullName || !form.dob || !form.cccd || !form.provinceId || !form.phone) {
-        alert("Vui lòng điền đầy đủ thông tin cá nhân và địa chỉ thường trú bắt buộc");
+      const selectedMethod = methods.find(m => m.id == form.methodId);
+
+      // Basic info validation
+      if (!form.fullName || !form.dob || !form.cccd || !form.phone || !form.email || !form.cccdIssueDate || !form.cccdIssuePlace) {
+        alert("Vui lòng điền đầy đủ thông tin cá nhân và số CCCD bắt buộc");
         return false;
       }
-      if (!form.schoolName || !form.gpa10 || !form.gpa11 || !form.gpa12) {
-        alert("Vui lòng nhập đầy đủ thông tin học vấn và điểm GPA");
+      // THPT validation
+      if (!form.schoolName || !form.provinceId || !form.graduationYear) {
+        alert("Vui lòng nhập đầy đủ thông tin học vấn trường THPT");
         return false;
       }
+      // Registration validation
       if (!form.campusId || !form.majorId) {
         alert("Vui lòng chọn cơ sở và ngành học");
         return false;
       }
-      if (!files.cccdFile || !files.hocBaFile || !files.bangTNFile || !files.anhTheFile) {
-        alert("Vui lòng tải lên đầy đủ các tài liệu bắt buộc");
+      // CCCD files validation
+      if (!files.cccdFrontFile || !files.cccdBackFile) {
+        alert("Vui lòng tải lên đầy đủ ảnh CCCD mặt trước và mặt sau");
         return false;
+      }
+
+      // Method specific validation
+      if (selectedMethod?.code === 'HOC_BA') {
+        if (!form.gpa12) {
+          alert("Vui lòng nhập điểm trung bình năm lớp 12");
+          return false;
+        }
+        if (!files.hocBaFile) {
+          alert("Vui lòng tải lên minh chứng điểm trung bình lớp 12");
+          return false;
+        }
+      } else if (selectedMethod?.code === 'SAT_IELTS') {
+        if (!form.academicAchievement) {
+          alert("Vui lòng chọn diện xét tuyển thẳng");
+          return false;
+        }
+        if (!files.chungChiFile) {
+          alert("Vui lòng tải lên minh chứng xét tuyển thẳng");
+          return false;
+        }
       }
     }
     return true;
@@ -128,7 +162,19 @@ export default function NewApplication() {
     setLoading(true);
     try {
       const formData = new FormData();
-      Object.entries(form).forEach(([key, value]) => {
+      
+      const provinceName = provinces.find(p => p.id == form.provinceId)?.name || "";
+      const finalAddress = form.permanentAddress || `Tỉnh/Thành phố THPT: ${provinceName}`;
+
+      const finalForm = {
+        ...form,
+        permanentAddress: finalAddress,
+        gpa10: form.gpa10 || "0",
+        gpa11: form.gpa11 || "0",
+        gpa12: form.gpa12 || "0",
+      };
+
+      Object.entries(finalForm).forEach(([key, value]) => {
         if (value !== "" && value !== null) formData.append(key, value);
       });
       // Append files
@@ -208,12 +254,33 @@ export default function NewApplication() {
             </div>
             <div style={{ padding: "24px 28px", display: "flex", flexDirection: "column", gap: "32px" }}>
               <SectionPersonalInfo
-                form={form} update={update} provinces={provinces} schools={schools} setForm={setForm}
-                {...address}
+                form={form}
+                update={update}
+                setForm={setForm}
+                files={files}
+                setFiles={setFiles}
               />
-              <SectionAcademic form={form} update={update} schools={schools} />
-              <SectionCampusMajor form={form} setForm={setForm} update={update} campuses={campuses} majors={majors} />
-              <SectionDocuments files={files} setFiles={setFiles} />
+              <SectionAcademic
+                form={form}
+                update={update}
+                setForm={setForm}
+                provinces={provinces}
+                schools={schools}
+                files={files}
+                setFiles={setFiles}
+                fetchSchools={fetchSchools}
+                showHocBaSection={methods.find(m => m.id == form.methodId)?.code === 'HOC_BA'}
+              />
+              <SectionCampusMajor
+                form={form}
+                setForm={setForm}
+                update={update}
+                campuses={campuses}
+                majors={majors}
+                files={files}
+                setFiles={setFiles}
+                showDirectSection={methods.find(m => m.id == form.methodId)?.code === 'SAT_IELTS'}
+              />
             </div>
           </>
         )}

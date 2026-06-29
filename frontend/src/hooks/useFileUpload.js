@@ -3,6 +3,8 @@ import { useState } from "react";
 export default function useFileUpload() {
   const [files, setFiles] = useState({
     cccdFile: null,
+    cccdFrontFile: null,
+    cccdBackFile: null,
     hocBaFile: null,
     bangTNFile: null,
     anhTheFile: null,
@@ -20,6 +22,8 @@ export default function useFileUpload() {
   const resetFiles = () => {
     setFiles({
       cccdFile: null,
+      cccdFrontFile: null,
+      cccdBackFile: null,
       hocBaFile: null,
       bangTNFile: null,
       anhTheFile: null,

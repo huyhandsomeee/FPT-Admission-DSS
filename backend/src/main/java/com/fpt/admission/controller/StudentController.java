@@ -106,8 +106,8 @@ public class StudentController {
             @RequestParam("gender") String gender,
             @RequestParam("phone") String phone,
             @RequestParam("cccd") String cccd,
-            @RequestParam("permanentAddress") String permanentAddress,
-            @RequestParam("provinceId") Long provinceId,
+            @RequestParam(value = "permanentAddress", required = false, defaultValue = "") String permanentAddress,
+            @RequestParam(value = "provinceId", required = false) Long provinceId,
             @RequestParam(value = "parentName", required = false) String parentName,
             @RequestParam(value = "parentPhone", required = false) String parentPhone,
             @RequestParam("schoolName") String schoolName,
@@ -115,24 +115,39 @@ public class StudentController {
             @RequestParam(value = "mathScore", required = false, defaultValue = "0") double mathScore,
             @RequestParam(value = "literatureScore", required = false, defaultValue = "0") double literatureScore,
             @RequestParam(value = "englishScore", required = false, defaultValue = "0") double englishScore,
-            @RequestParam("gpa10") double gpa10,
-            @RequestParam("gpa11") double gpa11,
-            @RequestParam("gpa12") double gpa12,
+            @RequestParam(value = "gpa10", required = false, defaultValue = "0") double gpa10,
+            @RequestParam(value = "gpa11", required = false, defaultValue = "0") double gpa11,
+            @RequestParam(value = "gpa12", required = false, defaultValue = "0") double gpa12,
             @RequestParam("campusId") Long campusId,
             @RequestParam("majorId") Long majorId,
             @RequestParam("methodId") Long methodId,
-            @RequestParam("cccdFile") MultipartFile cccdFile,
-            @RequestParam("hocBaFile") MultipartFile hocBaFile,
-            @RequestParam("bangTNFile") MultipartFile bangTNFile,
-            @RequestParam("anhTheFile") MultipartFile anhTheFile,
+            @RequestParam(value = "cccdFile", required = false) MultipartFile cccdFile,
+            @RequestParam(value = "cccdFrontFile", required = false) MultipartFile cccdFrontFile,
+            @RequestParam(value = "cccdBackFile", required = false) MultipartFile cccdBackFile,
+            @RequestParam(value = "hocBaFile", required = false) MultipartFile hocBaFile,
+            @RequestParam(value = "bangTNFile", required = false) MultipartFile bangTNFile,
+            @RequestParam(value = "anhTheFile", required = false) MultipartFile anhTheFile,
             @RequestParam(value = "giayKhaiSinhFile", required = false) MultipartFile giayKhaiSinhFile,
             @RequestParam(value = "chungChiFile", required = false) MultipartFile chungChiFile,
             @RequestParam(value = "hoKhauFile", required = false) MultipartFile hoKhauFile,
+            @RequestParam(value = "cccdIssueDate", required = false) String cccdIssueDate,
+            @RequestParam(value = "cccdIssuePlace", required = false) String cccdIssuePlace,
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "academicAchievement", required = false) String academicAchievement,
             @RequestHeader("Authorization") String authHeader) {
 
         Long userId = getUserId(authHeader);
         User user = userRepository.findById(userId)
             .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng"));
+
+        // Update User Email if changed and unique
+        if (email != null && !email.trim().isEmpty() && !email.trim().equalsIgnoreCase(user.getEmail())) {
+            if (userRepository.existsByEmail(email.trim())) {
+                throw new RuntimeException("Email đã được sử dụng bởi tài khoản khác");
+            }
+            user.setEmail(email.trim());
+            userRepository.save(user);
+        }
 
         // 1. Save / Update Student Profile
         StudentProfile profile = studentProfileRepository.findByUserId(userId).orElse(null);
@@ -148,6 +163,12 @@ public class StudentController {
         profile.setCccdNumber(cccd);
         profile.setParentName(parentName);
         profile.setParentPhone(parentPhone);
+        if (cccdIssueDate != null && !cccdIssueDate.trim().isEmpty()) {
+            profile.setCccdIssueDate(LocalDate.parse(cccdIssueDate.trim()));
+        }
+        if (cccdIssuePlace != null && !cccdIssuePlace.trim().isEmpty()) {
+            profile.setCccdIssuePlace(cccdIssuePlace.trim());
+        }
         if (provinceId != null) {
             profile.setProvince(provinceRepository.findById(provinceId).orElse(null));
         }
@@ -168,6 +189,9 @@ public class StudentController {
         ab.setGpa11(BigDecimal.valueOf(gpa11));
         ab.setGpa12(BigDecimal.valueOf(gpa12));
         ab.setTotalScore(BigDecimal.valueOf(mathScore + literatureScore + englishScore));
+        if (academicAchievement != null && !academicAchievement.trim().isEmpty()) {
+            ab.setAcademicAchievement(academicAchievement.trim());
+        }
         academicBackgroundRepository.save(ab);
 
         // 3. Create Application
@@ -195,10 +219,24 @@ public class StudentController {
 
         // 4. Save and record Documents
         try {
-            saveAppDoc(app.getId(), 1L, cccdFile, userId);
-            saveAppDoc(app.getId(), 2L, hocBaFile, userId);
-            saveAppDoc(app.getId(), 3L, bangTNFile, userId);
-            saveAppDoc(app.getId(), 5L, anhTheFile, userId);
+            if (cccdFile != null && !cccdFile.isEmpty()) {
+                saveAppDoc(app.getId(), 1L, cccdFile, userId);
+            }
+            if (cccdFrontFile != null && !cccdFrontFile.isEmpty()) {
+                saveAppDoc(app.getId(), 1L, cccdFrontFile, userId);
+            }
+            if (cccdBackFile != null && !cccdBackFile.isEmpty()) {
+                saveAppDoc(app.getId(), 1L, cccdBackFile, userId);
+            }
+            if (hocBaFile != null && !hocBaFile.isEmpty()) {
+                saveAppDoc(app.getId(), 2L, hocBaFile, userId);
+            }
+            if (bangTNFile != null && !bangTNFile.isEmpty()) {
+                saveAppDoc(app.getId(), 3L, bangTNFile, userId);
+            }
+            if (anhTheFile != null && !anhTheFile.isEmpty()) {
+                saveAppDoc(app.getId(), 5L, anhTheFile, userId);
+            }
             if (giayKhaiSinhFile != null && !giayKhaiSinhFile.isEmpty()) {
                 saveAppDoc(app.getId(), 6L, giayKhaiSinhFile, userId);
             }
@@ -238,7 +276,7 @@ public class StudentController {
         if (originalFilename != null && originalFilename.contains(".")) {
             extension = originalFilename.substring(originalFilename.lastIndexOf("."));
         }
-        String fileName = userId + "_" + docTypeId + "_" + System.currentTimeMillis() + extension;
+        String fileName = userId + "_" + docTypeId + "_" + System.currentTimeMillis() + "_" + UUID.randomUUID().toString().substring(0, 8) + extension;
         Path uploadPath = Paths.get("./uploads");
         if (!Files.exists(uploadPath)) {
             Files.createDirectories(uploadPath);
