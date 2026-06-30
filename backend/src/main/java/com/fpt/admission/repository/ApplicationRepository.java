@@ -15,6 +15,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     long countByStatus(ApplicationStatus status);
     long countByAdmissionYearId(Long yearId);
 
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.major.code = :majorCode AND a.admissionYear.year = :year")
+    long countByMajorCodeAndYear(@Param("majorCode") String majorCode, @Param("year") int year);
+
     @Query("SELECT COUNT(a) FROM Application a WHERE a.admissionYear.year = :year")
     long countByYear(@Param("year") int year);
 

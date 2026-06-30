@@ -16,6 +16,12 @@ Desktop.ini
 .env
 deploy/env/backend.env
 
+# Kilo worktrees
+.kilo/
+
+# H2 local database (not used, MySQL is the primary DB)
+backend/.data/
+
 # Private keys
 swp391_key.pem
 *.pem

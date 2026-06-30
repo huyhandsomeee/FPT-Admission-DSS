@@ -1,12 +1,15 @@
 import React, { useRef } from "react";
 import { Upload, Info, FileText, Plus, Trash2 } from "lucide-react";
+import SearchableSelect from "../../../../components/SearchableSelect";
 
 export default function SectionAcademic({
   form,
   update,
   setForm,
   provinces,
+  dbProvinces,
   schools,
+  schoolsLoading,
   files,
   setFiles,
   fetchSchools,
@@ -36,48 +39,88 @@ export default function SectionAcademic({
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "20px" }}>
           <div>
             <label className="form-label" style={{ fontWeight: "600" }}>Tỉnh/Thành phố THPT <span style={{ color: "#EF4444" }}>(*)</span></label>
-            <select
-              className="form-select"
-              value={form.provinceId}
-              onChange={(e) => {
-                const val = e.target.value;
-                setForm(prev => ({ ...prev, provinceId: val, schoolName: "" }));
-                if (fetchSchools) fetchSchools(val);
-              }}
+            <SearchableSelect
+              id="province-select"
+              options={provinces.map(p => ({ value: String(p.code || p.id), label: p.name }))}
+              value={form.openApiProvinceCode ? String(form.openApiProvinceCode) : ""}
+              placeholder="Tìm tỉnh/thành phố..."
               required
-            >
-              <option value="">Chọn thông tin</option>
-              {provinces.map(p => (
-                <option key={p.id} value={p.id}>{p.name}</option>
-              ))}
-            </select>
+              onChange={(val) => {
+                const selectedProv = provinces.find(p => String(p.code || p.id) === val);
+                let matchedDbId = "";
+                let provName = "";
+                let provCodename = "";
+
+                if (selectedProv) {
+                  provName = selectedProv.name;
+                  provCodename = selectedProv.codename || "";
+                  const cleanName = selectedProv.name
+                    .replace(/^Thành phố\s+/i, "")
+                    .replace(/^Tỉnh\s+/i, "")
+                    .trim()
+                    .toLowerCase();
+
+                  const dbMatch = dbProvinces.find(p => {
+                    const dbClean = p.name
+                      .replace(/^TP\.\s+/i, "")
+                      .replace(/^Thành phố\s+/i, "")
+                      .replace(/^Tỉnh\s+/i, "")
+                      .trim()
+                      .toLowerCase();
+                    return dbClean === cleanName || cleanName.includes(dbClean) || dbClean.includes(cleanName);
+                  });
+                  if (dbMatch) matchedDbId = dbMatch.id;
+                }
+
+                setForm(prev => ({
+                  ...prev,
+                  openApiProvinceCode: val,
+                  provinceId: matchedDbId,
+                  schoolName: ""
+                }));
+
+                if (fetchSchools) fetchSchools(matchedDbId, provName, provCodename);
+              }}
+            />
           </div>
 
           <div>
             <label className="form-label" style={{ fontWeight: "600" }}>Trường THPT <span style={{ color: "#EF4444" }}>(*)</span></label>
-            <select
-              className="form-select"
-              value={form.schoolName}
-              onChange={update("schoolName")}
-              required
-              disabled={!form.provinceId}
-            >
-              <option value="">Chọn thông tin</option>
-              {schools.filter(s => s.schoolType === "PUBLIC").length > 0 && (
-                <optgroup label="🏫 Trường công lập">
-                  {schools.filter(s => s.schoolType === "PUBLIC").map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </optgroup>
-              )}
-              {schools.filter(s => s.schoolType === "PRIVATE").length > 0 && (
-                <optgroup label="🏠 Trường tư thục">
-                  {schools.filter(s => s.schoolType === "PRIVATE").map(s => (
-                    <option key={s.id} value={s.name}>{s.name}</option>
-                  ))}
-                </optgroup>
-              )}
-            </select>
+            {schoolsLoading ? (
+              <div style={{ color: "#F97316", fontSize: "13px", display: "flex", alignItems: "center", gap: "8px", height: "42px" }}>
+                <span style={{
+                  display: "inline-block",
+                  width: "16px",
+                  height: "16px",
+                  border: "2px solid #F97316",
+                  borderTopColor: "transparent",
+                  borderRadius: "50%",
+                  animation: "spin 0.8s linear infinite"
+                }}></span>
+                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                Đang tải danh sách trường...
+              </div>
+            ) : schools.length > 0 ? (
+              <SearchableSelect
+                id="school-select"
+                options={schools.map(s => ({ value: s.name, label: s.name }))}
+                value={form.schoolName || ""}
+                placeholder="Tìm trường THPT..."
+                required
+                onChange={(val) => {
+                  setForm(prev => ({ ...prev, schoolName: val }));
+                }}
+              />
+            ) : (
+              <input
+                className="form-input"
+                value={form.schoolName}
+                onChange={update("schoolName")}
+                placeholder="Nhập tên trường THPT..."
+                required
+                disabled={!form.openApiProvinceCode}
+              />
+            )}
           </div>
 
           <div>

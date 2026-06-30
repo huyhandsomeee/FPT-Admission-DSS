@@ -432,23 +432,23 @@
 
     -- 11. Applications
     INSERT IGNORE INTO applications (id, application_code, student_profile_id, admission_year_id, campus_id, major_id, admission_method_id, priority_number, total_score, status, submitted_at, reviewed_at, reviewed_by, officer_notes) VALUES
-    (1,  'FPT2026-001', 1,  3, 1, 1,  1, 1, 25.00, 'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
-    (2,  'FPT2026-002', 2,  3, 2, 8,  2, 1, 22.50, 'UNDER_REVIEW', '2026-03-03 10:15:00', NULL,                  NULL, NULL),
-    (3,  'FPT2026-003', 3,  3, 3, 13, 1, 1, 23.50, 'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
-    (4,  'FPT2026-004', 4,  3, 4, 16, 2, 1, 21.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
-    (5,  'FPT2026-005', 5,  3, 1, 2,  3, 1, 27.00, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
-    (6,  'FPT2026-006', 6,  3, 1, 1,  3, 1, 24.30, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
-    (7,  'FPT2026-007', 7,  3, 1, 1,  2, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
-    (8,  'FPT2026-008', 8,  3, 2, 8,  4, 1, 26.30, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
-    (9,  'FPT2026-009', 9,  3, 3, 13, 2, 2, 21.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
-    (10, 'FPT2026-010', 10, 3, 4, 16, 1, 1, 24.50, 'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
-    (11, 'FPT2026-011', 11, 3, 1, 1,  1, 1, 23.50, 'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
-    (12, 'FPT2026-012', 12, 3, 2, 10, 4, 1, 28.00, 'ENROLLED',     '2026-02-25 10:00:00', '2026-03-01 09:00:00', 7, 'IELTS 8.5, học lực xuất sắc'),
-    (13, 'FPT2026-013', 13, 3, 3, 15, 2, 1, 22.30, 'SUBMITTED',    '2026-03-10 11:00:00', NULL,                  NULL, NULL),
-    (14, 'FPT2026-014', 14, 3, 4, 17, 1, 1, 23.50, 'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
-    (15, 'FPT2026-015', 15, 3, 1, 1,  1, 1, 25.50, 'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
-    (16, 'FPT2026-016', 16, 3, 2, 12, 1, 1, 22.00, 'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
-    (17, 'FPT2026-017', 17, 3, 5, 2,  3, 1, 25.00, 'SUBMITTED',    '2026-03-11 09:00:00', NULL,                  NULL, NULL);
+    (1,  'SE260001',  1,  3, 1, 1,  1, 1, 25.00, 'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
+    (2,  'SE260002',  2,  3, 2, 8,  2, 1, 22.50, 'UNDER_REVIEW', '2026-03-03 10:15:00', NULL,                  NULL, NULL),
+    (3,  'SE260003',  3,  3, 3, 13, 1, 1, 23.50, 'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
+    (4,  'SE260004',  4,  3, 4, 16, 2, 1, 21.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
+    (5,  'AI260001',  5,  3, 1, 2,  3, 1, 27.00, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
+    (6,  'SE260005',  6,  3, 1, 1,  3, 1, 24.30, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
+    (7,  'SE260006',  7,  3, 1, 1,  2, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
+    (8,  'SE260007',  8,  3, 2, 8,  4, 1, 26.30, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
+    (9,  'SE260008',  9,  3, 3, 13, 2, 2, 21.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
+    (10, 'SE260009',  10, 3, 4, 16, 1, 1, 24.50, 'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
+    (11, 'SE260010',  11, 3, 1, 1,  1, 1, 23.50, 'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
+    (12, 'BA260001',  12, 3, 2, 10, 4, 1, 28.00, 'ENROLLED',     '2026-02-25 10:00:00', '2026-03-01 09:00:00', 7, 'IELTS 8.5, học lực xuất sắc'),
+    (13, 'HT260001',  13, 3, 3, 15, 2, 1, 22.30, 'SUBMITTED',    '2026-03-10 11:00:00', NULL,                  NULL, NULL),
+    (14, 'BA260002',  14, 3, 4, 17, 1, 1, 23.50, 'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
+    (15, 'SE260011',  15, 3, 1, 1,  1, 1, 25.50, 'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
+    (16, 'GD260001',  16, 3, 2, 12, 1, 1, 22.00, 'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
+    (17, 'AI260002',  17, 3, 5, 2,  3, 1, 25.00, 'SUBMITTED',    '2026-03-11 09:00:00', NULL,                  NULL, NULL);
 
     -- 12. Application Status History
     INSERT IGNORE INTO application_status_history (id, application_id, old_status, new_status, changed_by, reason) VALUES
@@ -506,16 +506,16 @@
 
     -- 14. Notifications
     INSERT IGNORE INTO notifications (id, user_id, title, message, type, is_read, related_entity_type, related_entity_id) VALUES
-    (1,  9,  'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ FPT2026-001 của bạn đã được chấp thuận.',      'RESULT',           true,  'APPLICATION', 1),
-    (2,  13, 'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ FPT2026-005 đã được duyệt và nhập học.',       'RESULT',           true,  'APPLICATION', 5),
-    (3,  12, 'Hồ sơ bị từ chối',             'Hồ sơ FPT2026-004 chưa đạt yêu cầu xét tuyển.',                 'RESULT',           false, 'APPLICATION', 4),
-    (4,  10, 'Hồ sơ đang được xét duyệt',    'Hồ sơ FPT2026-002 đang được xem xét. Vui lòng chờ kết quả.',    'ADMISSION_UPDATE', false, 'APPLICATION', 2),
-    (5,  20, 'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ FPT2026-012 của bạn đã được chấp thuận.',      'RESULT',           true,  'APPLICATION', 12),
+    (1,  9,  'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ SE260001 của bạn đã được chấp thuận.',      'RESULT',           true,  'APPLICATION', 1),
+    (2,  13, 'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ AI260001 đã được duyệt và nhập học.',       'RESULT',           true,  'APPLICATION', 5),
+    (3,  12, 'Hồ sơ bị từ chối',             'Hồ sơ SE260004 chưa đạt yêu cầu xét tuyển.',                 'RESULT',           false, 'APPLICATION', 4),
+    (4,  10, 'Hồ sơ đang được xét duyệt',    'Hồ sơ SE260002 đang được xem xét. Vui lòng chờ kết quả.',    'ADMISSION_UPDATE', false, 'APPLICATION', 2),
+    (5,  20, 'Hồ sơ đã được duyệt',          'Chúc mừng! Hồ sơ BA260001 của bạn đã được chấp thuận.',      'RESULT',           true,  'APPLICATION', 12),
     (6,  6,  'Có hồ sơ mới cần xét duyệt',   '3 hồ sơ mới vừa được nộp và cần xem xét.',                       'REMINDER',         false, NULL,          NULL),
     (7,  7,  'Có hồ sơ mới cần xét duyệt',   '2 hồ sơ mới vừa được nộp và cần xem xét.',                       'REMINDER',         true,  NULL,          NULL),
     (8,  9,  'Nhắc nhở: Bổ sung tài liệu',   'Vui lòng kiểm tra và bổ sung đầy đủ tài liệu cho hồ sơ.',       'REMINDER',         true,  'APPLICATION', 1),
     (9,  4,  'Báo cáo tháng 3/2026',          'Báo cáo tình hình tuyển sinh tháng 3 đã sẵn sàng.',              'SYSTEM',           false, NULL,          NULL),
-    (10, 24, 'Hồ sơ bị từ chối',             'Hồ sơ FPT2026-016 bị từ chối do thiếu học bạ năm lớp 10.',       'RESULT',           false, 'APPLICATION', 16);
+    (10, 24, 'Hồ sơ bị từ chối',             'Hồ sơ GD260001 bị từ chối do thiếu học bạ năm lớp 10.',       'RESULT',           false, 'APPLICATION', 16);
 
     -- 15. Application Sources
     INSERT IGNORE INTO application_sources (id, application_id, channel_id, campaign_name) VALUES
@@ -778,4 +778,43 @@
     (140, 'THPT Phú Quốc', 'PUBLIC', 25);
 
     SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================================
+-- MIGRATION: Cập nhật mã hồ sơ cũ sang format mới
+-- Format: {MAJOR_CODE}{COHORT}{SEQUENTIAL}
+-- Ví dụ: SE260001 (SE + 26 + 0001)
+-- Chạy section này nếu DB đã có data cũ dạng FPT2026-xxx / APP2026xxxxxx
+-- ============================================================
+
+-- Migration: Update application_code to new format
+SET @row_se := 0, @row_ai := 0, @row_ba := 0, @row_gd := 0, @row_ht := 0, @row_mc := 0, @row_is := 0, @row_mk := 0, @row_fin := 0;
+
+UPDATE applications a
+JOIN majors m ON a.major_id = m.id
+JOIN admission_years ay ON a.admission_year_id = ay.id
+SET a.application_code = CONCAT(
+    m.code,
+    RIGHT(ay.year, 2),
+    LPAD(
+      CASE m.code
+        WHEN 'SE'  THEN (@row_se  := @row_se  + 1)
+        WHEN 'AI'  THEN (@row_ai  := @row_ai  + 1)
+        WHEN 'BA'  THEN (@row_ba  := @row_ba  + 1)
+        WHEN 'GD'  THEN (@row_gd  := @row_gd  + 1)
+        WHEN 'HT'  THEN (@row_ht  := @row_ht  + 1)
+        WHEN 'MC'  THEN (@row_mc  := @row_mc  + 1)
+        WHEN 'IS'  THEN (@row_is  := @row_is  + 1)
+        WHEN 'MK'  THEN (@row_mk  := @row_mk  + 1)
+        WHEN 'FIN' THEN (@row_fin := @row_fin + 1)
+        ELSE 1
+      END
+    , 4, '0')
+)
+WHERE a.application_code LIKE 'FPT%' OR a.application_code LIKE 'APP%'
+ORDER BY a.created_at ASC;
+
+-- Verify migration
+SELECT id, application_code, status, created_at
+FROM applications
+ORDER BY created_at;
 

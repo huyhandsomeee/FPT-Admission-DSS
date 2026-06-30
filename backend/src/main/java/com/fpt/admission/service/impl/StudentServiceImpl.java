@@ -35,6 +35,17 @@ public class StudentServiceImpl implements StudentService {
     private final JdbcTemplate jdbcTemplate;
     private final FileStorageServiceImpl fileStorageService;
 
+    /**
+     * Generate application code in format: {MAJOR_CODE}{COHORT}{SEQUENCE}
+     * Example: SE260001 — SE (Software Engineering) + 26 (cohort 2026) + 0001 (sequential)
+     */
+    private String generateApplicationCode(String majorCode, int year) {
+        String cohort = String.valueOf(year).substring(2); // 2026 → "26"
+        long count = applicationRepository.countByMajorCodeAndYear(majorCode, year);
+        String sequence = String.format("%04d", count + 1);
+        return majorCode + cohort + sequence;
+    }
+
     @Override
     public DashboardResponse getDashboard(Long userId) {
         var profile = studentProfileRepository.findByUserId(userId).orElse(null);
@@ -144,7 +155,7 @@ public class StudentServiceImpl implements StudentService {
         var year = admissionYearRepository.findByStatus("ACTIVE")
                 .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
 
-        String code = "APP" + year.getYear() + String.format("%06d", (long) (Math.random() * 999999));
+        String code = generateApplicationCode(major.getCode(), year.getYear());
 
         var app = Application.builder()
                 .applicationCode(code)
@@ -426,7 +437,7 @@ public class StudentServiceImpl implements StudentService {
             var year = admissionYearRepository.findByStatus("ACTIVE")
                     .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
 
-            String code = "APP" + year.getYear() + String.format("%06d", (long) (Math.random() * 999999));
+            String code = generateApplicationCode(major.getCode(), year.getYear());
             app = Application.builder()
                     .applicationCode(code)
                     .studentProfile(profile)

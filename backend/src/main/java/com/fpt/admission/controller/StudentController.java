@@ -44,6 +44,17 @@ public class StudentController {
         return jwtUtil.extractUserId(token);
     }
 
+    /**
+     * Generate application code in format: {MAJOR_CODE}{COHORT}{SEQUENCE}
+     * Example: SE260001 — SE (Software Engineering) + 26 (cohort 2026) + 0001 (sequential)
+     */
+    private String generateApplicationCode(String majorCode, int year) {
+        String cohort = String.valueOf(year).substring(2);
+        long count = applicationRepository.countByMajorCodeAndYear(majorCode, year);
+        String sequence = String.format("%04d", count + 1);
+        return majorCode + cohort + sequence;
+    }
+
     @GetMapping("/dashboard")
     public ResponseEntity<?> getDashboard(@RequestHeader("Authorization") String authHeader) {
         Long userId = getUserId(authHeader);
@@ -201,7 +212,7 @@ public class StudentController {
         var year = admissionYearRepository.findByStatus("ACTIVE")
             .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
 
-        String code = "APP" + year.getYear() + String.format("%06d", (long)(Math.random() * 999999));
+        String code = generateApplicationCode(major.getCode(), year.getYear());
 
         var app = Application.builder()
             .applicationCode(code)
@@ -552,7 +563,7 @@ public class StudentController {
             var year = admissionYearRepository.findByStatus("ACTIVE")
                 .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
 
-            String code = "APP" + year.getYear() + String.format("%06d", (long)(Math.random() * 999999));
+            String code = generateApplicationCode(major.getCode(), year.getYear());
             app = Application.builder()
                 .applicationCode(code)
                 .studentProfile(profile)

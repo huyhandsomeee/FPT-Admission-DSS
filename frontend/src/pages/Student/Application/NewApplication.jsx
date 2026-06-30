@@ -30,7 +30,7 @@ export default function NewApplication() {
   const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Config data
-  const { campuses, majors, methods, provinces, schools, fetchMajors, fetchSchools } = useConfigData();
+  const { campuses, majors, methods, provinces, dbProvinces, schools, schoolsLoading, fetchMajors, fetchSchools } = useConfigData();
 
   // Existing application states
   const [hasExistingApp, setHasExistingApp] = useState(false);
@@ -47,6 +47,7 @@ export default function NewApplication() {
     cccd: "",
     permanentAddress: "",
     provinceId: "",
+    openApiProvinceCode: "",
     parentName: "",
     parentPhone: "",
     schoolName: "",
@@ -265,7 +266,9 @@ export default function NewApplication() {
                 update={update}
                 setForm={setForm}
                 provinces={provinces}
+                dbProvinces={dbProvinces}
                 schools={schools}
+                schoolsLoading={schoolsLoading}
                 files={files}
                 setFiles={setFiles}
                 fetchSchools={fetchSchools}
