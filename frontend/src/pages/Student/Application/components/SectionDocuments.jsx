@@ -4,8 +4,6 @@ import { Upload, FolderUp } from "lucide-react";
 const DOCUMENTS = [
   { name: "Căn cước công dân (CCCD) *", key: "cccdFile", desc: "Bản chụp rõ 2 mặt của CCCD" },
   { name: "Học bạ THPT *", key: "hocBaFile", desc: "Bản sao học bạ 3 năm cấp 3" },
-  { name: "Bằng/Giấy chứng nhận tốt nghiệp *", key: "bangTNFile", desc: "Bản sao bằng tốt nghiệp hoặc giấy CNTN tạm thời" },
-  { name: "Ảnh thẻ 3x4 *", key: "anhTheFile", desc: "Ảnh chân dung nền trắng (định dạng JPG/PNG)" },
   { name: "Chứng chỉ ngoại ngữ (Tùy chọn)", key: "chungChiFile", desc: "Chứng chỉ IELTS, SAT, TOEFL,... nếu có" },
 ];
 

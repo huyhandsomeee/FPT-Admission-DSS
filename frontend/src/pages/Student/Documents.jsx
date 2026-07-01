@@ -5,8 +5,6 @@ import api from "../../config/axiosConfig";
 const DOCUMENT_TYPES = [
   { id: 1, code: "CCCD", name: "CCCD/CMND", required: true, description: "Ảnh 2 mặt CCCD/CMND rõ nét", accepted: "image/*,.pdf" },
   { id: 2, code: "TRANSCRIPT", name: "Học bạ THPT", required: true, description: "Học bạ 3 năm có xác nhận trường", accepted: ".pdf,image/*" },
-  { id: 3, code: "CERTIFICATE", name: "Giấy chứng nhận", required: true, description: "Giấy CN tốt nghiệp hoặc kết quả thi", accepted: ".pdf,image/*" },
-  { id: 4, code: "PHOTO", name: "Ảnh thẻ 3x4", required: true, description: "Ảnh nền trắng, chụp trong 6 tháng", accepted: "image/*" },
   { id: 5, code: "OTHER", name: "Tài liệu khác", required: false, description: "Chứng chỉ, giải thưởng (nếu có)", accepted: "*" },
 ];
 

@@ -23,6 +23,7 @@ const SOURCE_DATA = [
 export default function ExecutiveDashboard() {
   const [stats, setStats] = useState(null);
   const [trendData, setTrendData] = useState([]);
+  const [selectedAlert, setSelectedAlert] = useState(null);
 
   useEffect(() => {
     api.get("/api/manager/dashboard")
@@ -272,8 +273,22 @@ export default function ExecutiveDashboard() {
           <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
             Tốc độ rút hồ sơ tại khu vực <strong style={{ color: "#DC2626" }}>Miền Trung</strong> tăng 2% so với tuần trước. Cần rà soát ngay chính sách học bổng địa phương.
           </p>
-          <div style={{ marginTop: 12, padding: "8px 12px", background: "#FEF2F2", borderRadius: 8 }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#DC2626" }}>❗ MỨC ĐỘ NGHIÊM TRỌNG: CAO</span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
+            <div style={{ padding: "8px 12px", background: "#FEF2F2", borderRadius: 8 }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: "#DC2626" }}>❗ MỨC ĐỘ NGHIÊM TRỌNG: CAO</span>
+            </div>
+            <button 
+              onClick={() => setSelectedAlert({
+                title: "Rủi ro rút hồ sơ khu vực Miền Trung",
+                level: "HIGH",
+                description: "Tốc độ rút hồ sơ tại khu vực Miền Trung tăng 2.1% so với tuần trước (tập trung tại Quảng Nam, Đà Nẵng). Đối thủ cạnh tranh trực tiếp vừa tung ra gói học bổng địa phương giảm 20% học phí.",
+                actionPlan: "Rà soát lại quỹ học bổng FPT Talent miền Trung. Cử đội ngũ tư vấn liên hệ trực tiếp với các thí sinh có ý định rút hồ sơ để đối thoại và hỗ trợ chính sách.",
+              })}
+              style={{
+                background: "none", border: "none", color: "#2563EB", fontWeight: 700, fontSize: 13, cursor: "pointer"
+              }}>
+              Xem chi tiết →
+            </button>
           </div>
         </div>
 
@@ -302,6 +317,57 @@ export default function ExecutiveDashboard() {
           </button>
         </div>
       </div>
+
+      {selectedAlert && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 1000, padding: 20
+        }}>
+          <div style={{
+            background: "white", borderRadius: 16, maxWidth: 500, width: "100%",
+            padding: 24, boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            position: "relative"
+          }}>
+            <h3 style={{ margin: "0 0 10px", fontWeight: 800, fontSize: 18, color: "#DC2626" }}>
+              {selectedAlert.title}
+            </h3>
+            <span style={{
+              fontSize: 10, fontWeight: 700, background: "#FEF2F2", color: "#DC2626",
+              padding: "3px 8px", borderRadius: 5, display: "inline-block", marginBottom: 14
+            }}>
+              MỨC ĐỘ: {selectedAlert.level}
+            </span>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
+              <strong>Mô tả chi tiết:</strong>
+              <p style={{ margin: "6px 0 0" }}>{selectedAlert.description}</p>
+            </div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 20, background: "#F8FAFC", padding: 12, borderRadius: 10 }}>
+              <strong>Kế hoạch xử lý đề xuất:</strong>
+              <p style={{ margin: "6px 0 0", color: "#1D4ED8" }}>{selectedAlert.actionPlan}</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button 
+                onClick={() => setSelectedAlert(null)}
+                style={{
+                  padding: "8px 16px", background: "white", border: "1px solid #CBD5E1",
+                  borderRadius: 8, color: "#475569", fontSize: 13, fontWeight: 600, cursor: "pointer"
+                }}>
+                Bỏ qua
+              </button>
+              <button 
+                onClick={() => { alert("Đã phê duyệt và kích hoạt kế hoạch ứng phó khẩn cấp!"); setSelectedAlert(null); }}
+                style={{
+                  padding: "8px 16px", background: "#DC2626", border: "none",
+                  borderRadius: 8, color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  boxShadow: "0 2px 8px rgba(220,38,38,0.25)"
+                }}>
+                Kích hoạt ứng phó
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

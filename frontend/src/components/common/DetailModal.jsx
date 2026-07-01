@@ -59,7 +59,7 @@ export default function DetailModal({ show, onClose, appDetail, loading }) {
                   <div><span className="text-gray-500">Trường THPT:</span> <strong className="text-gray-800">{appDetail.academicBackground.schoolName}</strong></div>
                   <div><span className="text-gray-500">Năm tốt nghiệp:</span> <strong className="text-gray-800">{appDetail.academicBackground.graduationYear}</strong></div>
                   <div><span className="text-gray-500">Điểm Toán / Văn / Anh:</span> <strong className="text-gray-800">{appDetail.academicBackground.mathScore} / {appDetail.academicBackground.literatureScore} / {appDetail.academicBackground.englishScore}</strong></div>
-                  <div><span className="text-gray-500">GPA Lớp 10 / 11 / 12:</span> <strong className="text-gray-800">{appDetail.academicBackground.gpa10} / {appDetail.academicBackground.gpa11} / {appDetail.academicBackground.gpa12}</strong></div>
+                  <div><span className="text-gray-500">GPA Trung bình Lớp 12:</span> <strong className="text-gray-800">{appDetail.academicBackground.gpa12}</strong></div>
                   <div className="col-span-2"><span className="text-gray-500">Tổng điểm xét tuyển:</span> <strong className="text-orange-600 font-bold">{appDetail.academicBackground.totalScore}</strong></div>
                 </div>
               </div>

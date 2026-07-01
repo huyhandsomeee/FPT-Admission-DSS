@@ -136,7 +136,7 @@ public class OfficerServiceImpl implements OfficerService {
             switch (status) {
                 case "APPROVED" -> {
                     studentNotif.setTitle("Hồ sơ đã được duyệt");
-                    studentNotif.setMessage("Chúc mừng! Hồ sơ " + app.getApplicationCode() + " của bạn đã được chấp thuận.");
+                    studentNotif.setMessage("Chúc mừng! Hồ sơ " + app.getApplicationCode() + " của bạn đã được duyệt. Tuy nhiên, bạn vẫn phải đăng ký trên cổng tuyển sinh của Bộ Giáo dục và Đào tạo để hoàn tất thủ tục nhập học.");
                     studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.RESULT);
                 }
                 case "REJECTED" -> {

@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from "recharts";
 import { LayoutGrid, CheckCircle, FileText, TrendingUp, Monitor, Cpu, Target, MoreHorizontal } from "lucide-react";
+import api from "../../config/axiosConfig";
 
 const FORECAST_DATA = [
   { year: "2021", actual: 12000, predicted: null },
@@ -13,36 +15,6 @@ const FORECAST_DATA = [
   { year: "2026", actual: null, predicted: 22500 },
   { year: "2027", actual: null, predicted: 25200 },
   { year: "2028", actual: null, predicted: 28200 },
-];
-
-const MODEL_CARDS = [
-  {
-    label: "Mô hình dự báo hiện tại",
-    value: "Linear Regression + ARIMA",
-    badge: { text: "ACTIVE", color: "#16A34A", bg: "#DCFCE7" },
-    icon: LayoutGrid,
-    iconBg: "#EFF6FF",
-    iconColor: "#2563EB",
-    borderColor: "#2563EB",
-  },
-  {
-    label: "Độ chính xác mô hình",
-    value: "R² = 0.94",
-    badge: { text: "↑ 0.02%", color: "#16A34A", bg: "#DCFCE7" },
-    icon: CheckCircle,
-    iconBg: "#ECFDF5",
-    iconColor: "#16A34A",
-    borderColor: "#16A34A",
-  },
-  {
-    label: "Dự báo mục tiêu 2026",
-    value: "22,500 hồ sơ",
-    badge: null,
-    icon: FileText,
-    iconBg: "#FFF7ED",
-    iconColor: "#D97706",
-    borderColor: "#D97706",
-  },
 ];
 
 const INSIGHTS = [
@@ -66,22 +38,122 @@ const INSIGHTS = [
   },
 ];
 
+const downloadCSV = (data, filename) => {
+  if (!data || !data.length) return;
+  // UTF-8 BOM to prevent excel Vietnamese characters bug
+  const BOM = "\uFEFF";
+  const headers = "Năm,Thực tế,Dự báo\n";
+  const rows = data.map(item => `${item.year},${item.actual ?? ""},${item.predicted ?? ""}`).join("\n");
+  const blob = new Blob([BOM + headers + rows], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
 export default function ManagerForecast() {
+  const [forecastData, setForecastData] = useState([]);
+  const [targetValue, setTargetValue] = useState("22,500 hồ sơ");
+  const [isRetraining, setIsRetraining] = useState(false);
+  const [accuracyVal, setAccuracyVal] = useState("R² = 0.94");
+
+  const handleRetrain = async () => {
+    setIsRetraining(true);
+    try {
+      const res = await api.post("/api/manager/forecast/retrain");
+      alert(res.data.message || "Đào tạo lại mô hình thành công!");
+      if (res.data.accuracy) {
+        setAccuracyVal(res.data.accuracy);
+      }
+    } catch (err) {
+      alert("Lỗi khi đào tạo lại mô hình: " + (err.response?.data?.message || err.message));
+    } finally {
+      setIsRetraining(false);
+    }
+  };
+
+  useEffect(() => {
+    api.get("/api/manager/forecast")
+      .then(r => {
+        if (r.data && r.data.forecastData) {
+          const mapped = r.data.forecastData.map(item => ({
+            year: String(item.year),
+            actual: item.actual,
+            predicted: item.predicted
+          }));
+          setForecastData(mapped);
+        }
+        if (r.data && r.data.predictedApplications) {
+          setTargetValue(Number(r.data.predictedApplications).toLocaleString("vi-VN") + " hồ sơ");
+        }
+      })
+      .catch(err => console.error("Lỗi tải dự báo:", err));
+  }, []);
+
+  const displayData = forecastData.length > 0 ? forecastData : FORECAST_DATA;
+
+  const modelCards = [
+    {
+      label: "Mô hình dự báo hiện tại",
+      value: "Linear Regression + ARIMA",
+      badge: { text: "ACTIVE", color: "#16A34A", bg: "#DCFCE7" },
+      icon: LayoutGrid,
+      iconBg: "#EFF6FF",
+      iconColor: "#2563EB",
+      borderColor: "#2563EB",
+    },
+    {
+      label: "Độ chính xác mô hình",
+      value: accuracyVal,
+      badge: { text: "↑ 0.02%", color: "#16A34A", bg: "#DCFCE7" },
+      icon: CheckCircle,
+      iconBg: "#ECFDF5",
+      iconColor: "#16A34A",
+      borderColor: "#16A34A",
+    },
+    {
+      label: "Dự báo mục tiêu 2026",
+      value: targetValue,
+      badge: null,
+      icon: FileText,
+      iconBg: "#FFF7ED",
+      iconColor: "#D97706",
+      borderColor: "#D97706",
+    },
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Title */}
-      <div>
-        <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>Analytics &amp; Decision Support</h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-          Manager Portal - FPT Admission •{" "}
-          <a href="#" style={{ color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>Dự báo tuyển sinh</a>
-        </p>
-        <p style={{ margin: "2px 0 0", fontSize: 12, color: "#94A3B8" }}>Mô hình hồi quy tuyến tính + ARIMA dự báo 3 năm tới</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>Analytics &amp; Decision Support</h1>
+          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
+            Manager Portal - FPT Admission •{" "}
+            <a href="#" style={{ color: "#2563EB", textDecoration: "none", fontWeight: 600 }}>Dự báo tuyển sinh</a>
+          </p>
+          <p style={{ margin: "2px 0 0", fontSize: 12, color: "#94A3B8" }}>Mô hình hồi quy tuyến tính + ARIMA dự báo 3 năm tới</p>
+        </div>
+        <button 
+          onClick={handleRetrain}
+          disabled={isRetraining}
+          style={{
+            background: "#FF6B35", border: "none", borderRadius: 10,
+            padding: "10px 18px", color: "white", fontWeight: 700, fontSize: 13,
+            cursor: isRetraining ? "not-allowed" : "pointer",
+            boxShadow: "0 2px 8px rgba(255,107,53,0.3)",
+            opacity: isRetraining ? 0.7 : 1
+          }}>
+          {isRetraining ? "Đang đào tạo..." : "Đào tạo lại mô hình"}
+        </button>
       </div>
 
       {/* Model cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-        {MODEL_CARDS.map((card) => (
+        {modelCards.map((card) => (
           <div key={card.label} style={{
             background: "white", borderRadius: 14, padding: "20px 22px",
             border: "1px solid #E8EDF5",
@@ -119,6 +191,14 @@ export default function ManagerForecast() {
             Dự báo số lượng hồ sơ (2021-2028)
           </h3>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <button 
+              onClick={() => downloadCSV(displayData, "bao_cao_du_bao_tuyen_sinh.csv")}
+              style={{
+                background: "white", border: "1px solid #E2E8F0", borderRadius: 8,
+                padding: "6px 12px", color: "#475569", fontWeight: 700, fontSize: 11, cursor: "pointer"
+              }}>
+              📥 Tải báo cáo CSV
+            </button>
             {[
               { color: "#1D4ED8", label: "Thực tế" },
               { color: "#D97706", label: "Dự báo", dashed: true },
@@ -142,7 +222,7 @@ export default function ManagerForecast() {
 
         <div style={{ position: "relative" }}>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={FORECAST_DATA} margin={{ right: 20 }}>
+            <LineChart data={displayData} margin={{ right: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />

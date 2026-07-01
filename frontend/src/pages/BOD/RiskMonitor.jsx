@@ -46,6 +46,7 @@ const RISKS = [
 ];
 
 export default function RiskMonitor() {
+  const [selectedRisk, setSelectedRisk] = useState(null);
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Title */}
@@ -110,9 +111,18 @@ export default function RiskMonitor() {
               <div style={{ flex: 1 }}>
                 <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 8 }}>
                   <h3 style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#1E293B" }}>{risk.title}</h3>
-                  <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", background: risk.levelBg, color: risk.levelColor, padding: "3px 9px", borderRadius: 5, flexShrink: 0, marginLeft: 10 }}>
-                    {risk.levelLabel}
-                  </span>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: "0.5px", background: risk.levelBg, color: risk.levelColor, padding: "3px 9px", borderRadius: 5, flexShrink: 0 }}>
+                      {risk.levelLabel}
+                    </span>
+                    <button 
+                      onClick={() => setSelectedRisk(risk)}
+                      style={{
+                        background: "none", border: "none", color: "#2563EB", fontWeight: 700, fontSize: 12, cursor: "pointer", padding: "2px 6px"
+                      }}>
+                      Xem chi tiết
+                    </button>
+                  </div>
                 </div>
                 <p style={{ margin: "0 0 10px", fontSize: 13, color: "#475569", lineHeight: 1.6 }}>{risk.description}</p>
                 <div style={{ background: "#F8FAFC", borderRadius: 8, padding: "8px 12px" }}>
@@ -180,6 +190,57 @@ export default function RiskMonitor() {
         <span style={{ fontSize: 12, color: "#94A3B8", margin: "0 10px" }}>•</span>
         <a href="#" style={{ fontSize: 12, color: "#64748B", textDecoration: "none" }}>Hỗ trợ kỹ thuật</a>
       </div>
+
+      {selectedRisk && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 1000, padding: 20
+        }}>
+          <div style={{
+            background: "white", borderRadius: 16, maxWidth: 500, width: "100%",
+            padding: 24, boxShadow: "0 10px 25px rgba(0,0,0,0.2)",
+            position: "relative"
+          }}>
+            <h3 style={{ margin: "0 0 10px", fontWeight: 800, fontSize: 18, color: selectedRisk.levelColor || "#DC2626" }}>
+              {selectedRisk.title}
+            </h3>
+            <span style={{
+              fontSize: 10, fontWeight: 700, background: selectedRisk.levelBg || "#FEF2F2", color: selectedRisk.levelColor || "#DC2626",
+              padding: "3px 8px", borderRadius: 5, display: "inline-block", marginBottom: 14
+            }}>
+              MỨC ĐỘ: {selectedRisk.levelLabel || "N/A"}
+            </span>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 16 }}>
+              <strong>Mô tả chi tiết rủi ro:</strong>
+              <p style={{ margin: "6px 0 0" }}>{selectedRisk.description}</p>
+            </div>
+            <div style={{ fontSize: 13, color: "#374151", lineHeight: 1.6, marginBottom: 20, background: "#F8FAFC", padding: 12, borderRadius: 10 }}>
+              <strong>Giải pháp ứng phó được đề xuất:</strong>
+              <p style={{ margin: "6px 0 0", color: selectedRisk.suggestionColor || "#1D4ED8" }}>{selectedRisk.suggestion}</p>
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button 
+                onClick={() => setSelectedRisk(null)}
+                style={{
+                  padding: "8px 16px", background: "white", border: "1px solid #CBD5E1",
+                  borderRadius: 8, color: "#475569", fontSize: 13, fontWeight: 600, cursor: "pointer"
+                }}>
+                Đóng lại
+              </button>
+              <button 
+                onClick={() => { alert(`Đã kích hoạt giải pháp ứng phó: ${selectedRisk.suggestion}`); setSelectedRisk(null); }}
+                style={{
+                  padding: "8px 16px", background: selectedRisk.levelColor || "#FF6B35", border: "none",
+                  borderRadius: 8, color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",
+                  boxShadow: `0 2px 8px rgba(0,0,0,0.1)`
+                }}>
+                Kích hoạt ứng phó
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

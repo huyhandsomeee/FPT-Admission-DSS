@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { TrendingUp, BarChart2, CheckCircle, Send } from "lucide-react";
+import api from "../../config/axiosConfig";
 
 // Recommendation detail page matching image 4
 export default function BodRecommendations() {
   const [message, setMessage] = useState("");
+  const [aiQuota, setAiQuota] = useState(500);
+  const [decisionState, setDecisionState] = useState("PENDING"); // PENDING, APPROVED, REJECTED, ADJUST_REQUESTED
 
-  const BOARD_MESSAGES = [
+  const [boardMessages, setBoardMessages] = useState([
     {
       name: "TS. Nguyễn Văn A",
       time: "10:12 AM",
@@ -20,7 +23,57 @@ export default function BodRecommendations() {
       initials: "B",
       color: "#16A34A",
     },
-  ];
+  ]);
+
+  useEffect(() => {
+    api.get("/api/manager/recommendations/ai-quota")
+      .then(r => {
+        if (r.data && r.data.quota !== undefined) {
+          setAiQuota(r.data.quota);
+        }
+      })
+      .catch(err => console.error("Lỗi khi lấy chỉ tiêu AI:", err));
+  }, []);
+
+  const handleApprove = async () => {
+    try {
+      const res = await api.post("/api/manager/recommendations/approve", { type: "INCREASE_AI_QUOTA" });
+      alert(res.data.message || "Đã phê duyệt tăng chỉ tiêu ngành AI!");
+      setDecisionState("APPROVED");
+      
+      const quotaRes = await api.get("/api/manager/recommendations/ai-quota");
+      if (quotaRes.data && quotaRes.data.quota !== undefined) {
+        setAiQuota(quotaRes.data.quota);
+      }
+    } catch (err) {
+      alert("Lỗi khi phê duyệt: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const handleReject = () => {
+    setDecisionState("REJECTED");
+    alert("Đã từ chối đề xuất này.");
+  };
+
+  const handleAdjust = () => {
+    setDecisionState("ADJUST_REQUESTED");
+    alert("Đã gửi yêu cầu điều chỉnh đề xuất.");
+  };
+
+  const handleSendMessage = () => {
+    if (!message.trim()) return;
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" });
+    const newMessage = {
+      name: "Ban Giám Hiệu (BOD)",
+      time: timeStr,
+      text: message,
+      initials: "BOD",
+      color: "#FF6B35",
+    };
+    setBoardMessages([...boardMessages, newMessage]);
+    setMessage("");
+  };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -32,25 +85,84 @@ export default function BodRecommendations() {
           <span style={{ color: "#FF6B35", fontWeight: 600 }}>Đào tạo AI</span>
         </div>
         <h1 style={{ margin: "0 0 4px", fontWeight: 800, fontSize: 22, color: "#0F172A" }}>
-          Phê duyệt tăng chỉ tiêu AI 2026
+          Phê duyệt tăng chỉ tiêu AI 2026 (Hiện tại: {aiQuota})
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          <span style={{ fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCA5A5" }}>
-            ✕ Cần quyết định
-          </span>
-          <span style={{ fontSize: 11, fontWeight: 700, background: "#FFF7ED", color: "#D97706", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCD34D" }}>
-            ❗ Mức độ: Cao
-          </span>
+          {decisionState === "PENDING" && (
+            <>
+              <span style={{ fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCA5A5" }}>
+                ✕ Cần quyết định
+              </span>
+              <span style={{ fontSize: 11, fontWeight: 700, background: "#FFF7ED", color: "#D97706", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCD34D" }}>
+                ❗ Mức độ: Cao
+              </span>
+            </>
+          )}
+          {decisionState === "APPROVED" && (
+            <span style={{ fontSize: 11, fontWeight: 700, background: "#DCFCE7", color: "#16A34A", padding: "3px 9px", borderRadius: 5, border: "1px solid #86EFAC" }}>
+              ✓ Đã phê duyệt (+200 chỉ tiêu)
+            </span>
+          )}
+          {decisionState === "REJECTED" && (
+            <span style={{ fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCA5A5" }}>
+              ✕ Đã từ chối
+            </span>
+          )}
+          {decisionState === "ADJUST_REQUESTED" && (
+            <span style={{ fontSize: 11, fontWeight: 700, background: "#EFF6FF", color: "#1D4ED8", padding: "3px 9px", borderRadius: 5, border: "1px solid #93C5FD" }}>
+              ℹ Đang yêu cầu điều chỉnh
+            </span>
+          )}
         </div>
         <div style={{ display: "flex", gap: 10 }}>
-          <button style={{ padding: "9px 18px", background: "white", border: "1px solid #E2E8F0", borderRadius: 9, color: "#475569", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+          <button 
+            onClick={handleAdjust} 
+            disabled={decisionState !== "PENDING"}
+            style={{ 
+              padding: "9px 18px", 
+              background: decisionState === "ADJUST_REQUESTED" ? "#EFF6FF" : "white", 
+              border: "1px solid #E2E8F0", 
+              borderRadius: 9, 
+              color: decisionState === "ADJUST_REQUESTED" ? "#1D4ED8" : "#475569", 
+              fontWeight: 600, 
+              fontSize: 13, 
+              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed",
+              opacity: decisionState !== "PENDING" && decisionState !== "ADJUST_REQUESTED" ? 0.5 : 1
+            }}>
             Yêu cầu điều chỉnh
           </button>
-          <button style={{ padding: "9px 18px", background: "white", border: "1px solid #E2E8F0", borderRadius: 9, color: "#DC2626", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+          <button 
+            onClick={handleReject} 
+            disabled={decisionState !== "PENDING"}
+            style={{ 
+              padding: "9px 18px", 
+              background: decisionState === "REJECTED" ? "#FEE2E2" : "white", 
+              border: "1px solid #E2E8F0", 
+              borderRadius: 9, 
+              color: "#DC2626", 
+              fontWeight: 600, 
+              fontSize: 13, 
+              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed",
+              opacity: decisionState !== "PENDING" && decisionState !== "REJECTED" ? 0.5 : 1
+            }}>
             Từ chối
           </button>
-          <button style={{ padding: "9px 18px", background: "#FF6B35", border: "none", borderRadius: 9, color: "white", fontWeight: 700, fontSize: 13, cursor: "pointer", boxShadow: "0 2px 8px rgba(255,107,53,0.3)" }}>
-            Phê duyệt
+          <button 
+            onClick={handleApprove} 
+            disabled={decisionState !== "PENDING"}
+            style={{ 
+              padding: "9px 18px", 
+              background: decisionState === "APPROVED" ? "#10B981" : "#FF6B35", 
+              border: "none", 
+              borderRadius: 9, 
+              color: "white", 
+              fontWeight: 700, 
+              fontSize: 13, 
+              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed", 
+              boxShadow: decisionState === "APPROVED" ? "0 2px 8px rgba(16,185,129,0.3)" : "0 2px 8px rgba(255,107,53,0.3)",
+              opacity: decisionState !== "PENDING" && decisionState !== "APPROVED" ? 0.5 : 1
+            }}>
+            {decisionState === "APPROVED" ? "Đã phê duyệt" : "Phê duyệt"}
           </button>
         </div>
       </div>
@@ -242,7 +354,7 @@ export default function BodRecommendations() {
             <h3 style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#1E293B" }}>Theo luận Ban Giám hiệu</h3>
           </div>
           <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 14, overflowY: "auto" }}>
-            {BOARD_MESSAGES.map((msg, i) => (
+            {boardMessages.map((msg, i) => (
               <div key={i}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <div style={{ width: 30, height: 30, borderRadius: "50%", background: msg.color, display: "flex", alignItems: "center", justifyContent: "center", color: "white", fontWeight: 700, fontSize: 12, flexShrink: 0 }}>
@@ -262,10 +374,11 @@ export default function BodRecommendations() {
             <input
               value={message}
               onChange={e => setMessage(e.target.value)}
+              onKeyDown={e => { if (e.key === "Enter") handleSendMessage(); }}
               placeholder="Nhập ý kiến của bạn..."
               style={{ flex: 1, border: "1px solid #E2E8F0", borderRadius: 9, padding: "8px 12px", fontSize: 13, outline: "none", color: "#475569" }}
             />
-            <button onClick={() => setMessage("")} style={{ width: 34, height: 34, background: "#FF6B35", border: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
+            <button onClick={handleSendMessage} style={{ width: 34, height: 34, background: "#FF6B35", border: "none", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
               <Send size={15} color="white" />
             </button>
           </div>

@@ -165,7 +165,7 @@ public class OfficerController {
 
                     if ("APPROVED".equals(newStatus)) {
                         studentNotif.setTitle("Hồ sơ đã được duyệt");
-                        studentNotif.setMessage("Chúc mừng! Hồ sơ " + app.getApplicationCode() + " của bạn đã được chấp thuận.");
+                        studentNotif.setMessage("Chúc mừng! Hồ sơ " + app.getApplicationCode() + " của bạn đã được duyệt. Tuy nhiên, bạn vẫn phải đăng ký trên cổng tuyển sinh của Bộ Giáo dục và Đào tạo để hoàn tất thủ tục nhập học.");
                         studentNotif.setType(com.fpt.admission.entity.enums.NotificationType.RESULT);
                     } else if ("REJECTED".equals(newStatus)) {
                         studentNotif.setTitle("Hồ sơ bị từ chối");
@@ -237,7 +237,7 @@ public class OfficerController {
         // Fetch documents
         try {
             List<Map<String, Object>> docs = jdbcTemplate.queryForList(
-                "SELECT ad.file_name as name, dt.name as descName, ad.status, ad.file_path as filePath " +
+                "SELECT ad.id, ad.file_name as name, dt.name as descName, ad.status, ad.file_path as filePath " +
                 "FROM application_documents ad " +
                 "JOIN document_types dt ON ad.document_type_id = dt.id " +
                 "WHERE ad.application_id = ?",
@@ -245,6 +245,7 @@ public class OfficerController {
             );
             List<Map<String, Object>> formattedDocs = docs.stream().map(doc -> {
                 Map<String, Object> docMap = new LinkedHashMap<>();
+                docMap.put("id", doc.get("id"));
                 docMap.put("name", doc.get("name"));
                 docMap.put("desc", doc.get("descName"));
                 docMap.put("filePath", doc.get("filePath"));
@@ -258,6 +259,31 @@ public class OfficerController {
         }
 
         return m;
+    }
+
+    @PatchMapping("/documents/{id}/status")
+    public ResponseEntity<?> updateDocumentStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        if (status == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Trạng thái không được để trống"));
+        }
+        try {
+            String upperStatus = status.toUpperCase();
+            if (!List.of("PENDING", "VERIFIED", "REJECTED").contains(upperStatus)) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Trạng thái không hợp lệ"));
+            }
+            jdbcTemplate.update(
+                "UPDATE application_documents SET status = ?, verified_at = ? WHERE id = ?",
+                upperStatus,
+                java.time.LocalDateTime.now(),
+                id
+            );
+            return ResponseEntity.ok(Map.of("message", "Cập nhật trạng thái tài liệu thành công", "status", upperStatus.toLowerCase()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Lỗi khi cập nhật trạng thái tài liệu: " + e.getMessage()));
+        }
     }
 
     @GetMapping("/applications/new-requests")

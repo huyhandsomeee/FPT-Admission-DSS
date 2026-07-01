@@ -1,8 +1,18 @@
 import React from "react";
 import { FileText, Eye, ExternalLink } from "lucide-react";
 import { getFilePreviewUrl } from "../../../../utils/fileUtils";
+import api from "../../../../config/axiosConfig";
 
-export default function AttachedDocuments({ docs, selectedDoc, handleSelectDoc }) {
+export default function AttachedDocuments({ docs, selectedDoc, handleSelectDoc, onRefresh }) {
+  const updateDocStatus = async (docId, newStatus) => {
+    try {
+      await api.patch(`/api/officer/documents/${docId}/status`, { status: newStatus });
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      alert(err.response?.data?.message || "Không thể cập nhật trạng thái tài liệu.");
+    }
+  };
+
   return (
     <div style={{
       background: "white", borderRadius: 16, padding: 24,
@@ -38,7 +48,7 @@ export default function AttachedDocuments({ docs, selectedDoc, handleSelectDoc }
 
               <div style={{ display: "flex", alignItems: "center", gap: 12 }} onClick={e => e.stopPropagation()}>
                 {doc.filePath ? (
-                  <>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     <button onClick={() => handleSelectDoc(doc)}
                       style={{
                         display: "flex", alignItems: "center", gap: 4, padding: "5px 10px",
@@ -57,7 +67,29 @@ export default function AttachedDocuments({ docs, selectedDoc, handleSelectDoc }
                       }}>
                       <ExternalLink size={12} /> Tải / Mở mới
                     </a>
-                  </>
+                    {doc.id && (
+                      <>
+                        <button onClick={() => updateDocStatus(doc.id, "VERIFIED")}
+                          disabled={doc.status === "uploaded"}
+                          style={{
+                            padding: "5px 10px", background: doc.status === "uploaded" ? "#E2E8F0" : "#10B981",
+                            color: doc.status === "uploaded" ? "#94A3B8" : "white",
+                            border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: doc.status === "uploaded" ? "default" : "pointer"
+                          }}>
+                          Duyệt
+                        </button>
+                        <button onClick={() => updateDocStatus(doc.id, "REJECTED")}
+                          disabled={doc.status === "rejected"}
+                          style={{
+                            padding: "5px 10px", background: doc.status === "rejected" ? "#E2E8F0" : "#EF4444",
+                            color: doc.status === "rejected" ? "#94A3B8" : "white",
+                            border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: doc.status === "rejected" ? "default" : "pointer"
+                          }}>
+                          Từ chối
+                        </button>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <span style={{ fontSize: 11, color: "#94A3B8", fontStyle: "italic" }}>Chưa tải lên</span>
                 )}

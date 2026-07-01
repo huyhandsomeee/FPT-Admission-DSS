@@ -35,8 +35,7 @@ export default function ApplicationReview() {
   const [activeTab, setActiveTab] = useState("transcript");
   const [selectedDoc, setSelectedDoc] = useState(null);
 
-  useEffect(() => {
-    setLoadingApp(true);
+  const fetchData = () => {
     api.get(`/api/officer/applications/${id}`)
       .then(r => {
         if (r.data) {
@@ -44,8 +43,15 @@ export default function ApplicationReview() {
           setApp(data);
           const documentList = data.documents?.length > 0 ? data.documents : MOCK_DOCS;
           setDocs(documentList);
-          const firstValid = documentList.find(d => d.filePath);
-          if (firstValid) setSelectedDoc(firstValid);
+          
+          if (selectedDoc) {
+            const updatedSelected = documentList.find(d => d.filePath === selectedDoc.filePath);
+            if (updatedSelected) setSelectedDoc(updatedSelected);
+          } else {
+            const firstValid = documentList.find(d => d.filePath);
+            if (firstValid) setSelectedDoc(firstValid);
+          }
+          
           if (data.officerNotes) setNotes(data.officerNotes);
           if (data.rejectionReason) setRejectionReason(data.rejectionReason);
           if (data.totalScore !== null && data.totalScore !== undefined) setScore(data.totalScore);
@@ -54,6 +60,11 @@ export default function ApplicationReview() {
       })
       .catch(err => console.error("Lỗi khi tải chi tiết hồ sơ:", err))
       .finally(() => setLoadingApp(false));
+  };
+
+  useEffect(() => {
+    setLoadingApp(true);
+    fetchData();
   }, [id]);
 
   const handleSave = async () => {
@@ -141,7 +152,7 @@ export default function ApplicationReview() {
           <DocumentViewer app={app} activeTab={activeTab} setActiveTab={setActiveTab}
             selectedDoc={selectedDoc} setSelectedDoc={setSelectedDoc} docs={docs} />
           <StudentProfileCard app={app} />
-          <AttachedDocuments docs={docs} selectedDoc={selectedDoc} handleSelectDoc={handleSelectDoc} />
+          <AttachedDocuments docs={docs} selectedDoc={selectedDoc} handleSelectDoc={handleSelectDoc} onRefresh={fetchData} />
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>

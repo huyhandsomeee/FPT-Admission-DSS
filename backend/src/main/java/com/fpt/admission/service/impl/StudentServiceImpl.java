@@ -157,6 +157,11 @@ public class StudentServiceImpl implements StudentService {
 
         String code = generateApplicationCode(major.getCode(), year.getYear());
 
+        profile.setStudentCode(code);
+        studentProfileRepository.save(profile);
+
+        java.math.BigDecimal appTotalScore = method.getCode().equals("HOC_BA") ? ab.getGpa12() : ab.getTotalScore();
+
         var app = Application.builder()
                 .applicationCode(code)
                 .studentProfile(profile)
@@ -164,7 +169,7 @@ public class StudentServiceImpl implements StudentService {
                 .campus(campus)
                 .major(major)
                 .admissionMethod(method)
-                .totalScore(ab.getTotalScore())
+                .totalScore(appTotalScore)
                 .status(ApplicationStatus.SUBMITTED)
                 .submittedAt(LocalDateTime.now())
                 .build();
@@ -438,6 +443,9 @@ public class StudentServiceImpl implements StudentService {
                     .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElseThrow());
 
             String code = generateApplicationCode(major.getCode(), year.getYear());
+            profile.setStudentCode(code);
+            studentProfileRepository.save(profile);
+
             app = Application.builder()
                     .applicationCode(code)
                     .studentProfile(profile)

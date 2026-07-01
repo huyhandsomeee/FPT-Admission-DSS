@@ -330,7 +330,7 @@
 
     -- 4. Admission Methods
     INSERT IGNORE INTO admission_methods (id, code, name, description, min_score, priority_order, is_active) VALUES
-    (1, 'HOC_BA',    'Xét học bạ THPT',            'Xét tuyển dựa trên điểm học bạ THPT 3 năm',                       21.0, 1, true),
+    (1, 'HOC_BA',    'Xét học bạ THPT',            'Xét tuyển dựa trên điểm trung bình lớp 12',                       6.0, 1, true),
     (2, 'THPT',      'Xét điểm thi THPT quốc gia', 'Xét tuyển dựa trên điểm thi tốt nghiệp THPT',                    21.0, 2, false),
     (3, 'DGNL',      'Xét điểm ĐGNL',              'Xét điểm Đánh giá năng lực của ĐHQG HN/HCM',                      90.0, 3, true),
     (4, 'SAT_IELTS', 'Chứng chỉ quốc tế',          'Xét tuyển bằng chứng chỉ IELTS (>= 6.0) hoặc SAT (>= 1100)',      6.0, 4, true);
@@ -392,62 +392,62 @@
 
     -- 9. Student Profiles
     INSERT IGNORE INTO student_profiles (id, user_id, student_code, dob, gender, permanent_address, province_id, cccd_number, parent_name, parent_phone) VALUES
-    (1,  9,  'TS2026001', '2007-03-15', 'MALE',   '12 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội',     1, '001207001001', 'Nguyễn Văn Toàn', '0912000001'),
-    (2,  10, 'TS2026002', '2007-07-22', 'FEMALE', '45 Nguyễn Huệ, Q1, TP. HCM',               2, '079207002002', 'Trần Văn Minh',   '0912000002'),
-    (3,  11, 'TS2026003', '2007-11-08', 'MALE',   '88 Trần Phú, Hải Châu, Đà Nẵng',           3, '048207003003', 'Lê Văn Hùng',     '0912000003'),
-    (4,  12, 'TS2026004', '2007-05-30', 'FEMALE', '22 Nguyễn Trãi, Ninh Kiều, Cần Thơ',       4, '092207004004', 'Phạm Văn Thành',  '0912000004'),
-    (5,  13, 'TS2026005', '2007-09-14', 'MALE',   '5 Lê Lợi, TP. Quy Nhơn, Bình Định',        5, '052207005005', 'Hoàng Văn Bình',  '0912000005'),
-    (6,  14, 'TS2026006', '2007-01-25', 'FEMALE', '77 Trần Hưng Đạo, Ngô Quyền, Hải Phòng',  6, '031207006006', 'Nguyễn Văn Lực',  '0912000006'),
-    (7,  15, 'TS2026007', '2007-06-18', 'MALE',   '33 Bà Triệu, Hai Bà Trưng, Hà Nội',        1, '001207007007', 'Đỗ Văn Sáng',     '0912000007'),
-    (8,  16, 'TS2026008', '2007-12-03', 'FEMALE', '99 Nguyễn Đình Chiểu, Bình Thạnh, HCM',   2, '079207008008', 'Bùi Văn Chính',   '0912000008'),
-    (9,  17, 'TS2026009', '2007-04-10', 'MALE',   '15 Điện Biên Phủ, Thanh Khê, Đà Nẵng',    3, '048207009009', 'Dương Văn Hải',   '0912000009'),
-    (10, 18, 'TS2026010', '2007-08-27', 'FEMALE', '44 Cách Mạng Tháng 8, Ninh Kiều, Cần Thơ',4, '092207010010', 'Phan Văn Khoa',   '0912000010'),
-    (11, 19, 'TS2026011', '2007-02-14', 'MALE',   '60 Lê Duẩn, Đống Đa, Hà Nội',              1, '001207011011', 'Võ Văn Quý',      '0912000011'),
-    (12, 20, 'TS2026012', '2007-10-19', 'FEMALE', '18 Phan Xích Long, Phú Nhuận, TP. HCM',    2, '079207012012', 'Ngô Văn Tốt',     '0912000012'),
-    (13, 21, 'TS2026013', '2007-07-07', 'MALE',   '7 Hùng Vương, Hải Châu, Đà Nẵng',          3, '048207013013', 'Trịnh Văn Nam',   '0912000013'),
-    (14, 22, 'TS2026014', '2007-03-28', 'FEMALE', '30 Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ',    4, '092207014014', 'Cao Văn Lợi',     '0912000014'),
-    (15, 23, 'TS2026015', '2007-11-11', 'MALE',   '55 Trần Quang Khải, Hà Nội',               1, '001207015015', 'Đinh Văn Phú',    '0912000015'),
-    (16, 24, 'TS2026016', '2007-06-06', 'FEMALE', '123 Nguyễn Thị Thập, Q7, TP. HCM',        2, '079207016016', 'Vũ Văn Tài',      '0912000016'),
-    (17, 25, 'TS2026017', '2007-09-09', 'MALE',   '9 Quang Trung, TP. Quy Nhơn, Bình Định',   5, '052207017017', 'Lý Văn Ân',       '0912000017');
+    (1,  9,  'SE260001', '2007-03-15', 'MALE',   '12 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội',     1, '001207001001', 'Nguyễn Văn Toàn', '0912000001'),
+    (2,  10, 'SE260002', '2007-07-22', 'FEMALE', '45 Nguyễn Huệ, Q1, TP. HCM',               2, '079207002002', 'Trần Văn Minh',   '0912000002'),
+    (3,  11, 'SE260003', '2007-11-08', 'MALE',   '88 Trần Phú, Hải Châu, Đà Nẵng',           3, '048207003003', 'Lê Văn Hùng',     '0912000003'),
+    (4,  12, 'SE260004', '2007-05-30', 'FEMALE', '22 Nguyễn Trãi, Ninh Kiều, Cần Thơ',       4, '092207004004', 'Phạm Văn Thành',  '0912000004'),
+    (5,  13, 'AI260001', '2007-09-14', 'MALE',   '5 Lê Lợi, TP. Quy Nhơn, Bình Định',        5, '052207005005', 'Hoàng Văn Bình',  '0912000005'),
+    (6,  14, 'SE260005', '2007-01-25', 'FEMALE', '77 Trần Hưng Đạo, Ngô Quyền, Hải Phòng',  6, '031207006006', 'Nguyễn Văn Lực',  '0912000006'),
+    (7,  15, 'SE260006', '2007-06-18', 'MALE',   '33 Bà Triệu, Hai Bà Trưng, Hà Nội',        1, '001207007007', 'Đỗ Văn Sáng',     '0912000007'),
+    (8,  16, 'SE260007', '2007-12-03', 'FEMALE', '99 Nguyễn Đình Chiểu, Bình Thạnh, HCM',   2, '079207008008', 'Bùi Văn Chính',   '0912000008'),
+    (9,  17, 'SE260008', '2007-04-10', 'MALE',   '15 Điện Biên Phủ, Thanh Khê, Đà Nẵng',    3, '048207009009', 'Dương Văn Hải',   '0912000009'),
+    (10, 18, 'SE260009', '2007-08-27', 'FEMALE', '44 Cách Mạng Tháng 8, Ninh Kiều, Cần Thơ',4, '092207010010', 'Phan Văn Khoa',   '0912000010'),
+    (11, 19, 'SE260010', '2007-02-14', 'MALE',   '60 Lê Duẩn, Đống Đa, Hà Nội',              1, '001207011011', 'Võ Văn Quý',      '0912000011'),
+    (12, 20, 'BA260001', '2007-10-19', 'FEMALE', '18 Phan Xích Long, Phú Nhuận, TP. HCM',    2, '079207012012', 'Ngô Văn Tốt',     '0912000012'),
+    (13, 21, 'HT260001', '2007-07-07', 'MALE',   '7 Hùng Vương, Hải Châu, Đà Nẵng',          3, '048207013013', 'Trịnh Văn Nam',   '0912000013'),
+    (14, 22, 'BA260002', '2007-03-28', 'FEMALE', '30 Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ',    4, '092207014014', 'Cao Văn Lợi',     '0912000014'),
+    (15, 23, 'SE260011', '2007-11-11', 'MALE',   '55 Trần Quang Khải, Hà Nội',               1, '001207015015', 'Đinh Văn Phú',    '0912000015'),
+    (16, 24, 'GD260001', '2007-06-06', 'FEMALE', '123 Nguyễn Thị Thập, Q7, TP. HCM',        2, '079207016016', 'Vũ Văn Tài',      '0912000016'),
+    (17, 25, 'AI260002', '2007-09-09', 'MALE',   '9 Quang Trung, TP. Quy Nhơn, Bình Định',   5, '052207017017', 'Lý Văn Ân',       '0912000017');
 
     -- 10. Academic Backgrounds
     INSERT IGNORE INTO academic_backgrounds (id, student_profile_id, school_name, school_province_id, graduation_year, gpa_10, gpa_11, gpa_12, math_score, literature_score, english_score, total_score, ielts_score) VALUES
-    (1,  1,  'THPT Chu Văn An',              1, 2026, 8.5, 8.7, 8.9, 8.5, 7.5, 9.0, 25.00, 7.0),
-    (2,  2,  'THPT Lê Hồng Phong',          2, 2026, 7.8, 8.0, 8.2, 7.5, 8.0, 7.0, 22.50, NULL),
-    (3,  3,  'THPT Trần Phú',               3, 2026, 8.0, 8.2, 8.5, 8.0, 7.0, 8.5, 23.50, NULL),
-    (4,  4,  'THPT Châu Văn Liêm',          4, 2026, 7.5, 7.8, 8.0, 7.0, 7.5, 7.0, 21.50, NULL),
-    (5,  5,  'THPT Quốc Học Quy Nhơn',      5, 2026, 9.0, 9.2, 9.3, 9.0, 8.5, 9.5, 27.00, 8.0),
-    (6,  6,  'THPT Thái Phiên',             6, 2026, 8.2, 8.4, 8.6, 8.5, 7.8, 8.0, 24.30, NULL),
-    (7,  7,  'THPT Việt Đức',               1, 2026, 7.2, 7.5, 7.8, 7.5, 7.0, 7.5, 22.00, NULL),
-    (8,  8,  'THPT Marie Curie',            2, 2026, 8.8, 9.0, 9.1, 8.5, 8.8, 9.0, 26.30, 7.5),
-    (9,  9,  'THPT Phan Châu Trinh',        3, 2026, 7.0, 7.2, 7.5, 7.0, 7.5, 6.5, 21.00, NULL),
-    (10, 10, 'THPT Thủ Khoa Nghĩa',         4, 2026, 8.5, 8.7, 8.8, 8.0, 8.5, 8.0, 24.50, NULL),
-    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 7.9, 8.1, 8.3, 8.0, 7.5, 8.0, 23.50, NULL),
-    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.2, 9.4, 9.5, 9.5, 9.0, 9.5, 28.00, 8.5),
-    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.5, 7.7, 7.9, 7.5, 7.8, 7.0, 22.30, NULL),
-    (14, 14, 'THPT Châu Thành',             4, 2026, 8.0, 8.2, 8.4, 8.0, 8.0, 7.5, 23.50, NULL),
-    (15, 15, 'THPT Kim Liên',               1, 2026, 8.6, 8.8, 9.0, 9.0, 8.0, 8.5, 25.50, NULL),
-    (16, 16, 'THPT Gia Định',               2, 2026, 7.3, 7.6, 7.8, 7.5, 7.5, 7.0, 22.00, NULL),
-    (17, 17, 'THPT Quang Trung',            5, 2026, 8.3, 8.5, 8.7, 8.5, 8.0, 8.5, 25.00, NULL);
+    (1,  1,  'THPT Chu Văn An',              1, 2026, NULL, NULL, 8.9, 8.5, 7.5, 9.0, 25.00, 7.0),
+    (2,  2,  'THPT Lê Hồng Phong',          2, 2026, NULL, NULL, 8.2, 7.5, 8.0, 7.0, 22.50, NULL),
+    (3,  3,  'THPT Trần Phú',               3, 2026, NULL, NULL, 8.5, 8.0, 7.0, 8.5, 23.50, NULL),
+    (4,  4,  'THPT Châu Văn Liêm',          4, 2026, NULL, NULL, 8.0, 7.0, 7.5, 7.0, 21.50, NULL),
+    (5,  5,  'THPT Quốc Học Quy Nhơn',      5, 2026, NULL, NULL, 9.3, 9.0, 8.5, 9.5, 27.00, 8.0),
+    (6,  6,  'THPT Thái Phiên',             6, 2026, NULL, NULL, 8.6, 8.5, 7.8, 8.0, 24.30, NULL),
+    (7,  7,  'THPT Việt Đức',               1, 2026, NULL, NULL, 7.8, 7.5, 7.0, 7.5, 22.00, NULL),
+    (8,  8,  'THPT Marie Curie',            2, 2026, NULL, NULL, 9.1, 8.5, 8.8, 9.0, 26.30, 7.5),
+    (9,  9,  'THPT Phan Châu Trinh',        3, 2026, NULL, NULL, 7.5, 7.0, 7.5, 6.5, 21.00, NULL),
+    (10, 10, 'THPT Thủ Khoa Nghĩa',         4, 2026, NULL, NULL, 8.8, 8.0, 8.5, 8.0, 24.50, NULL),
+    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, NULL, NULL, 8.3, 8.0, 7.5, 8.0, 23.50, NULL),
+    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, NULL, NULL, 9.5, 9.5, 9.0, 9.5, 28.00, 8.5),
+    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, NULL, NULL, 7.9, 7.5, 7.8, 7.0, 22.30, NULL),
+    (14, 14, 'THPT Châu Thành',             4, 2026, NULL, NULL, 8.4, 8.0, 8.0, 7.5, 23.50, NULL),
+    (15, 15, 'THPT Kim Liên',               1, 2026, NULL, NULL, 9.0, 9.0, 8.0, 8.5, 25.50, NULL),
+    (16, 16, 'THPT Gia Định',               2, 2026, NULL, NULL, 7.8, 7.5, 7.5, 7.0, 22.00, NULL),
+    (17, 17, 'THPT Quang Trung',            5, 2026, NULL, NULL, 8.7, 8.5, 8.0, 8.5, 25.00, NULL);
 
     -- 11. Applications
     INSERT IGNORE INTO applications (id, application_code, student_profile_id, admission_year_id, campus_id, major_id, admission_method_id, priority_number, total_score, status, submitted_at, reviewed_at, reviewed_by, officer_notes) VALUES
-    (1,  'SE260001',  1,  3, 1, 1,  1, 1, 25.00, 'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
+    (1,  'SE260001',  1,  3, 1, 1,  1, 1, 8.90,  'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
     (2,  'SE260002',  2,  3, 2, 8,  2, 1, 22.50, 'UNDER_REVIEW', '2026-03-03 10:15:00', NULL,                  NULL, NULL),
-    (3,  'SE260003',  3,  3, 3, 13, 1, 1, 23.50, 'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
+    (3,  'SE260003',  3,  3, 3, 13, 1, 1, 8.50,  'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
     (4,  'SE260004',  4,  3, 4, 16, 2, 1, 21.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
     (5,  'AI260001',  5,  3, 1, 2,  3, 1, 27.00, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
     (6,  'SE260005',  6,  3, 1, 1,  3, 1, 24.30, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
     (7,  'SE260006',  7,  3, 1, 1,  2, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
     (8,  'SE260007',  8,  3, 2, 8,  4, 1, 26.30, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
     (9,  'SE260008',  9,  3, 3, 13, 2, 2, 21.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
-    (10, 'SE260009',  10, 3, 4, 16, 1, 1, 24.50, 'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
-    (11, 'SE260010',  11, 3, 1, 1,  1, 1, 23.50, 'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
+    (10, 'SE260009',  10, 3, 4, 16, 1, 1, 8.80,  'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
+    (11, 'SE260010',  11, 3, 1, 1,  1, 1, 8.30,  'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
     (12, 'BA260001',  12, 3, 2, 10, 4, 1, 28.00, 'ENROLLED',     '2026-02-25 10:00:00', '2026-03-01 09:00:00', 7, 'IELTS 8.5, học lực xuất sắc'),
     (13, 'HT260001',  13, 3, 3, 15, 2, 1, 22.30, 'SUBMITTED',    '2026-03-10 11:00:00', NULL,                  NULL, NULL),
-    (14, 'BA260002',  14, 3, 4, 17, 1, 1, 23.50, 'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
-    (15, 'SE260011',  15, 3, 1, 1,  1, 1, 25.50, 'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
-    (16, 'GD260001',  16, 3, 2, 12, 1, 1, 22.00, 'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
+    (14, 'BA260002',  14, 3, 4, 17, 1, 1, 8.40,  'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
+    (15, 'SE260011',  15, 3, 1, 1,  1, 1, 9.00,  'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
+    (16, 'GD260001',  16, 3, 2, 12, 1, 1, 7.80,  'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
     (17, 'AI260002',  17, 3, 5, 2,  3, 1, 25.00, 'SUBMITTED',    '2026-03-11 09:00:00', NULL,                  NULL, NULL);
 
     -- 12. Application Status History

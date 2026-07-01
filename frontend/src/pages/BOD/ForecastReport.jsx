@@ -1,8 +1,10 @@
+import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceArea
 } from "recharts";
 import { Download, TrendingUp, ArrowUp } from "lucide-react";
+import api from "../../config/axiosConfig";
 
 const DATA = [
   { year: "2021", actual: 7000, predicted: null },
@@ -14,13 +16,54 @@ const DATA = [
   { year: "2027", actual: null, predicted: 22000 },
 ];
 
-const FORECAST_CARDS = [
-  { year: 2026, value: "22,500", growth: "+12.5%", highlighted: false },
-  { year: 2027, value: "25,200", growth: "+12%", highlighted: true },
-  { year: 2028, value: "28,200", growth: "+11.9%", highlighted: false },
-];
+const downloadCSV = (data, filename) => {
+  if (!data || !data.length) return;
+  const BOM = "\uFEFF";
+  const headers = "Năm,Thực tế,Dự báo\n";
+  const rows = data.map(item => `${item.year},${item.actual ?? ""},${item.predicted ?? ""}`).join("\n");
+  const blob = new Blob([BOM + headers + rows], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
 
 export default function ForecastReport() {
+  const [forecastData, setForecastData] = useState([]);
+  const [forecastCards, setForecastCards] = useState([
+    { year: 2026, value: "22,500", growth: "+12.5%", highlighted: false },
+    { year: 2027, value: "25,200", growth: "+12%", highlighted: true },
+    { year: 2028, value: "28,200", growth: "+11.9%", highlighted: false },
+  ]);
+
+  useEffect(() => {
+    api.get("/api/manager/forecast")
+      .then(r => {
+        if (r.data && r.data.forecastData) {
+          const mapped = r.data.forecastData.map(item => ({
+            year: String(item.year),
+            actual: item.actual,
+            predicted: item.predicted
+          }));
+          setForecastData(mapped);
+        }
+        if (r.data && r.data.predictedApplications) {
+          const pred = r.data.predictedApplications;
+          setForecastCards([
+            { year: 2026, value: Number(pred / 1.12).toLocaleString("vi-VN"), growth: "+12.5%", highlighted: false },
+            { year: 2027, value: Number(pred).toLocaleString("vi-VN"), growth: "+12%", highlighted: true },
+            { year: 2028, value: Number(pred * 1.12).toLocaleString("vi-VN"), growth: "+11.9%", highlighted: false },
+          ]);
+        }
+      })
+      .catch(err => console.error("Lỗi tải dự báo:", err));
+  }, []);
+
+  const displayData = forecastData.length > 0 ? forecastData : DATA;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {/* Title row */}
@@ -36,15 +79,29 @@ export default function ForecastReport() {
             </span>
           </div>
         </div>
-        <button style={{
-          display: "flex", alignItems: "center", gap: 8,
-          background: "#0d1b3e", border: "none", borderRadius: 10,
-          padding: "10px 18px", color: "white",
-          fontWeight: 700, fontSize: 13, cursor: "pointer",
-          boxShadow: "0 2px 8px rgba(13,27,62,0.25)"
-        }}>
-          <Download size={15} /> Xuất PDF
-        </button>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button 
+            onClick={() => downloadCSV(displayData, "bao_cao_du_bao_tuyen_sinh.csv")}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "white", border: "1px solid #CBD5E1", borderRadius: 10,
+              padding: "10px 18px", color: "#334155",
+              fontWeight: 700, fontSize: 13, cursor: "pointer"
+            }}>
+            📥 Tải CSV
+          </button>
+          <button 
+            onClick={() => window.print()}
+            style={{
+              display: "flex", alignItems: "center", gap: 8,
+              background: "#0d1b3e", border: "none", borderRadius: 10,
+              padding: "10px 18px", color: "white",
+              fontWeight: 700, fontSize: 13, cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(13,27,62,0.25)"
+            }}>
+            <Download size={15} /> Xuất PDF
+          </button>
+        </div>
       </div>
 
       {/* Main forecast chart */}
@@ -66,17 +123,17 @@ export default function ForecastReport() {
           </div>
         </div>
         <ResponsiveContainer width="100%" height={340}>
-          <LineChart data={DATA} margin={{ right: 20 }}>
+          <LineChart data={displayData} margin={{ right: 20 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
             <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false}
               tickFormatter={v => `${v / 1000 > 0 ? (v / 1000).toFixed(1) : v}`}
-              domain={[0, 26000]}
-              ticks={[0, 6500, 13000, 19500, 26000]}
+              domain={[0, 36000]}
+              ticks={[0, 9000, 18000, 27000, 36000]}
             />
             <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0" }} formatter={v => v?.toLocaleString() ?? "N/A"} />
             {/* shade the forecast area */}
-            <ReferenceArea x1="2025" x2="2027" fill="#FFF7ED" fillOpacity={0.6} />
+            <ReferenceArea x1="2025" x2="2028" fill="#FFF7ED" fillOpacity={0.6} />
             <ReferenceLine x="2025" stroke="#E2E8F0" strokeDasharray="4 3" />
             <Line type="monotone" dataKey="actual" stroke="#1E293B" strokeWidth={2.5}
               dot={{ r: 6, fill: "white", stroke: "#1E293B", strokeWidth: 2 }} connectNulls={false} name="Thực tế" />
@@ -89,7 +146,7 @@ export default function ForecastReport() {
 
       {/* Forecast year cards */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-        {FORECAST_CARDS.map((card) => (
+        {forecastCards.map((card) => (
           <div key={card.year} style={{
             background: "white", borderRadius: 14,
             padding: "22px 24px",
