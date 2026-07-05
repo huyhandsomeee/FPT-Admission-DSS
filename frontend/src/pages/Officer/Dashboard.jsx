@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import api from "../../config/axiosConfig";
 import {
   FileText, Clock, CheckCircle, XCircle,
-  ArrowUpRight, ArrowDownRight, Users, GraduationCap, Trophy
+  ArrowUpRight, ArrowDownRight, Users, GraduationCap, Trophy,
+  TrendingUp, BarChart3, Target, Monitor, Briefcase,
+  Languages, Palette, Wrench, ExternalLink, RefreshCw,
+  Download, Sparkles, Eye, ChevronRight
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -20,18 +23,50 @@ const STATUS_COLORS = {
   DRAFT:        { bg: "#F3F4F6", color: "#4B5563" },
 };
 
-const AVATAR_COLORS = [
-  { bg: "#DBEAFE", color: "#1D4ED8" },
-  { bg: "#FEF3C7", color: "#92400E" },
-  { bg: "#D1FAE5", color: "#065F46" },
-  { bg: "#EDE9FE", color: "#5B21B6" },
-];
-
 function getInitials(name) {
   if (!name) return "??";
   const parts = name.trim().split(" ");
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Simple SVG bar chart component
+function MiniBarChart({ data, colors }) {
+  const maxVal = Math.max(...data.map(d => d.value), 1);
+  return (
+    <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 100, padding: "0 4px" }}>
+      {data.map((d, i) => (
+        <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 4 }}>
+          <div style={{
+            width: "100%", maxWidth: 28,
+            height: `${(d.value / maxVal) * 80}px`,
+            minHeight: 8,
+            background: colors?.[i] || "#FF6B35",
+            borderRadius: "4px 4px 0 0",
+            transition: "height 0.5s ease"
+          }} />
+          <span style={{ fontSize: 9, color: "#94A3B8", whiteSpace: "nowrap" }}>{d.label}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Donut chart component
+function DonutChart({ percentage, size = 100, strokeWidth = 10 }) {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  const offset = circumference - (percentage / 100) * circumference;
+  return (
+    <svg width={size} height={size} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size / 2} cy={size / 2} r={radius}
+        fill="none" stroke="#F1F5F9" strokeWidth={strokeWidth} />
+      <circle cx={size / 2} cy={size / 2} r={radius}
+        fill="none" stroke="#FF6B35" strokeWidth={strokeWidth}
+        strokeDasharray={circumference} strokeDashoffset={offset}
+        strokeLinecap="round" style={{ transition: "stroke-dashoffset 1s ease" }} />
+    </svg>
+  );
 }
 
 export default function OfficerDashboard() {
@@ -50,79 +85,34 @@ export default function OfficerDashboard() {
   const [loadingRecent, setLoadingRecent] = useState(false);
   const navigate = useNavigate();
 
-  // Search & Filter state
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState(""); // "" means All
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
+  useEffect(() => {
+    api.get("/api/officer/dashboard")
+      .then(r => { if (r.data) setStats(r.data); })
+      .catch(() => {});
 
-  const fetchApplications = (search = "", status = "", page = 0) => {
     setLoadingRecent(true);
-    let url = `/api/officer/applications?page=${page}&size=10`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (status) url += `&status=${status}`;
-
-    api.get(url)
+    api.get("/api/officer/applications?page=0&size=5")
       .then(r => {
         const content = r.data?.content;
-        if (Array.isArray(content)) {
-          setRecentApps(content);
-          setTotalPages(r.data?.totalPages || 1);
-          setTotalElements(r.data?.totalElements || 0);
-        }
+        if (Array.isArray(content)) setRecentApps(content);
       })
-      .catch(err => console.error("Error fetching applications:", err))
+      .catch(() => {})
       .finally(() => setLoadingRecent(false));
-  };
-
-  useEffect(() => {
-    // Fetch stats
-    api.get("/api/officer/dashboard")
-      .then(r => {
-        if (r.data) setStats(r.data);
-      })
-      .catch(() => {});
   }, []);
-
-  // Fetch applications when status filter or page change
-  useEffect(() => {
-    fetchApplications(searchTerm, selectedStatus, currentPage);
-  }, [selectedStatus, currentPage]);
-
-  const handleSearchChange = (e) => {
-    const val = e.target.value;
-    setSearchTerm(val);
-    setCurrentPage(0);
-    fetchApplications(val, selectedStatus, 0);
-  };
-
-  const handleTabClick = (status) => {
-    setSelectedStatus(status);
-    setCurrentPage(0);
-  };
 
   const handleExportCSV = () => {
     if (recentApps.length === 0) {
       alert("Không có hồ sơ nào để xuất báo cáo");
       return;
     }
-
     const headers = ["Mã hồ sơ", "Họ tên", "Email", "Ngành học", "Cơ sở", "Phương thức", "Điểm số", "Ngày nộp", "Trạng thái"];
     const rows = recentApps.map(app => [
-      app.applicationCode || "",
-      app.studentName || "",
-      app.studentEmail || "",
-      app.majorName || "",
-      app.campusName || "",
-      app.methodName || "",
-      app.totalScore || "",
-      app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp",
+      app.applicationCode || "", app.studentName || "", app.studentEmail || "",
+      app.majorName || "", app.campusName || "", app.methodName || "",
+      app.totalScore || "", app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp",
       STATUS_LABELS[app.status] || ""
     ]);
-
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
-
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -133,378 +123,448 @@ export default function OfficerDashboard() {
     document.body.removeChild(link);
   };
 
-  const kpis = [
-    {
-      label: "Tổng hồ sơ",
-      value: stats.totalApplications,
-      icon: FileText,
-      iconBg: "#EFF6FF",
-      iconColor: "#2563EB",
-      badge: { text: "+12%", positive: true },
-      borderColor: "#2563EB",
-    },
-    {
-      label: "Đã nộp",
-      value: stats.submitted,
-      icon: Users,
-      iconBg: "#FFFBEB",
-      iconColor: "#D97706",
-      badge: { text: "Chờ xét", neutral: true },
-      borderColor: "#D97706",
-    },
-    {
-      label: "Đã duyệt",
-      value: stats.approved,
-      icon: CheckCircle,
-      iconBg: "#ECFDF5",
-      iconColor: "#059669",
-      badge: { text: "+8%", positive: true },
-      borderColor: "#059669",
-    },
-    {
-      label: "Từ chối",
-      value: stats.rejected,
-      icon: XCircle,
-      iconBg: "#FEF2F2",
-      iconColor: "#DC2626",
-      badge: { text: "-2%", positive: false },
-      borderColor: "#DC2626",
-    },
+  const quotaPercent = stats.quota > 0 ? Math.round((stats.enrolled / stats.quota) * 100) : 0;
+
+  // Mock data for charts
+  const barChartData = [
+    { label: "T2", value: 35 }, { label: "T3", value: 50 }, { label: "T4", value: 42 },
+    { label: "T5", value: 68 }, { label: "T6", value: 55 }, { label: "T7", value: 30 }, { label: "CN", value: 20 }
+  ];
+  const barColors = ["#FFB088", "#FFB088", "#FFB088", "#FF6B35", "#FFB088", "#FFB088", "#FFB088"];
+
+  const conversionData = [
+    { label: "Công nghệ thông tin", percent: 68 },
+    { label: "Quản trị kinh doanh", percent: 45 },
+    { label: "Ngôn ngữ & Truyền thông", percent: 32 },
+    { label: "Thiết kế mỹ thuật", percent: 51 },
   ];
 
-  const tabStats = [
-    { label: "Tất cả", count: stats.totalApplications, status: "" },
-    { label: "Đã nộp", count: stats.submitted, status: "SUBMITTED" },
-    { label: "Đang xét", count: stats.underReview, status: "UNDER_REVIEW" },
-    { label: "Đã duyệt", count: stats.approved, status: "APPROVED" },
-    { label: "Từ chối", count: stats.rejected, status: "REJECTED" },
-    { label: "Nhập học", count: stats.enrolled, status: "ENROLLED" },
+  const majorGroups = [
+    { name: "Công nghệ thông tin (IT)", icon: Monitor, color: "#1E293B", bgColor: "#F1F5F9",
+      desc: "Ngành trọng điểm với sự quan tâm lớn nhất. Bao gồm Kỹ thuật phần mềm, Trí tuệ nhân tạo, và An toàn thông tin.",
+      pending: stats.underReview || 48, trend: "+12% xu hướng", trendPositive: true, large: true },
+    { name: "Quản trị kinh doanh", icon: Briefcase, color: "#FF6B35", bgColor: "#FFF7ED",
+      count: 32, small: true },
+    { name: "Ngôn ngữ & Truyền thông", icon: Languages, color: "#FF6B35", bgColor: "#FFF7ED",
+      count: 24, small: true },
+    { name: "Thiết kế và Nghệ thuật", icon: Palette, color: "#FF6B35", bgColor: "#FFF7ED",
+      count: 15, label: "hồ sơ mới", small: true, hasEdit: true },
+    { name: "Kỹ thuật và Công nghệ", icon: Wrench, color: "#FF6B35", bgColor: "#FFF7ED",
+      count: 5, label: "hồ sơ mới", small: true, hasEdit: true },
   ];
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
       {/* Page Header */}
-      <div>
-        <h1 style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0F172A" }}>
-          Dashboard - Nhân viên tuyển sinh
-        </h1>
-        <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-          Tổng quan tình hình tuyển sinh năm học {stats.activeYear || 2026}
-        </p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+        <div>
+          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>
+            Bảng điều khiển - Phân tích Tuyển sinh
+          </h1>
+          <p style={{ margin: "6px 0 0", fontSize: 14, color: "#64748B" }}>
+            Chào mừng trở lại! Hệ thống đã cập nhật dữ liệu phân tích mới nhất cho kỳ tuyển sinh {stats.activeYear || 2026}.
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleExportCSV} style={{
+            padding: "10px 18px", background: "white", border: "1px solid #E2E8F0",
+            borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+            transition: "all 0.15s"
+          }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = "#FF6B35"}
+            onMouseLeave={e => e.currentTarget.style.borderColor = "#E2E8F0"}
+          >
+            <Download size={15} /> Xuất báo cáo
+          </button>
+          <button style={{
+            padding: "10px 18px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "white",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+            boxShadow: "0 4px 12px rgba(255,107,53,0.3)", transition: "all 0.15s"
+          }}
+            onMouseEnter={e => e.currentTarget.style.transform = "translateY(-1px)"}
+            onMouseLeave={e => e.currentTarget.style.transform = "translateY(0)"}
+          >
+            <RefreshCw size={15} /> Làm mới dữ liệu
+          </button>
+        </div>
       </div>
 
-      {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-        {kpis.map((kpi) => (
-          <div key={kpi.label} style={{
-            background: "white", borderRadius: 16, padding: "20px 20px 18px",
-            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
-            borderTop: `3px solid ${kpi.borderColor}`, transition: "all 0.2s"
-          }}>
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 14 }}>
-              <div style={{
-                width: 44, height: 44, borderRadius: 12,
-                background: kpi.iconBg,
-                display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <kpi.icon size={22} color={kpi.iconColor} />
-              </div>
-              {kpi.badge?.positive === true && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#16A34A", background: "#DCFCE7", padding: "3px 8px", borderRadius: 999 }}>
-                  <ArrowUpRight size={11} /> {kpi.badge.text}
-                </span>
-              )}
-              {kpi.badge?.positive === false && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#DC2626", background: "#FEE2E2", padding: "3px 8px", borderRadius: 999 }}>
-                  <ArrowDownRight size={11} /> {kpi.badge.text}
-                </span>
-              )}
-              {kpi.badge?.neutral && (
-                <span style={{ display: "inline-flex", alignItems: "center", gap: 3, fontSize: 11, fontWeight: 600, color: "#D97706", background: "#FEF3C7", padding: "3px 8px", borderRadius: 999 }}>
-                  {kpi.badge.text}
-                </span>
-              )}
+      {/* AI Insights Banner */}
+      <div style={{
+        background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)",
+        borderRadius: 16, padding: "18px 24px",
+        border: "1px solid #FED7AA",
+        display: "flex", alignItems: "center", gap: 16
+      }}>
+        <div style={{
+          width: 48, height: 48, borderRadius: "50%",
+          background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+        }}>
+          <Sparkles size={22} color="white" />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 12, fontWeight: 700, color: "#9A3412", letterSpacing: "0.5px", marginBottom: 6 }}>
+            GỢI Ý THÔNG MINH (AI INSIGHTS)
+          </div>
+          <div style={{ display: "flex", gap: 24, fontSize: 13, color: "#78350F" }}>
+            <div>
+              <span style={{ fontWeight: 600 }}>🔍 Dự báo:</span> Ngành CNTT đang đạt 92% chỉ tiêu. Cân nhắc tăng điều kiện xét tuyển hoặc tạm dừng ưu đãi học phí.
             </div>
-            <div style={{ fontSize: 32, fontWeight: 800, color: "#0F172A", lineHeight: 1 }}>
-              {(kpi.value || 0).toLocaleString()}
-            </div>
-            <div style={{ fontSize: 13, color: "#64748B", marginTop: 6, fontWeight: 500 }}>{kpi.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main content: table + sidebar */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 300px", gap: 20 }}>
-
-        {/* Left: Danh sách hồ sơ */}
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          {/* Search + Actions */}
-          <div style={{ padding: "16px 20px", borderBottom: "1px solid #F1F5F9", display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{
-              display: "flex", alignItems: "center", gap: 8, flex: 1,
-              background: "#F8FAFC", border: "1px solid #E2E8F0",
-              borderRadius: 10, padding: "8px 14px"
-            }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#94A3B8" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={handleSearchChange}
-                placeholder="Tìm kiếm theo tên thí sinh, SĐT hoặc mã hồ sơ..."
-                style={{ border: "none", background: "transparent", outline: "none", fontSize: 13, color: "#475569", width: "100%" }}
-              />
-            </div>
-            <button
-              onClick={handleExportCSV}
-              style={{ padding: "9px 16px", background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-              Xuất báo cáo
-            </button>
-            <button
-              onClick={() => navigate("/officer/applicants")}
-              style={{ padding: "9px 16px", background: "#FF6B35", border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer", display: "flex", alignItems: "center", gap: 6 }}>
-              Xem danh sách chi tiết
-            </button>
-          </div>
-
-          {/* Status Tabs */}
-          <div style={{ display: "flex", gap: 0, padding: "0 20px", borderBottom: "1px solid #F1F5F9", overflowX: "auto" }}>
-            {tabStats.map((tab) => {
-              const isActive = selectedStatus === tab.status;
-              return (
-                <button
-                  key={tab.label}
-                  onClick={() => handleTabClick(tab.status)}
-                  style={{
-                    padding: "12px 16px", background: "none", border: "none",
-                    borderBottom: isActive ? "2px solid #FF6B35" : "2px solid transparent",
-                    fontWeight: isActive ? 700 : 500,
-                    fontSize: 13, color: isActive ? "#FF6B35" : "#64748B",
-                    cursor: "pointer", whiteSpace: "nowrap", transition: "all 0.15s"
-                  }}
-                >
-                  {tab.label} ({(tab.count || 0).toLocaleString()})
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Table */}
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse" }}>
-              <thead>
-                <tr>
-                  {["Mã hồ sơ", "Họ và tên", "Ngày nộp", "Trạng thái", "Thao tác"].map(h => (
-                    <th key={h} style={{ textAlign: "left", padding: "10px 16px", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "#94A3B8", background: "#F8FAFC", borderBottom: "1px solid #F1F5F9" }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {loadingRecent ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: "30px", textScale: "center", textAlign: "center", fontSize: "13px", color: "#64748B" }}>
-                      Đang tải danh sách hồ sơ tuyển sinh...
-                    </td>
-                  </tr>
-                ) : recentApps.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} style={{ padding: "30px", textScale: "center", textAlign: "center", fontSize: "13px", color: "#64748B" }}>
-                      Không có hồ sơ nào trùng khớp với bộ lọc hiện tại.
-                    </td>
-                  </tr>
-                ) : (
-                  recentApps.map((app, idx) => {
-                    const avatarC = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-                    const statusC = STATUS_COLORS[app.status] || STATUS_COLORS.DRAFT;
-                    return (
-                      <tr key={app.id} style={{ cursor: "pointer", transition: "background 0.15s" }}
-                        onMouseEnter={e => e.currentTarget.style.background = "#F8FAFC"}
-                        onMouseLeave={e => e.currentTarget.style.background = "transparent"}
-                        onClick={() => navigate(`/officer/applicants/${app.id}`)}>
-                        <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748B", borderBottom: "1px solid #F8FAFC" }}>
-                          <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 12 }}>{app.applicationCode}</div>
-                        </td>
-                        <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={{
-                              width: 36, height: 36, borderRadius: "50%",
-                              background: avatarC.bg, color: avatarC.color,
-                              display: "flex", alignItems: "center", justifyContent: "center",
-                              fontWeight: 700, fontSize: 12, flexShrink: 0
-                            }}>
-                              {getInitials(app.studentName)}
-                            </div>
-                            <div>
-                              <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
-                              <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.studentEmail}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748B", borderBottom: "1px solid #F8FAFC" }}>
-                          {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp"}
-                        </td>
-                        <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                          <span style={{
-                            display: "inline-block", padding: "4px 10px", borderRadius: 999,
-                            fontSize: 11, fontWeight: 700,
-                            background: statusC.bg, color: statusC.color
-                          }}>
-                            {STATUS_LABELS[app.status]}
-                          </span>
-                        </td>
-                        <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); navigate(`/officer/applicants/${app.id}`); }}
-                            style={{ fontSize: 13, color: "#FF6B35", fontWeight: 700, background: "none", border: "none", cursor: "pointer", textDecoration: "none" }}>
-                            Xét duyệt →
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyItems: "space-between", justifyContent: "space-between", borderTop: "1px solid #F1F5F9" }}>
-            <span style={{ fontSize: 13, color: "#64748B" }}>
-              Hiển thị {recentApps.length} trên tổng số {totalElements.toLocaleString()} hồ sơ
-            </span>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                disabled={currentPage === 0}
-                onClick={() => setCurrentPage(currentPage - 1)}
-                style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  border: "1px solid #E2E8F0", background: "white",
-                  color: "#475569", cursor: currentPage === 0 ? "not-allowed" : "pointer",
-                  opacity: currentPage === 0 ? 0.5 : 1
-                }}
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setCurrentPage(i)}
-                  style={{
-                    width: 32, height: 32, borderRadius: 8,
-                    border: currentPage === i ? "none" : "1px solid #E2E8F0",
-                    background: currentPage === i ? "#FF6B35" : "white",
-                    color: currentPage === i ? "white" : "#475569",
-                    fontWeight: currentPage === i ? 700 : 500,
-                    cursor: "pointer"
-                  }}
-                >
-                  {i + 1}
-                </button>
-              ))}
-              <button
-                disabled={currentPage === totalPages - 1 || totalPages === 0}
-                onClick={() => setCurrentPage(currentPage + 1)}
-                style={{
-                  width: 32, height: 32, borderRadius: 8,
-                  border: "1px solid #E2E8F0", background: "white",
-                  color: "#475569", cursor: (currentPage === totalPages - 1 || totalPages === 0) ? "not-allowed" : "pointer",
-                  opacity: (currentPage === totalPages - 1 || totalPages === 0) ? 0.5 : 1
-                }}
-              >
-                ›
-              </button>
+            <div>
+              <span style={{ fontWeight: 600 }}>💡 Cơ hội:</span> Nhu cầu ngành Ngôn ngữ tăng 15% so với tuần trước. Hãy đẩy mạnh chiến dịch quảng cáo tại khu vực Miền Bắc.
             </div>
           </div>
         </div>
+        <button style={{
+          padding: "8px 18px", background: "#FF6B35", border: "none", borderRadius: 8,
+          color: "white", fontWeight: 600, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap",
+          display: "flex", alignItems: "center", gap: 5
+        }}>
+          Xem chi tiết
+        </button>
+      </div>
 
-        {/* Right Sidebar */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-
-          {/* Chỉ tiêu tuyển sinh */}
+      {/* Analytics Center */}
+      <div>
+        <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0F172A", margin: "0 0 14px", display: "flex", alignItems: "center", gap: 8 }}>
+          <BarChart3 size={18} color="#FF6B35" /> Trung tâm Phân tích
+        </h2>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr 1fr", gap: 16 }}>
+          {/* Xu hướng hồ sơ */}
           <div style={{
-            background: "#0d1b3e", borderRadius: 16, padding: 20,
-            position: "relative", overflow: "hidden"
+            background: "white", borderRadius: 14, padding: 20,
+            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
           }}>
-            <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, background: "rgba(255,107,53,0.15)", borderRadius: "50%" }} />
-            <div style={{ position: "absolute", bottom: -30, right: 20, width: 60, height: 60, background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
-            <div style={{ fontSize: 13, fontWeight: 700, color: "white", marginBottom: 4 }}>Chỉ tiêu Tuyển sinh</div>
-            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.8)", marginBottom: 14 }}>Năm học {stats.activeYear || 2026}</div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
-              <span style={{ fontSize: 34, fontWeight: 900, color: "white" }}>
-                {stats.quota > 0 ? Math.round((stats.enrolled / stats.quota) * 100) : 0}%
-              </span>
-              <span style={{ fontSize: 13, color: "#22C55E", fontWeight: 700 }}>↑ Động</span>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Xu hướng hồ sơ</div>
+              <select style={{
+                border: "1px solid #E2E8F0", borderRadius: 6, padding: "4px 8px",
+                fontSize: 11, color: "#64748B", background: "white", cursor: "pointer"
+              }}>
+                <option>7 ngày qua</option>
+                <option>30 ngày qua</option>
+              </select>
             </div>
-            <div style={{ fontSize: 11, color: "rgba(148,163,184,0.7)", marginBottom: 12 }}>
-              Đã đạt {(stats.enrolled || 0).toLocaleString()} / {(stats.quota || 18000).toLocaleString()} chỉ tiêu
+            <MiniBarChart data={barChartData} colors={barColors} />
+            <div style={{ textAlign: "center", fontSize: 11, color: "#94A3B8", marginTop: 8 }}>
+              Tổng hồ sơ thực tế tăng 12% so với tuần trước
             </div>
-            <div style={{ height: 6, background: "rgba(255,255,255,0.1)", borderRadius: 99, overflow: "hidden" }}>
-              <div style={{
-                width: `${stats.quota > 0 ? Math.min(100, Math.round((stats.enrolled / stats.quota) * 100)) : 0}%`,
-                height: "100%",
-                background: "linear-gradient(90deg, #FF6B35, #FF8C5A)",
-                borderRadius: 99
-              }} />
-            </div>
-            {/* Graduation icon */}
-            <div style={{ position: "absolute", bottom: 14, right: 16, opacity: 0.15 }}>
-              <GraduationCap size={40} color="white" />
+            <div style={{ textAlign: "right", marginTop: 6 }}>
+              <button style={{ fontSize: 11, color: "#FF6B35", fontWeight: 600, background: "none", border: "none", cursor: "pointer" }}>
+                Phân tích chuyên sâu →
+              </button>
             </div>
           </div>
 
-          {/* Thống kê nhanh */}
-          <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B", marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
-              <Trophy size={15} color="#FF6B35" /> Hiệu suất hôm nay
+          {/* Tỷ lệ chuyển đổi */}
+          <div style={{
+            background: "white", borderRadius: 14, padding: 20,
+            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>Tỷ lệ chuyển đổi</div>
+              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}>⋮</button>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {[
-                { label: "Hồ sơ đang xét", value: stats.underReview, color: "#D97706", bg: "#FFFBEB" },
-                { label: "Hồ sơ đã duyệt", value: stats.approved, color: "#059669", bg: "#ECFDF5" },
-                { label: "Hồ sơ từ chối", value: stats.rejected, color: "#DC2626", bg: "#FEF2F2" },
-                { label: "Đã nhập học", value: stats.enrolled, color: "#7C3AED", bg: "#F5F3FF" },
-              ].map(item => (
-                <div key={item.label} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 12px", background: item.bg, borderRadius: 10 }}>
-                  <span style={{ fontSize: 12, color: "#475569", fontWeight: 500 }}>{item.label}</span>
-                  <span style={{ fontSize: 14, fontWeight: 800, color: item.color }}>{(item.value || 0).toLocaleString()}</span>
+              {conversionData.map((item) => (
+                <div key={item.label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div style={{
+                    flex: 1, height: 8, background: "#F1F5F9", borderRadius: 99,
+                    overflow: "hidden"
+                  }}>
+                    <div style={{
+                      height: "100%", width: `${item.percent}%`,
+                      background: item.percent > 50 ? "#FF6B35" : "#FFB088",
+                      borderRadius: 99, transition: "width 0.8s ease"
+                    }} />
+                  </div>
+                  <span style={{ fontSize: 12, color: "#1E293B", fontWeight: 600, minWidth: 90 }}>{item.label}</span>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: "#FF6B35", minWidth: 35, textAlign: "right" }}>{item.percent}%</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Bộ lọc nhanh */}
-          <div style={{ background: "white", borderRadius: 16, padding: 20, border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B", marginBottom: 14 }}>Tìm kiếm nhanh</div>
-            {[
-              { label: "Kỹ thuật phần mềm", query: "Kỹ thuật phần mềm" },
-              { label: "Hòa Lạc", query: "Hòa Lạc" },
-              { label: "Học bạ", query: "học bạ" },
-            ].map(item => (
-              <button
-                key={item.label}
-                onClick={() => { setSearchTerm(item.query); fetchApplications(item.query, selectedStatus, 0); }}
-                style={{
-                  width: "100%", textAlign: "left", padding: "8px 12px", background: "#F8FAFC",
-                  border: "1px solid #E2E8F0", borderRadius: "8px", fontSize: "12px",
-                  color: "#475569", marginBottom: "8px", cursor: "pointer", fontWeight: "600",
-                  transition: "background 0.2s"
-                }}
-                onMouseEnter={e => e.currentTarget.style.background = "#F1F5F9"}
-                onMouseLeave={e => e.currentTarget.style.background = "#F8FAFC"}
-              >
-                🔍 Lọc: "{item.label}"
+          {/* Dự báo chỉ tiêu */}
+          <div style={{
+            background: "white", borderRadius: 14, padding: 20,
+            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            display: "flex", flexDirection: "column", alignItems: "center"
+          }}>
+            <div style={{ fontSize: 14, fontWeight: 700, color: "#1E293B", marginBottom: 12, alignSelf: "flex-start" }}>Dự báo chỉ tiêu</div>
+            <div style={{ position: "relative", width: 110, height: 110, marginBottom: 10 }}>
+              <DonutChart percentage={Math.min(quotaPercent, 100)} size={110} strokeWidth={12} />
+              <div style={{
+                position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                textAlign: "center"
+              }}>
+                <div style={{ fontSize: 22, fontWeight: 900, color: "#FF6B35" }}>{quotaPercent}%</div>
+                <div style={{ fontSize: 9, color: "#94A3B8", fontWeight: 600 }}>TIẾN ĐỘ</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: "#64748B", textAlign: "center", lineHeight: 1.5 }}>
+              Hệ thống dự báo sẽ đạt 100% chỉ tiêu trước ngày 15/08.
+            </div>
+            <div style={{ display: "flex", gap: 24, marginTop: 12 }}>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600 }}>ĐÃ TUYỂN</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{(stats.enrolled || 1240).toLocaleString()}</div>
+              </div>
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600 }}>CÒN LẠI</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{((stats.quota || 1550) - (stats.enrolled || 1240)).toLocaleString()}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Theo dõi theo nhóm ngành */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0F172A", margin: 0 }}>Theo dõi theo nhóm ngành</h2>
+          <button style={{
+            fontSize: 13, color: "#FF6B35", fontWeight: 600, background: "none",
+            border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+          }}>
+            Quản lý ngành học <ChevronRight size={14} />
+          </button>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+          {/* IT — Large card */}
+          <div style={{
+            background: "white", borderRadius: 16, padding: "24px",
+            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            gridRow: "1 / 3"
+          }}>
+            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
+              <div style={{
+                width: 48, height: 48, borderRadius: 12,
+                background: "#1E293B", display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <Monitor size={22} color="white" />
+              </div>
+              <div>
+                <span style={{
+                  fontSize: 11, fontWeight: 700, color: "#16A34A", background: "#DCFCE7",
+                  padding: "3px 8px", borderRadius: 99, marginBottom: 6, display: "inline-block"
+                }}>
+                  +12% xu hướng
+                </span>
+              </div>
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
+              Công nghệ thông tin (IT)
+            </div>
+            <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6, margin: "0 0 20px" }}>
+              Ngành trọng điểm với sự quan tâm lớn nhất. Bao gồm Kỹ thuật phần mềm, Trí tuệ nhân tạo, và An toàn thông tin.
+            </p>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
+              <div>
+                <div style={{ fontSize: 36, fontWeight: 900, color: "#0F172A" }}>48</div>
+                <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>HỒ SƠ CHỜ DUYỆT</div>
+              </div>
+              <button onClick={() => navigate("/officer/applicants")} style={{
+                padding: "10px 20px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+                border: "none", borderRadius: 10, color: "white", fontWeight: 600, fontSize: 13,
+                cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                boxShadow: "0 4px 12px rgba(255,107,53,0.3)"
+              }}>
+                Xem chi tiết <ArrowUpRight size={14} />
               </button>
-            ))}
-            <button
-              onClick={() => { setSearchTerm(""); setSelectedStatus(""); setCurrentPage(0); fetchApplications("", "", 0); }}
-              style={{ width: "100%", marginTop: 8, padding: "9px", background: "white", border: "1px solid #E2E8F0", borderRadius: 10, fontSize: 13, color: "#FF6B35", cursor: "pointer", fontWeight: 700 }}
-            >
-              Reset tất cả bộ lọc
+            </div>
+          </div>
+
+          {/* Quản trị kinh doanh */}
+          <div style={{
+            background: "white", borderRadius: 14, padding: "20px",
+            border: "1px solid #FDDCCE", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+            display: "flex", flexDirection: "column", alignItems: "flex-end"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", marginBottom: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <Briefcase size={18} color="#FF6B35" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", textAlign: "right" }}>32</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B", width: "100%", textAlign: "left" }}>
+              Quản trị kinh doanh
+            </div>
+            <button style={{
+              marginTop: 10, padding: "8px 20px", background: "white",
+              border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
+              fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
+            }}>
+              Xem chi tiết
             </button>
           </div>
+
+          {/* Ngôn ngữ & Truyền thông */}
+          <div style={{
+            background: "white", borderRadius: 14, padding: "20px",
+            border: "1px solid #FDDCCE", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+          }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: 10,
+                background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
+              }}>
+                <Languages size={18} color="#FF6B35" />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", textAlign: "right" }}>24</div>
+              </div>
+            </div>
+            <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>
+              Ngôn ngữ & Truyền thông
+            </div>
+            <button style={{
+              marginTop: 10, padding: "8px 20px", background: "white",
+              border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
+              fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
+            }}>
+              Xem chi tiết
+            </button>
+          </div>
+        </div>
+
+        {/* Bottom row: smaller cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+          {[
+            { name: "Thiết kế và Nghệ thuật", icon: Palette, count: 15, label: "hồ sơ mới" },
+            { name: "Kỹ thuật và Công nghệ", icon: Wrench, count: 5, label: "hồ sơ mới" },
+          ].map(g => (
+            <div key={g.name} style={{
+              background: "white", borderRadius: 14, padding: "16px 20px",
+              border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+              display: "flex", alignItems: "center", justifyContent: "space-between"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                <div style={{
+                  width: 40, height: 40, borderRadius: 10,
+                  background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
+                }}>
+                  <g.icon size={18} color="#FF6B35" />
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>{g.name}</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8" }}>{g.count} {g.label}</div>
+                </div>
+              </div>
+              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#FF6B35" }}>
+                <ExternalLink size={16} />
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Hoạt động gần đây */}
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <h2 style={{ fontSize: 17, fontWeight: 700, color: "#0F172A", margin: 0 }}>Hoạt động gần đây</h2>
+          <button onClick={() => navigate("/officer/applicants")} style={{
+            fontSize: 13, color: "#FF6B35", fontWeight: 600, background: "none",
+            border: "none", cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+          }}>
+            Xem tất cả <ChevronRight size={14} />
+          </button>
+        </div>
+        <div style={{
+          background: "white", borderRadius: 16, border: "1px solid #F1F5F9",
+          boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden"
+        }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["SINH VIÊN", "NGÀNH HỌC", "TRẠNG THÁI", "THỜI GIAN"].map(h => (
+                  <th key={h} style={{
+                    textAlign: "left", padding: "12px 20px", fontSize: 11,
+                    fontWeight: 700, letterSpacing: "0.05em", color: "#94A3B8",
+                    background: "#FAFBFC", borderBottom: "1px solid #F1F5F9"
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loadingRecent ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: 30, textAlign: "center", fontSize: 13, color: "#94A3B8" }}>
+                    Đang tải hoạt động...
+                  </td>
+                </tr>
+              ) : recentApps.length === 0 ? (
+                <tr>
+                  <td colSpan={4} style={{ padding: 30, textAlign: "center", fontSize: 13, color: "#94A3B8" }}>
+                    Chưa có hoạt động gần đây
+                  </td>
+                </tr>
+              ) : (
+                recentApps.map((app, idx) => {
+                  const statusC = STATUS_COLORS[app.status] || STATUS_COLORS.DRAFT;
+                  const avatarColors = [
+                    { bg: "#FEE2E2", color: "#DC2626" },
+                    { bg: "#DBEAFE", color: "#1D4ED8" },
+                    { bg: "#D1FAE5", color: "#065F46" },
+                    { bg: "#FEF3C7", color: "#92400E" },
+                    { bg: "#EDE9FE", color: "#5B21B6" },
+                  ];
+                  const ac = avatarColors[idx % avatarColors.length];
+                  return (
+                    <tr key={app.id} style={{ cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#FAFBFC"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      onClick={() => navigate(`/officer/applicants/${app.id}`)}
+                    >
+                      <td style={{ padding: "14px 20px", borderBottom: "1px solid #F8FAFC" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: "50%",
+                            background: ac.bg, color: ac.color,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontWeight: 700, fontSize: 12, flexShrink: 0
+                          }}>{getInitials(app.studentName)}</div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.applicationCode}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 20px", fontSize: 13, color: "#475569", borderBottom: "1px solid #F8FAFC" }}>
+                        {app.majorName || "Kỹ thuật phần mềm"}
+                      </td>
+                      <td style={{ padding: "14px 20px", borderBottom: "1px solid #F8FAFC" }}>
+                        <span style={{
+                          display: "inline-block", padding: "4px 10px", borderRadius: 999,
+                          fontSize: 11, fontWeight: 700, background: statusC.bg, color: statusC.color
+                        }}>
+                          {STATUS_LABELS[app.status]}
+                        </span>
+                      </td>
+                      <td style={{ padding: "14px 20px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>
+                        {app.submittedAt ? (() => {
+                          const mins = Math.round((Date.now() - new Date(app.submittedAt)) / 60000);
+                          if (mins < 60) return `${mins} phút trước`;
+                          if (mins < 1440) return `${Math.round(mins / 60)} giờ trước`;
+                          return `${Math.round(mins / 1440)} ngày trước`;
+                        })() : "—"}
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

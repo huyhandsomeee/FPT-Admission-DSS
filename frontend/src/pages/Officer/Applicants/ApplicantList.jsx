@@ -1,42 +1,70 @@
 import { useState, useEffect } from "react";
 import api from "../../../config/axiosConfig";
-import { FileText, Users } from "lucide-react";
+import {
+  FileText, Users, Download, PlusCircle, TrendingUp,
+  ChevronDown, Calendar, Filter, Eye, MoreVertical,
+  ArrowUpRight, ArrowDownRight, Sparkles, ChevronLeft,
+  ChevronRight, BarChart3, Target
+} from "lucide-react";
 import PendingRequestAlert from "./components/PendingRequestAlert";
-import ApplicationFilters from "./components/ApplicationFilters";
-import ApplicationTable from "./components/ApplicationTable";
-import StudentTable from "./components/StudentTable";
+import { useNavigate } from "react-router-dom";
 
-const STATUSES = ["", "SUBMITTED", "UNDER_REVIEW", "APPROVED", "REJECTED", "ENROLLED"];
 const STATUS_LABELS = {
-  "": "Tất cả", SUBMITTED: "Đã nộp", UNDER_REVIEW: "Đang xét",
+  DRAFT: "Bản nháp", SUBMITTED: "Đã nộp", UNDER_REVIEW: "Đang xét",
   APPROVED: "Đã duyệt", REJECTED: "Từ chối", ENROLLED: "Nhập học"
 };
 
-const VIEW_MODES = [
-  { key: "applications", label: "Hồ sơ xét tuyển", icon: FileText },
-  { key: "students", label: "Danh sách thí sinh", icon: Users },
+const STATUS_COLORS = {
+  SUBMITTED:    { bg: "#DBEAFE", color: "#1D4ED8" },
+  UNDER_REVIEW: { bg: "#FEF3C7", color: "#92400E" },
+  APPROVED:     { bg: "#D1FAE5", color: "#065F46" },
+  REJECTED:     { bg: "#FEE2E2", color: "#991B1B" },
+  ENROLLED:     { bg: "#EDE9FE", color: "#5B21B6" },
+  DRAFT:        { bg: "#F3F4F6", color: "#4B5563" },
+};
+
+const AVATAR_COLORS = [
+  { bg: "#DBEAFE", color: "#1D4ED8" },
+  { bg: "#FEF3C7", color: "#92400E" },
+  { bg: "#D1FAE5", color: "#065F46" },
+  { bg: "#EDE9FE", color: "#5B21B6" },
+  { bg: "#FEE2E2", color: "#991B1B" },
 ];
 
+function getInitials(name) {
+  if (!name) return "??";
+  const parts = name.trim().split(" ");
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Mini bar chart for score display
+function ScoreBar({ score, maxScore = 10 }) {
+  const pct = Math.min((score / maxScore) * 100, 100);
+  const color = score >= 8 ? "#16A34A" : score >= 6 ? "#FF6B35" : "#DC2626";
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <span style={{ fontSize: 13, fontWeight: 700, color }}>{score}</span>
+      <div style={{ flex: 1, height: 6, background: "#F1F5F9", borderRadius: 99, overflow: "hidden", minWidth: 40 }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 0.5s" }} />
+      </div>
+    </div>
+  );
+}
+
 export default function ApplicantList() {
-  const [viewMode, setViewMode] = useState("applications");
-
-  // Requests
+  const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
-
-  // Applications state
   const [apps, setApps] = useState([]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [loading, setLoading] = useState(false);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalElements, setTotalElements] = useState(0);
   const [statusCounts, setStatusCounts] = useState({
     "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, ENROLLED: 0
   });
-
-  // Students state
-  const [students, setStudents] = useState([]);
-  const [studentSearch, setStudentSearch] = useState("");
-  const [studentLoading, setStudentLoading] = useState(false);
-  const [studentTotal, setStudentTotal] = useState(0);
 
   const loadRequests = () => {
     api.get("/api/officer/applications/new-requests")
@@ -69,78 +97,450 @@ export default function ApplicantList() {
         });
       }
     }).catch(err => console.error("Error fetching stats:", err));
-  }, [apps]);
+  }, []);
 
   useEffect(() => {
-    if (viewMode !== "applications") return;
     setLoading(true);
-    api.get(`/api/officer/applications?status=${statusFilter}&search=${search}&size=100`)
-      .then(r => setApps(Array.isArray(r.data?.content) ? r.data.content : []))
+    let url = `/api/officer/applications?page=${currentPage}&size=10`;
+    if (search) url += `&search=${encodeURIComponent(search)}`;
+    if (statusFilter) url += `&status=${statusFilter}`;
+
+    api.get(url)
+      .then(r => {
+        setApps(Array.isArray(r.data?.content) ? r.data.content : []);
+        setTotalPages(r.data?.totalPages || 1);
+        setTotalElements(r.data?.totalElements || 0);
+      })
       .catch(() => setApps([]))
       .finally(() => setLoading(false));
-  }, [statusFilter, search, viewMode]);
+  }, [statusFilter, search, currentPage]);
 
-  useEffect(() => {
-    if (viewMode !== "students") return;
-    setStudentLoading(true);
-    api.get(`/api/officer/students?search=${studentSearch}&size=100`)
-      .then(r => {
-        setStudents(Array.isArray(r.data?.content) ? r.data.content : []);
-        setStudentTotal(r.data?.totalElements || 0);
-      })
-      .catch(() => setStudents([]))
-      .finally(() => setStudentLoading(false));
-  }, [studentSearch, viewMode]);
+  const handleExportCSV = () => {
+    if (apps.length === 0) { alert("Không có hồ sơ nào để xuất"); return; }
+    const headers = ["Mã hồ sơ", "Họ tên", "Email", "Ngành học", "Điểm", "Ngày nộp", "Trạng thái"];
+    const rows = apps.map(app => [
+      app.applicationCode || "", app.studentName || "", app.studentEmail || "",
+      app.majorName || "", app.totalScore || "",
+      app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp",
+      STATUS_LABELS[app.status] || ""
+    ]);
+    const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `Danh_sach_ho_so_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const approvedToday = statusCounts.APPROVED || 0;
+  const approvalRate = statusCounts[""] > 0
+    ? ((statusCounts.APPROVED / statusCounts[""]) * 100).toFixed(1)
+    : "0";
+
+  const kpis = [
+    { label: "Tổng số hồ sơ", value: statusCounts[""] || 0, badge: "+12%", badgePositive: true, borderColor: "#FF6B35" },
+    { label: "Đang chờ duyệt", value: statusCounts.UNDER_REVIEW + statusCounts.SUBMITTED || 0, badge: "Quan trọng", badgeType: "warning", borderColor: "#F59E0B" },
+    { label: "Đã duyệt hôm nay", value: approvedToday, badge: "Đạt mục tiêu", badgeType: "success", borderColor: "#10B981" },
+    { label: "Hồ sơ bị từ chối", value: statusCounts.REJECTED || 0, badge: "-2%", badgePositive: false, borderColor: "#EF4444" },
+  ];
+
+  // Pagination logic
+  const renderPaginationButtons = () => {
+    const buttons = [];
+    const maxVisible = 3;
+    for (let i = 0; i < Math.min(maxVisible, totalPages); i++) {
+      buttons.push(i);
+    }
+    if (totalPages > maxVisible + 1) buttons.push(-1); // ellipsis
+    if (totalPages > maxVisible) buttons.push(totalPages - 1);
+    return buttons;
+  };
+
+  // Mock bar chart data for bottom section
+  const weekDays = ["THỨ 2", "THỨ 3", "THỨ 4", "THỨ 5", "THỨ 6", "THỨ 7", "CN"];
+  const weekValues = [45, 52, 38, 85, 120, 65, 30];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+      {/* Breadcrumb */}
+      <div style={{ fontSize: 12, color: "#94A3B8" }}>
+        <span style={{ cursor: "pointer" }} onClick={() => navigate("/officer/dashboard")}>Cổng Tuyển Sinh</span>
+        <span style={{ margin: "0 6px" }}>›</span>
+        <span style={{ color: "#FF6B35", fontWeight: 600 }}>Danh sách hồ sơ</span>
+      </div>
+
+      {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0F172A" }}>Quản lý thí sinh & hồ sơ</h1>
-          <p style={{ margin: "4px 0 0", fontSize: 13, color: "#64748B" }}>
-            Tuyển sinh năm 2026 • Cơ sở dữ liệu thí sinh toàn hệ thống
+          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>Danh sách hồ sơ tổng hợp</h1>
+          <p style={{ margin: "6px 0 0", fontSize: 14, color: "#64748B" }}>
+            Quản lý và theo dõi tất cả hồ sơ nhập học của sinh viên theo thời gian thực.
           </p>
         </div>
-        <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 12, padding: 4, gap: 2 }}>
-          {VIEW_MODES.map(m => (
-            <button key={m.key} onClick={() => setViewMode(m.key)}
-              style={{
-                display: "flex", alignItems: "center", gap: 6, padding: "8px 16px", borderRadius: 9, border: "none",
-                background: viewMode === m.key ? "white" : "transparent",
-                color: viewMode === m.key ? "#FF6B35" : "#64748B",
-                fontWeight: viewMode === m.key ? 700 : 500, fontSize: 13, cursor: "pointer",
-                boxShadow: viewMode === m.key ? "0 1px 4px rgba(0,0,0,0.1)" : "none"
-              }}>
-              <m.icon size={14} /> {m.label}
-            </button>
-          ))}
+        <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={handleExportCSV} style={{
+            padding: "10px 18px", background: "white", border: "1px solid #E2E8F0",
+            borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6
+          }}>
+            <Download size={15} /> Xuất CSV
+          </button>
+          <button style={{
+            padding: "10px 18px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "white",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            boxShadow: "0 4px 12px rgba(255,107,53,0.3)"
+          }}>
+            <PlusCircle size={15} /> Hồ sơ mới
+          </button>
         </div>
+      </div>
+
+      {/* Phân tích tổng quan banner */}
+      <div style={{
+        background: "linear-gradient(135deg, #2D3748 0%, #1A202C 100%)",
+        borderRadius: 16, padding: "18px 24px", color: "white"
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(255,107,53,0.2)", display: "flex", alignItems: "center", justifyContent: "center"
+          }}>
+            <BarChart3 size={18} color="#FF6B35" />
+          </div>
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>Phân tích Tổng quan</div>
+            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
+              Phân bố vùng miền: 65% Miền Bắc, 20% Miền Trung, 15% Miền Nam
+            </div>
+          </div>
+        </div>
+        <div style={{ display: "flex", gap: 32, fontSize: 12 }}>
+          <div>
+            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>CHẤT LƯỢNG HỒ SƠ</div>
+            <span style={{
+              background: "#16A34A", color: "white", padding: "3px 10px",
+              borderRadius: 999, fontWeight: 700, fontSize: 12
+            }}>Cao (+15%)</span>
+          </div>
+          <div>
+            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>NGÀNH HOT NHẤT</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>Kỹ thuật phần mềm</div>
+          </div>
+          <div>
+            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>TỶ LỆ DUYỆT</div>
+            <div style={{ fontWeight: 700, fontSize: 16 }}>{approvalRate}%</div>
+          </div>
+        </div>
+      </div>
+
+      {/* KPI Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
+        {kpis.map((kpi, i) => (
+          <div key={i} style={{
+            background: "white", borderRadius: 14, padding: "18px 20px",
+            border: "1px solid #F1F5F9", boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
+            borderLeft: `4px solid ${kpi.borderColor}`
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+              <div style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>{kpi.label}</div>
+              {kpi.badgePositive === true && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", background: "#DCFCE7", padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 2 }}>
+                  <ArrowUpRight size={10} />{kpi.badge}
+                </span>
+              )}
+              {kpi.badgePositive === false && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", background: "#FEE2E2", padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 2 }}>
+                  <ArrowDownRight size={10} />{kpi.badge}
+                </span>
+              )}
+              {kpi.badgeType === "warning" && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "2px 7px", borderRadius: 99 }}>
+                  {kpi.badge}
+                </span>
+              )}
+              {kpi.badgeType === "success" && (
+                <span style={{ fontSize: 10, fontWeight: 700, color: "#065F46", background: "#D1FAE5", padding: "2px 7px", borderRadius: 99 }}>
+                  {kpi.badge}
+                </span>
+              )}
+            </div>
+            <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A" }}>
+              {(kpi.value || 0).toLocaleString()}
+            </div>
+          </div>
+        ))}
       </div>
 
       <PendingRequestAlert requests={requests} onAllowRequest={handleAllowRequest} />
 
-      {viewMode === "applications" && (
-        <div style={{ background: "white", borderRadius: 16, border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.05)", overflow: "hidden" }}>
-          <ApplicationFilters
-            search={search} onSearchChange={setSearch}
-            statusFilter={statusFilter} onStatusChange={setStatusFilter}
-            statuses={STATUSES} statusLabels={STATUS_LABELS} statusCounts={statusCounts}
-          />
-          <ApplicationTable apps={apps} loading={loading} />
-          <div style={{ padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "1px solid #F1F5F9" }}>
-            <span style={{ fontSize: 13, color: "#64748B" }}>
-              Hiển thị {apps.length} trong tổng số {(statusCounts[statusFilter] || apps.length).toLocaleString()} hồ sơ
-            </span>
+      {/* Filters Row */}
+      <div style={{
+        background: "white", borderRadius: 14, padding: "14px 20px",
+        border: "1px solid #F1F5F9", display: "flex", alignItems: "center",
+        justifyContent: "space-between", boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+      }}>
+        <div style={{ display: "flex", gap: 10 }}>
+          <select
+            style={{
+              padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
+              fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
+              fontFamily: "inherit"
+            }}
+            onChange={e => { setSearch(e.target.value === "all" ? "" : e.target.value); setCurrentPage(0); }}
+          >
+            <option value="all">Tất cả chuyên ngành</option>
+            <option value="Kỹ thuật phần mềm">Kỹ thuật phần mềm</option>
+            <option value="Trí tuệ nhân tạo">Trí tuệ nhân tạo</option>
+            <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
+            <option value="Ngôn ngữ">Ngôn ngữ</option>
+          </select>
+
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value); setCurrentPage(0); }}
+            style={{
+              padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
+              fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
+              fontFamily: "inherit"
+            }}
+          >
+            <option value="">Trạng thái: Tất cả</option>
+            <option value="SUBMITTED">Đã nộp</option>
+            <option value="UNDER_REVIEW">Đang xét</option>
+            <option value="APPROVED">Đã duyệt</option>
+            <option value="REJECTED">Từ chối</option>
+            <option value="ENROLLED">Nhập học</option>
+          </select>
+
+          <button style={{
+            padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
+            fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit"
+          }}>
+            <Calendar size={14} /> Khoảng thời gian
+          </button>
+        </div>
+
+        <div style={{ fontSize: 12, color: "#94A3B8" }}>
+          Hiển thị <strong style={{ color: "#1E293B" }}>1-{Math.min(10, totalElements)}</strong> trong tổng số{" "}
+          <strong style={{ color: "#FF6B35" }}>{totalElements.toLocaleString()}</strong> hồ sơ
+        </div>
+      </div>
+
+      {/* Table */}
+      <div style={{
+        background: "white", borderRadius: 16, border: "1px solid #F1F5F9",
+        boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden"
+      }}>
+        <div style={{ overflowX: "auto" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+            <thead>
+              <tr>
+                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH HỌC", "ĐÁNH GIÁ TIỀM NĂNG", "TRẠNG THÁI", "NGÀY NỘP", "THAO TÁC"].map(h => (
+                  <th key={h} style={{
+                    textAlign: "left", padding: "12px 16px", fontSize: 10,
+                    fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8",
+                    background: "#FAFBFC", borderBottom: "1px solid #F1F5F9"
+                  }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Đang tải dữ liệu...</td></tr>
+              ) : apps.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Không tìm thấy hồ sơ nào</td></tr>
+              ) : (
+                apps.map((app, idx) => {
+                  const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
+                  const sc = STATUS_COLORS[app.status] || STATUS_COLORS.DRAFT;
+                  return (
+                    <tr key={app.id} style={{ cursor: "pointer", transition: "background 0.15s" }}
+                      onMouseEnter={e => e.currentTarget.style.background = "#FAFBFC"}
+                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                      onClick={() => navigate(`/officer/applicants/${app.id}`)}
+                    >
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        <code style={{
+                          fontSize: 11, fontWeight: 700, color: "#FF6B35",
+                          background: "#FFF7ED", padding: "3px 8px", borderRadius: 6
+                        }}>{app.applicationCode}</code>
+                      </td>
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={{
+                            width: 36, height: 36, borderRadius: "50%",
+                            background: ac.bg, color: ac.color,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            fontWeight: 700, fontSize: 12, flexShrink: 0
+                          }}>{getInitials(app.studentName)}</div>
+                          <div>
+                            <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#475569", borderBottom: "1px solid #F8FAFC" }}>
+                        {app.majorName || "—"}
+                      </td>
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC", minWidth: 120 }}>
+                        <ScoreBar score={app.totalScore || 0} />
+                      </td>
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        <span style={{
+                          display: "inline-block", padding: "4px 10px", borderRadius: 999,
+                          fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color
+                        }}>{STATUS_LABELS[app.status]}</span>
+                      </td>
+                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>
+                        {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "—"}
+                      </td>
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                          <button onClick={e => { e.stopPropagation(); navigate(`/officer/applicants/${app.id}`); }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: 4, borderRadius: 6 }}
+                          ><Eye size={16} /></button>
+                          <button onClick={e => e.stopPropagation()}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 4, borderRadius: 6 }}
+                          ><MoreVertical size={16} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div style={{
+          padding: "14px 20px", display: "flex", alignItems: "center",
+          justifyContent: "space-between", borderTop: "1px solid #F1F5F9"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <button
+              disabled={currentPage === 0}
+              onClick={() => setCurrentPage(currentPage - 1)}
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                border: "1px solid #E2E8F0", background: "white",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: currentPage === 0 ? "not-allowed" : "pointer",
+                opacity: currentPage === 0 ? 0.5 : 1, color: "#475569"
+              }}
+            ><ChevronLeft size={14} /></button>
+
+            {renderPaginationButtons().map((page, i) => (
+              page === -1 ? (
+                <span key={`ellipsis-${i}`} style={{ padding: "0 4px", color: "#94A3B8" }}>...</span>
+              ) : (
+                <button key={page} onClick={() => setCurrentPage(page)}
+                  style={{
+                    width: 32, height: 32, borderRadius: 8,
+                    border: currentPage === page ? "none" : "1px solid #E2E8F0",
+                    background: currentPage === page ? "#FF6B35" : "white",
+                    color: currentPage === page ? "white" : "#475569",
+                    fontWeight: currentPage === page ? 700 : 500,
+                    fontSize: 13, cursor: "pointer"
+                  }}
+                >{page + 1}</button>
+              )
+            ))}
+
+            <button
+              disabled={currentPage >= totalPages - 1}
+              onClick={() => setCurrentPage(currentPage + 1)}
+              style={{
+                width: 32, height: 32, borderRadius: 8,
+                border: "1px solid #E2E8F0", background: "white",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: currentPage >= totalPages - 1 ? "not-allowed" : "pointer",
+                opacity: currentPage >= totalPages - 1 ? 0.5 : 1, color: "#475569"
+              }}
+            ><ChevronRight size={14} /></button>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94A3B8" }}>
+            Đi tới trang:
+            <input
+              type="number" min={1} max={totalPages}
+              value={currentPage + 1}
+              onChange={e => {
+                const val = parseInt(e.target.value) - 1;
+                if (val >= 0 && val < totalPages) setCurrentPage(val);
+              }}
+              style={{
+                width: 50, padding: "4px 8px", border: "1px solid #E2E8F0",
+                borderRadius: 6, fontSize: 12, textAlign: "center"
+              }}
+            />
           </div>
         </div>
-      )}
+      </div>
 
-      {viewMode === "students" && (
-        <StudentTable
-          students={students} loading={studentLoading} total={studentTotal}
-          search={studentSearch} onSearchChange={setStudentSearch}
-        />
-      )}
+      {/* Bottom section: Chart + AI Suggestion */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
+        {/* Xu hướng nộp hồ sơ */}
+        <div style={{
+          background: "white", borderRadius: 16, padding: "20px 24px",
+          border: "1px solid #F1F5F9", boxShadow: "0 2px 6px rgba(0,0,0,0.04)"
+        }}>
+          <div style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>
+            Xu hướng nộp hồ sơ
+          </div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 120, padding: "0 4px" }}>
+            {weekDays.map((day, i) => {
+              const maxVal = Math.max(...weekValues);
+              const isHighlight = weekValues[i] === maxVal;
+              return (
+                <div key={day} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 6 }}>
+                  {isHighlight && (
+                    <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626" }}>{weekValues[i]}</span>
+                  )}
+                  <div style={{
+                    width: "100%", maxWidth: 32,
+                    height: `${(weekValues[i] / maxVal) * 90}px`,
+                    background: isHighlight ? "#DC2626" : "#FFD4C0",
+                    borderRadius: "4px 4px 0 0", transition: "height 0.5s ease"
+                  }} />
+                  <span style={{ fontSize: 9, color: "#94A3B8" }}>{day}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Gợi ý thông minh */}
+        <div style={{
+          background: "linear-gradient(135deg, #2D3748 0%, #1A202C 100%)",
+          borderRadius: 16, padding: "24px", color: "white",
+          display: "flex", flexDirection: "column", justifyContent: "center"
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: 10,
+            background: "rgba(255,107,53,0.2)", display: "flex",
+            alignItems: "center", justifyContent: "center", marginBottom: 14
+          }}>
+            <Sparkles size={18} color="#FF6B35" />
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Gợi ý thông minh</div>
+          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, margin: "0 0 16px" }}>
+            Số lượng hồ sơ ngành Kỹ thuật phần mềm đã tăng 24% so với tuần trước. Hãy ưu tiên phê duyệt các hồ sơ này để đạt chỉ tiêu sớm.
+          </p>
+          <button style={{
+            padding: "10px 20px", background: "white", border: "none",
+            borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#1E293B",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 6, alignSelf: "flex-start"
+          }}>
+            Xem phân tích sâu →
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
