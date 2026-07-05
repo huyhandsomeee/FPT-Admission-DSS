@@ -2,12 +2,26 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { getDefaultPath } from "../../utils/rolePermissions";
-import { Eye, EyeOff, Mail, Lock, LogIn } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, LogIn, ShieldCheck, Star, GraduationCap } from "lucide-react";
+
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+const GoogleIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    <path fill="none" d="M0 0h48v48H0z"/>
+  </svg>
+);
 
 export default function Login() {
+  const [tab, setTab] = useState("thisinh");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
+  const [remember, setRemember] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const { login } = useAuth();
@@ -27,157 +41,190 @@ export default function Login() {
     }
   };
 
-  const quickLogins = [
-    { email: "student1@gmail.com", role: "Sinh viên", color: "bg-orange-100 text-orange-700 border-orange-200" },
-    { email: "officer1@fpt.edu.vn", role: "Nhân viên TS", color: "bg-blue-100 text-blue-700 border-blue-200" },
-    { email: "manager@fpt.edu.vn", role: "Trưởng phòng", color: "bg-purple-100 text-purple-700 border-purple-200" },
-    { email: "bod@fpt.edu.vn", role: "Ban giám hiệu", color: "bg-slate-100 text-slate-700 border-slate-200" },
-    { email: "admin@fpt.edu.vn", role: "Quản trị", color: "bg-green-100 text-green-700 border-green-200" },
+  const handleGoogleLogin = () => {
+    window.location.href = `${API_BASE}/api/auth/google`;
+  };
+
+  const features = [
+    { icon: <GraduationCap size={18} />, title: "Môi trường học tập chuẩn quốc tế", desc: "Chương trình đào tạo hiện đại, cập nhật theo xu hướng toàn cầu." },
+    { icon: <Star size={18} />, title: "Cơ hội việc làm toàn cầu", desc: "Kết nối doanh nghiệp rộng khắp, mở cửa sự nghiệp quốc tế." },
+    { icon: <ShieldCheck size={18} />, title: "Cộng đồng sinh viên năng động", desc: "Hàng trăm câu lạc bộ và hoạt động ngoại khóa bùng nổ." },
   ];
 
-  return (
-    <div className="min-h-screen flex" style={{ background: "linear-gradient(135deg, #FFF7F4 0%, #FFF 50%, #EFF6FF 100%)" }}>
-      {/* Left Panel */}
-      <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ background: "linear-gradient(135deg, #FF6B35 0%, #E85A2A 40%, #1A3A6C 100%)" }}>
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-20 left-10 w-64 h-64 rounded-full bg-white blur-3xl"></div>
-          <div className="absolute bottom-20 right-10 w-80 h-80 rounded-full bg-white blur-3xl"></div>
-        </div>
-        <div className="relative z-10 flex flex-col justify-center items-center text-white p-16 text-center">
-          <div className="w-24 h-24 bg-white rounded-3xl flex items-center justify-center mb-8 shadow-2xl">
-            <span className="text-orange-500 font-black text-4xl">F</span>
-          </div>
-          <h1 className="text-4xl font-bold mb-4 leading-tight">
-            FPT University<br />
-            <span className="text-orange-200">Admission Portal</span>
-          </h1>
-          <p className="text-orange-100 text-lg mb-12 leading-relaxed">
-            Hệ thống quản lý tuyển sinh và hỗ trợ quyết định thông minh
-          </p>
-          <div className="grid grid-cols-2 gap-4 w-full max-w-sm">
-            {[
-              { label: "Thí sinh đăng ký", value: "20,000+" },
-              { label: "Ngành đào tạo", value: "25+" },
-              { label: "Cơ sở đào tạo", value: "5" },
-              { label: "Tỷ lệ đậu", value: "72%" },
-            ].map((stat) => (
-              <div key={stat.label} className="bg-white bg-opacity-10 rounded-2xl p-4 backdrop-blur-sm">
-                <div className="text-2xl font-bold">{stat.value}</div>
-                <div className="text-orange-200 text-xs mt-1">{stat.label}</div>
-              </div>
-            ))}
-          </div>
-        </div>
+  const stats = [
+    { val: "100%", label: "Cơ hội việc làm" },
+    { val: "QS 3★", label: "Chuẩn Quốc Tế" },
+    { val: "25+", label: "Ngành đào tạo" },
+  ];
+
+  /* ─── Form (dùng chung mobile + desktop) ─── */
+  const LoginForm = () => (
+    <div className="w-full max-w-md mx-auto">
+      <div className="mb-7">
+        <h2 className="text-2xl md:text-3xl font-bold text-[#0b1c30]">Chào mừng trở lại 👋</h2>
+        <p className="text-[#584237] mt-1.5 text-sm">Vui lòng đăng nhập để tiếp tục</p>
       </div>
 
-      {/* Right Panel - Login Form */}
-      <div className="flex-1 flex items-center justify-center p-8">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="flex items-center gap-3 mb-8 lg:hidden">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)" }}>
-              <span className="text-white font-black text-xl">F</span>
-            </div>
-            <div>
-              <div className="font-bold text-gray-900">FPT University</div>
-              <div className="text-sm text-gray-500">Admission Portal</div>
-            </div>
+      {/* Segmented Control */}
+      <div className="p-1 bg-[#e5eeff] rounded-xl flex mb-5">
+        {[{ key: "thisinh", label: "🎓 Thí sinh" }, { key: "canbo", label: "🏢 Cán bộ" }].map(({ key, label }) => (
+          <button key={key} onClick={() => setTab(key)}
+            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+              tab === key ? "bg-[#f37021] text-white shadow-sm" : "text-[#584237] hover:bg-[#dce9ff]"
+            }`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {error && (
+        <div className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 text-sm">
+          <span>⚠️</span> {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div>
+          <label className="block text-xs font-semibold text-[#584237] mb-1.5" htmlFor="email">
+            {tab === "thisinh" ? "Số CCCD / Email" : "Email cán bộ"}
+          </label>
+          <div className="relative">
+            <Mail size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7166]" />
+            <input id="email" type="email" value={email} required
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder={tab === "thisinh" ? "example@gmail.com" : "example@fpt.edu.vn"}
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-[#e0c0b2] bg-[#fafafa] focus:bg-white focus:ring-2 focus:ring-[#f37021]/30 focus:border-[#f37021] outline-none transition-all text-sm" />
           </div>
+        </div>
 
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Đăng nhập</h2>
-          <p className="text-gray-500 mb-8">Chào mừng trở lại! Vui lòng đăng nhập vào tài khoản của bạn.</p>
-
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3">
-              <span className="text-xl">⚠️</span>
-              <span className="text-sm">{error}</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="form-label">Email</label>
-              <div className="relative">
-                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@fpt.edu.vn"
-                  required
-                  className="form-input pl-10"
-                  style={{ fontFamily: 'Inter' }}
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="form-label">Mật khẩu</label>
-              <div className="relative">
-                <Lock size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                <input
-                  type={showPwd ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Nhập mật khẩu"
-                  required
-                  className="form-input pl-10 pr-10"
-                />
-                <button type="button" onClick={() => setShowPwd(!showPwd)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  {showPwd ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-gray-600 cursor-pointer">
-                <input type="checkbox" className="w-4 h-4 rounded" />
-                Ghi nhớ đăng nhập
-              </label>
-              <Link to="/forgot-password" className="text-sm font-medium" style={{ color: "#FF6B35" }}>
-                Quên mật khẩu?
-              </Link>
-            </div>
-
-            <button type="submit" disabled={loading}
-              className="w-full btn btn-lg flex items-center justify-center gap-2"
-              style={{ background: loading ? "#CBD5E1" : "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white" }}>
-              {loading ? (
-                <><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div> Đang đăng nhập...</>
-              ) : (
-                <><LogIn size={18} /> Đăng nhập</>
-              )}
+        <div>
+          <label className="block text-xs font-semibold text-[#584237] mb-1.5" htmlFor="password">Mật khẩu</label>
+          <div className="relative">
+            <Lock size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8c7166]" />
+            <input id="password" value={password} required
+              type={showPwd ? "text" : "password"}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="w-full pl-10 pr-11 py-2.5 rounded-xl border border-[#e0c0b2] bg-[#fafafa] focus:bg-white focus:ring-2 focus:ring-[#f37021]/30 focus:border-[#f37021] outline-none transition-all text-sm" />
+            <button type="button" onClick={() => setShowPwd(!showPwd)}
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#8c7166] hover:text-[#a04100] transition-colors">
+              {showPwd ? <EyeOff size={15} /> : <Eye size={15} />}
             </button>
-          </form>
+          </div>
+        </div>
 
-          <div className="mt-6 text-center">
-            <span className="text-gray-500 text-sm">Chưa có tài khoản? </span>
-            <Link to="/register" className="text-sm font-semibold" style={{ color: "#FF6B35" }}>
-              Đăng ký ngay
-            </Link>
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer text-sm text-[#584237]">
+            <input type="checkbox" checked={remember} onChange={(e) => setRemember(e.target.checked)}
+              className="w-4 h-4 rounded border-[#e0c0b2] accent-[#f37021]" />
+            Ghi nhớ đăng nhập
+          </label>
+          <Link to="/forgot-password" className="text-sm font-semibold text-[#a04100] hover:underline">
+            Quên mật khẩu?
+          </Link>
+        </div>
+
+        <button type="submit" disabled={loading}
+          className="w-full flex items-center justify-center gap-2 bg-[#f37021] hover:bg-[#a04100] text-white py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-orange-200 transition-all active:scale-[0.98] disabled:opacity-60">
+          {loading
+            ? <><div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" /> Đang đăng nhập...</>
+            : <><LogIn size={15} /> Đăng nhập</>}
+        </button>
+      </form>
+
+      <div className="relative flex items-center my-5">
+        <div className="flex-grow border-t border-[#e0c0b2]" />
+        <span className="flex-shrink mx-4 text-xs text-[#8c7166]">hoặc tiếp tục với</span>
+        <div className="flex-grow border-t border-[#e0c0b2]" />
+      </div>
+
+      <button type="button" onClick={handleGoogleLogin}
+        className="w-full flex items-center justify-center gap-3 py-2.5 px-4 rounded-xl border border-[#e0c0b2] bg-white hover:bg-[#fff7f4] hover:border-[#f37021] transition-all text-sm font-medium text-[#0b1c30] shadow-sm active:scale-[0.98]">
+        <GoogleIcon /> Đăng nhập với Google
+      </button>
+
+      <p className="text-center text-sm text-[#584237] mt-5">
+        Chưa có tài khoản?{" "}
+        <Link to="/register" className="text-[#a04100] font-bold hover:underline">Đăng ký ngay</Link>
+      </p>
+    </div>
+  );
+
+  return (
+      <div className="flex flex-col" style={{ height: "100dvh" }}>
+        {/* Header */}
+        <header className="shrink-0 bg-white border-b border-[#e0c0b2] flex items-center justify-between px-8 h-16 z-50 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-[#f37021] flex items-center justify-center text-white font-black shadow">F</div>
+            <span className="text-lg font-bold text-[#a04100] tracking-tight">FPT University</span>
+          </div>
+          <button className="p-2 hover:bg-[#eff4ff] rounded-full transition-colors text-[#a04100]">
+            <span className="material-symbols-outlined text-xl" style={{ fontFamily: "'Material Symbols Outlined'" }}>language</span>
+          </button>
+        </header>
+
+        {/* Body: 2 cột */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* LEFT */}
+          <div className="w-1/2 relative overflow-hidden bg-[#0b1c30]">
+            <div className="absolute inset-0 bg-cover bg-center opacity-50"
+              style={{ backgroundImage: `url("https://lh3.googleusercontent.com/aida/AP1WRLtOdvPy5OC1UHGT1a1oR8n07FdVKH0SnZTyaOWjD5eMxlcVmlOP1s59Qw4avzae0tMQyNJ-c50KyR4NWQ3UnGqfIn2vFSRIw32atSEXQE_vAgNGadKauQLaPTs0vTm8I5z4Gg9gaUeMbyeW-cM-1EwObYcLLr5AipqZajMlquLJCU_RzPKUmG4WaRtRCBIc9F3qQxUgHWTAxqLb5zdjG1c_dclB2C2FLkIGhi7VegPRaIEWn9bohnttol8")` }} />
+            <div className="absolute inset-0 bg-gradient-to-tr from-[#0b1c30] via-[#0b1c30]/60 to-transparent" />
+            <div className="relative z-10 h-full flex flex-col justify-center px-12 text-white">
+              <div className="w-14 h-14 bg-[#f37021] rounded-2xl flex items-center justify-center mb-7 shadow-xl">
+                <span className="text-white font-black text-2xl">F</span>
+              </div>
+              <h1 className="text-4xl font-bold mb-3 leading-tight">
+                Khám phá tương lai tại <br />
+                <span className="text-[#f37021]">FPT University</span>
+              </h1>
+              <p className="text-[#d3e4fe] text-sm mb-8 leading-relaxed max-w-xs opacity-90">
+                Hệ thống quản lý tuyển sinh và hỗ trợ quyết định thông minh dành cho thí sinh và cán bộ.
+              </p>
+              <div className="space-y-4 mb-10">
+                {features.map((item, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-[#f37021]/20 flex items-center justify-center text-[#f37021] shrink-0 mt-0.5">
+                      {item.icon}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">{item.title}</h3>
+                      <p className="text-xs text-[#d3e4fe] opacity-75 mt-0.5">{item.desc}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-6">
+                {stats.map((s, i) => (
+                  <div key={s.label} className="flex items-center gap-6">
+                    <div>
+                      <div className="text-2xl font-bold text-[#f37021]">{s.val}</div>
+                      <div className="text-xs uppercase tracking-wider opacity-50 mt-0.5">{s.label}</div>
+                    </div>
+                    {i < stats.length - 1 && <div className="w-px h-8 bg-white/20" />}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
 
-          {/* Quick Login Demo */}
-          <div className="mt-8 p-5 bg-gray-50 rounded-2xl">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
-              🚀 Demo - Đăng nhập nhanh (mật khẩu: Admin@123)
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {quickLogins.map((ql) => (
-                <button
-                  key={ql.email}
-                  type="button"
-                  onClick={() => { setEmail(ql.email); setPassword("Admin@123"); }}
-                  className={`text-xs px-3 py-1.5 rounded-lg border font-medium transition-all hover:scale-105 ${ql.color}`}
-                >
-                  {ql.role}
-                </button>
+          {/* RIGHT */}
+          <div className="w-1/2 flex items-center justify-center overflow-y-auto bg-white px-12 py-8">
+            <LoginForm />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer className="shrink-0 bg-[#eff4ff] border-t border-[#e0c0b2]">
+          <div className="flex items-center justify-center gap-8 py-4 px-8">
+            <p className="text-xs text-[#584237]">© 2024 FPT University Admission Portal</p>
+            <div className="flex gap-6">
+              {["Chính sách bảo mật", "Điều khoản sử dụng", "Liên hệ"].map((item) => (
+                <a key={item} href="#" className="text-xs text-[#584237] hover:text-[#a04100] transition-colors">{item}</a>
               ))}
             </div>
           </div>
-        </div>
+        </footer>
       </div>
-    </div>
   );
 }
