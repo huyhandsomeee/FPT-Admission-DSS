@@ -369,7 +369,7 @@ export default function OfficerDashboard() {
                 <div style={{ fontSize: 36, fontWeight: 900, color: "#0F172A" }}>48</div>
                 <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>HỒ SƠ CHỜ DUYỆT</div>
               </div>
-              <button onClick={() => navigate("/officer/applicants")} style={{
+              <button onClick={() => navigate("/officer/applicants?search=CNTT")} style={{
                 padding: "10px 20px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
                 border: "none", borderRadius: 10, color: "white", fontWeight: 600, fontSize: 13,
                 cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
@@ -379,7 +379,7 @@ export default function OfficerDashboard() {
               </button>
             </div>
           </div>
-
+ 
           {/* Quản trị kinh doanh */}
           <div style={{
             background: "white", borderRadius: 14, padding: "20px",
@@ -400,7 +400,7 @@ export default function OfficerDashboard() {
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B", width: "100%", textAlign: "left" }}>
               Quản trị kinh doanh
             </div>
-            <button style={{
+            <button onClick={() => navigate("/officer/applicants?search=Quản trị kinh doanh")} style={{
               marginTop: 10, padding: "8px 20px", background: "white",
               border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
               fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
@@ -408,7 +408,7 @@ export default function OfficerDashboard() {
               Xem chi tiết
             </button>
           </div>
-
+ 
           {/* Ngôn ngữ & Truyền thông */}
           <div style={{
             background: "white", borderRadius: 14, padding: "20px",
@@ -428,7 +428,7 @@ export default function OfficerDashboard() {
             <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>
               Ngôn ngữ & Truyền thông
             </div>
-            <button style={{
+            <button onClick={() => navigate("/officer/applicants?search=Truyền thông")} style={{
               marginTop: 10, padding: "8px 20px", background: "white",
               border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
               fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
@@ -437,7 +437,7 @@ export default function OfficerDashboard() {
             </button>
           </div>
         </div>
-
+ 
         {/* Bottom row: smaller cards */}
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
           {[
@@ -461,7 +461,13 @@ export default function OfficerDashboard() {
                   <div style={{ fontSize: 12, color: "#94A3B8" }}>{g.count} {g.label}</div>
                 </div>
               </div>
-              <button style={{ background: "none", border: "none", cursor: "pointer", color: "#FF6B35" }}>
+              <button
+                onClick={() => {
+                  const query = g.name === "Thiết kế và Nghệ thuật" ? "Thiết kế" : "Kỹ thuật phần mềm";
+                  navigate(`/officer/applicants?search=${query}`);
+                }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#FF6B35" }}
+              >
                 <ExternalLink size={16} />
               </button>
             </div>

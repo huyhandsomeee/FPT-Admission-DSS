@@ -1,13 +1,13 @@
 import { useState, useEffect } from "react";
 import api from "../../config/axiosConfig";
-import { Bell, CheckCheck, Info, Trophy, Clock, MessageSquare } from "lucide-react";
+import { Bell, CheckCheck, Info, Trophy, Clock, MessageSquare, X } from "lucide-react";
 
 const TYPE_CONFIG = {
-  ADMISSION_UPDATE: { icon: Clock, color: "bg-blue-100 text-blue-600", label: "Cập nhật tuyển sinh" },
-  SYSTEM: { icon: Info, color: "bg-gray-100 text-gray-600", label: "Hệ thống" },
-  RESULT: { icon: Trophy, color: "bg-green-100 text-green-600", label: "Kết quả" },
-  REMINDER: { icon: Bell, color: "bg-yellow-100 text-yellow-600", label: "Nhắc nhở" },
-  MESSAGE: { icon: MessageSquare, color: "bg-purple-100 text-purple-600", label: "Tin nhắn" },
+  ADMISSION_UPDATE: { icon: Clock,         color: "#2563EB", bg: "#DBEAFE", label: "Cập nhật tuyển sinh" },
+  SYSTEM:           { icon: Info,          color: "#64748B", bg: "#F1F5F9", label: "Hệ thống" },
+  RESULT:           { icon: Trophy,        color: "#059669", bg: "#D1FAE5", label: "Kết quả" },
+  REMINDER:         { icon: Bell,          color: "#D97706", bg: "#FEF3C7", label: "Nhắc nhở" },
+  MESSAGE:          { icon: MessageSquare, color: "#7C3AED", bg: "#EDE9FE", label: "Tin nhắn" },
 };
 
 const MOCK_NOTIFS = [
@@ -19,6 +19,7 @@ const MOCK_NOTIFS = [
 export default function StudentNotifications() {
   const [notifs, setNotifs] = useState(MOCK_NOTIFS);
   const [filter, setFilter] = useState("all");
+  const [selectedNotif, setSelectedNotif] = useState(null);
 
   useEffect(() => {
     api.get("/api/student/notifications").then(r => setNotifs(r.data.content || MOCK_NOTIFS)).catch(() => {});
@@ -26,19 +27,15 @@ export default function StudentNotifications() {
 
   const markAll = () => {
     api.post("/api/student/notifications/read-all")
-      .then(() => {
-        setNotifs(notifs.map(n => ({ ...n, isRead: true })));
-      })
+      .then(() => setNotifs(notifs.map(n => ({ ...n, isRead: true }))))
       .catch(err => console.error(err));
   };
 
-  const handleMarkRead = (id) => {
-    const notif = notifs.find(n => n.id === id);
-    if (notif && !notif.isRead) {
-      api.post(`/api/student/notifications/${id}/read`)
-        .then(() => {
-          setNotifs(notifs.map(n => n.id === id ? { ...n, isRead: true } : n));
-        })
+  const handleClick = (notif) => {
+    setSelectedNotif(notif);
+    if (!notif.isRead) {
+      api.post(`/api/student/notifications/${notif.id}/read`)
+        .then(() => setNotifs(notifs.map(n => n.id === notif.id ? { ...n, isRead: true } : n)))
         .catch(err => console.error(err));
     }
   };
@@ -48,6 +45,42 @@ export default function StudentNotifications() {
 
   return (
     <div className="space-y-6 animate-fade-in" style={{ padding: "8px 0" }}>
+
+      {/* Modal chi tiết thông báo */}
+      {selectedNotif && (() => {
+        const cfg = TYPE_CONFIG[selectedNotif.type] || TYPE_CONFIG.SYSTEM;
+        const Icon = cfg.icon;
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "white", borderRadius: 20, maxWidth: 500, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+              <div style={{ background: cfg.color, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon size={20} color="white" />
+                  </div>
+                  <div>
+                    <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>{cfg.label}</div>
+                    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>{new Date(selectedNotif.createdAt).toLocaleDateString("vi-VN")}</div>
+                  </div>
+                </div>
+                <button onClick={() => setSelectedNotif(null)} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", color: "white", display: "flex" }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div style={{ padding: "24px" }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#0F172A" }}>{selectedNotif.title}</h3>
+                <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.8 }}>{selectedNotif.message}</p>
+              </div>
+              <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "flex-end" }}>
+                <button onClick={() => setSelectedNotif(null)}
+                  style={{ padding: "10px 24px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Thông báo</h1>
@@ -91,7 +124,7 @@ export default function StudentNotifications() {
                 border: !notif.isRead ? "1px solid #FFD8A8" : "1px solid #F1F5F9",
                 background: !notif.isRead ? "#FFF9F6" : "white"
               }}
-              onClick={() => handleMarkRead(notif.id)}>
+              onClick={() => handleClick(notif)}>
               <div className="flex items-start gap-4" style={{ display: "flex", gap: "16px" }}>
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${cfg.color}`}
                   style={{

@@ -4,10 +4,10 @@ import {
   FileText, Users, Download, PlusCircle, TrendingUp,
   ChevronDown, Calendar, Filter, Eye, MoreVertical,
   ArrowUpRight, ArrowDownRight, Sparkles, ChevronLeft,
-  ChevronRight, BarChart3, Target
+  ChevronRight, BarChart3, Target, Trash2
 } from "lucide-react";
 import PendingRequestAlert from "./components/PendingRequestAlert";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 const STATUS_LABELS = {
   DRAFT: "Bản nháp", SUBMITTED: "Đã nộp", UNDER_REVIEW: "Đang xét",
@@ -54,10 +54,10 @@ function ScoreBar({ score, maxScore = 10 }) {
 
 export default function ApplicantList() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
   const [apps, setApps] = useState([]);
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
+  const [majors, setMajors] = useState([]);
   const [loading, setLoading] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
@@ -65,6 +65,8 @@ export default function ApplicantList() {
   const [statusCounts, setStatusCounts] = useState({
     "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, ENROLLED: 0
   });
+  const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadRequests = () => {
     api.get("/api/officer/applications/new-requests")
@@ -97,13 +99,26 @@ export default function ApplicantList() {
         });
       }
     }).catch(err => console.error("Error fetching stats:", err));
+
+    // Load available majors dynamically
+    api.get("/api/student/config/majors")
+      .then(res => {
+        if (Array.isArray(res.data)) {
+          const names = [...new Set(res.data.map(m => m.name))];
+          setMajors(names);
+        }
+      })
+      .catch(err => console.error("Error loading majors:", err));
   }, []);
+
+  const searchVal = searchParams.get("search") || "";
+  const statusVal = searchParams.get("status") || "";
 
   useEffect(() => {
     setLoading(true);
     let url = `/api/officer/applications?page=${currentPage}&size=10`;
-    if (search) url += `&search=${encodeURIComponent(search)}`;
-    if (statusFilter) url += `&status=${statusFilter}`;
+    if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
+    if (statusVal) url += `&status=${statusVal}`;
 
     api.get(url)
       .then(r => {
@@ -113,7 +128,7 @@ export default function ApplicantList() {
       })
       .catch(() => setApps([]))
       .finally(() => setLoading(false));
-  }, [statusFilter, search, currentPage]);
+  }, [searchVal, statusVal, currentPage]);
 
   const handleExportCSV = () => {
     if (apps.length === 0) { alert("Không có hồ sơ nào để xuất"); return; }
@@ -146,6 +161,22 @@ export default function ApplicantList() {
     { label: "Đã duyệt hôm nay", value: approvedToday, badge: "Đạt mục tiêu", badgeType: "success", borderColor: "#10B981" },
     { label: "Hồ sơ bị từ chối", value: statusCounts.REJECTED || 0, badge: "-2%", badgePositive: false, borderColor: "#EF4444" },
   ];
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Bạn có chắc muốn xóa hồ sơ này? Hành động không thể hoàn tác.")) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/api/officer/applications/${id}`);
+      setApps(apps.filter(a => a.id !== id));
+      setTotalElements(prev => prev - 1);
+      alert("Đã xóa hồ sơ thành công!");
+    } catch (err) {
+      alert("Lỗi xóa hồ sơ: " + (err.response?.data?.message || err.message));
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm(null);
+    }
+  };
 
   // Pagination logic
   const renderPaginationButtons = () => {
@@ -286,23 +317,48 @@ export default function ApplicantList() {
       }}>
         <div style={{ display: "flex", gap: 10 }}>
           <select
+            value={searchParams.get("search") || "all"}
+            onChange={e => {
+              const val = e.target.value;
+              const params = new URLSearchParams(searchParams);
+              if (val === "all") {
+                params.delete("search");
+              } else {
+                params.set("search", val);
+              }
+              params.set("page", "0");
+              setSearchParams(params);
+              setCurrentPage(0);
+            }}
             style={{
               padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
               fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
               fontFamily: "inherit"
             }}
-            onChange={e => { setSearch(e.target.value === "all" ? "" : e.target.value); setCurrentPage(0); }}
           >
             <option value="all">Tất cả chuyên ngành</option>
-            <option value="Kỹ thuật phần mềm">Kỹ thuật phần mềm</option>
-            <option value="Trí tuệ nhân tạo">Trí tuệ nhân tạo</option>
-            <option value="Quản trị kinh doanh">Quản trị kinh doanh</option>
-            <option value="Ngôn ngữ">Ngôn ngữ</option>
+            <option value="CNTT">Công nghệ thông tin (IT)</option>
+            <option value="Kinh tế">Kinh tế (Kinh doanh & Marketing)</option>
+            <option value="Thiết kế">Thiết kế đồ họa & Truyền thông</option>
+            {majors.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
           </select>
 
           <select
-            value={statusFilter}
-            onChange={e => { setStatusFilter(e.target.value); setCurrentPage(0); }}
+            value={searchParams.get("status") || ""}
+            onChange={e => {
+              const val = e.target.value;
+              const params = new URLSearchParams(searchParams);
+              if (!val) {
+                params.delete("status");
+              } else {
+                params.set("status", val);
+              }
+              params.set("page", "0");
+              setSearchParams(params);
+              setCurrentPage(0);
+            }}
             style={{
               padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
               fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
@@ -403,10 +459,10 @@ export default function ApplicantList() {
                         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                           <button onClick={e => { e.stopPropagation(); navigate(`/officer/applicants/${app.id}`); }}
                             style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: 4, borderRadius: 6 }}
-                          ><Eye size={16} /></button>
-                          <button onClick={e => e.stopPropagation()}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 4, borderRadius: 6 }}
-                          ><MoreVertical size={16} /></button>
+                            title="Xem chi tiết"><Eye size={16} /></button>
+                          <button onClick={e => { e.stopPropagation(); setDeleteConfirm(app.id); }}
+                            style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", padding: 4, borderRadius: 6 }}
+                            title="Xóa hồ sơ"><Trash2 size={16} /></button>
                         </div>
                       </td>
                     </tr>

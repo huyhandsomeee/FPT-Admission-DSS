@@ -35,18 +35,18 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     @Query(value = "SELECT a FROM Application a " +
            "JOIN FETCH a.studentProfile sp JOIN FETCH sp.user u " +
-           "WHERE (:status IS NULL OR a.status = :status) AND " +
+            "WHERE (:status IS NULL OR a.status = :status) AND " +
            "(:campusId IS NULL OR a.campus.id = :campusId) AND " +
            "(:majorId IS NULL OR a.major.id = :majorId) AND " +
            "(:methodId IS NULL OR a.admissionMethod.id = :methodId) AND " +
-           "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.applicationCode) LIKE LOWER(CONCAT('%',:search,'%')))",
+           "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.applicationCode) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.name) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.faculty) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.code) LIKE LOWER(CONCAT('%',:search,'%')))",
            countQuery = "SELECT COUNT(a) FROM Application a " +
            "JOIN a.studentProfile sp JOIN sp.user u " +
            "WHERE (:status IS NULL OR a.status = :status) AND " +
            "(:campusId IS NULL OR a.campus.id = :campusId) AND " +
            "(:majorId IS NULL OR a.major.id = :majorId) AND " +
            "(:methodId IS NULL OR a.admissionMethod.id = :methodId) AND " +
-           "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.applicationCode) LIKE LOWER(CONCAT('%',:search,'%')))")
+           "(:search IS NULL OR LOWER(u.fullName) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.applicationCode) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.name) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.faculty) LIKE LOWER(CONCAT('%',:search,'%')) OR LOWER(a.major.code) LIKE LOWER(CONCAT('%',:search,'%')))")
     Page<Application> findWithFilters(@Param("status") ApplicationStatus status,
                                       @Param("campusId") Long campusId,
                                       @Param("majorId") Long majorId,

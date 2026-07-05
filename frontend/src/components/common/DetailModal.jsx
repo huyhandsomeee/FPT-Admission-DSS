@@ -1,105 +1,167 @@
 import React from "react";
-import { X } from "lucide-react";
-import { getFilePreviewUrl, isPdfFile, isImgFile } from "../../utils/fileUtils";
+import { X, User, BookOpen, FileText, MapPin, Phone, Calendar, Award } from "lucide-react";
+import { getFilePreviewUrl } from "../../utils/fileUtils";
 import { formatDateDisplay } from "../../utils/dateUtils";
 import StatusBadge from "./StatusBadge";
 
+const Section = ({ icon: Icon, title, color = "#FF6B35", children }) => (
+  <div style={{ border: "1px solid #F1F5F9", borderRadius: 14, overflow: "hidden" }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 18px", background: `${color}0d`, borderBottom: "1px solid #F1F5F9" }}>
+      <div style={{ width: 30, height: 30, borderRadius: 8, background: `${color}20`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <Icon size={15} color={color} />
+      </div>
+      <span style={{ fontWeight: 700, fontSize: 13, color: "#1E293B", textTransform: "uppercase", letterSpacing: "0.04em" }}>{title}</span>
+    </div>
+    <div style={{ padding: "16px 18px" }}>{children}</div>
+  </div>
+);
+
+const Field = ({ label, value }) => (
+  <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+    <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>{label}</span>
+    <span style={{ fontSize: 14, color: "#1E293B", fontWeight: 500 }}>{value || "—"}</span>
+  </div>
+);
+
+const docStatusStyle = (status) => {
+  const s = (status || "").toLowerCase();
+  if (s === "verified" || s === "uploaded") return { bg: "#D1FAE5", color: "#065F46", label: "Đã duyệt" };
+  if (s === "rejected") return { bg: "#FEE2E2", color: "#991B1B", label: "Từ chối" };
+  return { bg: "#FEF3C7", color: "#92400E", label: "Chờ duyệt" };
+};
+
 export default function DetailModal({ show, onClose, appDetail, loading }) {
   if (!show) return null;
-
-  const getDocStatusColor = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "verified" || s === "uploaded") return "bg-green-100 text-green-700";
-    if (s === "rejected") return "bg-red-100 text-red-700";
-    return "bg-yellow-100 text-yellow-700";
-  };
-
-  const getDocStatusLabel = (status) => {
-    const s = (status || "").toLowerCase();
-    if (s === "verified" || s === "uploaded") return "Đã duyệt";
-    if (s === "rejected") return "Từ chối";
-    return "Chờ duyệt";
-  };
+  const bg = appDetail?.academicBackground;
+  const isHocBa = appDetail?.methodName?.toLowerCase().includes("học bạ");
+  const totalGpa = bg ? ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2) : null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in"
-      style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <div className="bg-white rounded-2xl max-w-3xl w-full max-h-[85vh] overflow-y-auto p-6 space-y-6 relative"
-        style={{ position: "relative", backgroundColor: "white", padding: "24px", borderRadius: "16px", maxWidth: "768px", width: "100%", maxHeight: "85vh", overflowY: "auto" }}>
-        <div className="flex items-center justify-between border-b pb-4">
-          <h3 className="text-xl font-bold text-gray-900">Chi tiết hồ sơ đăng ký</h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 font-bold text-lg"
-            style={{ background: "none", border: "none", cursor: "pointer", fontSize: "20px" }}>✕</button>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#F8FAFC", borderRadius: 20, width: "100%", maxWidth: 680, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+
+        {/* Header */}
+        <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+          <div>
+            <div style={{ color: "white", fontWeight: 800, fontSize: 17 }}>Chi tiết hồ sơ đăng ký</div>
+            {appDetail && <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 3 }}>Mã HS: {appDetail.applicationCode}</div>}
+          </div>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", color: "white", display: "flex" }}>
+            <X size={18} />
+          </button>
         </div>
 
-        {loading ? (
-          <div className="py-12 text-center text-gray-500">Đang tải dữ liệu hồ sơ...</div>
-        ) : appDetail ? (
-          <div className="space-y-6">
-            {/* Personal Information */}
-            <div>
-              <h4 className="font-bold text-orange-600 text-sm mb-3 uppercase tracking-wider">👤 Thông tin cá nhân</h4>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div><span className="text-gray-500">Họ và tên:</span> <strong className="text-gray-800">{appDetail.fullName}</strong></div>
-                <div><span className="text-gray-500">Ngày sinh:</span> <strong className="text-gray-800">{formatDateDisplay(appDetail.dob)}</strong></div>
-                <div><span className="text-gray-500">Giới tính:</span> <strong className="text-gray-800">{appDetail.gender === "MALE" ? "Nam" : "Nữ"}</strong></div>
-                <div><span className="text-gray-500">CCCD/CMND:</span> <strong className="text-gray-800">{appDetail.cccd}</strong></div>
-                <div><span className="text-gray-500">Số điện thoại:</span> <strong className="text-gray-800">{appDetail.phone}</strong></div>
-                <div><span className="text-gray-500">Địa chỉ:</span> <strong className="text-gray-800">{appDetail.permanentAddress}</strong></div>
-                <div><span className="text-gray-500">Họ tên phụ huynh:</span> <strong className="text-gray-800">{appDetail.parentName || "—"}</strong></div>
-                <div><span className="text-gray-500">SĐT phụ huynh:</span> <strong className="text-gray-800">{appDetail.parentPhone || "—"}</strong></div>
-              </div>
+        {/* Body */}
+        <div style={{ overflowY: "auto", padding: "20px 24px", display: "flex", flexDirection: "column", gap: 14, flex: 1 }}>
+          {loading ? (
+            <div style={{ padding: "60px 0", textAlign: "center", color: "#94A3B8" }}>
+              <div style={{ width: 36, height: 36, border: "3px solid #FF6B35", borderTopColor: "transparent", borderRadius: "50%", animation: "spin 0.8s linear infinite", margin: "0 auto 12px" }} />
+              <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
+              Đang tải dữ liệu hồ sơ...
             </div>
-
-            {/* Academic Profile */}
-            {appDetail.academicBackground && (
-              <div>
-                <h4 className="font-bold text-orange-600 text-sm mb-3 uppercase tracking-wider">📚 Kết quả học tập</h4>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div><span className="text-gray-500">Trường THPT:</span> <strong className="text-gray-800">{appDetail.academicBackground.schoolName}</strong></div>
-                  <div><span className="text-gray-500">Năm tốt nghiệp:</span> <strong className="text-gray-800">{appDetail.academicBackground.graduationYear}</strong></div>
-                  <div><span className="text-gray-500">Điểm Toán / Văn / Anh:</span> <strong className="text-gray-800">{appDetail.academicBackground.mathScore} / {appDetail.academicBackground.literatureScore} / {appDetail.academicBackground.englishScore}</strong></div>
-                  <div><span className="text-gray-500">GPA Trung bình Lớp 12:</span> <strong className="text-gray-800">{appDetail.academicBackground.gpa12}</strong></div>
-                  <div className="col-span-2"><span className="text-gray-500">Tổng điểm xét tuyển:</span> <strong className="text-orange-600 font-bold">{appDetail.academicBackground.totalScore}</strong></div>
+          ) : appDetail ? (
+            <>
+              {/* Status bar */}
+              <div style={{ background: "white", borderRadius: 14, padding: "14px 18px", display: "flex", alignItems: "center", justifyContent: "space-between", border: "1px solid #F1F5F9" }}>
+                <div>
+                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1E293B" }}>{appDetail.majorName}</div>
+                  <div style={{ fontSize: 13, color: "#64748B", marginTop: 2 }}>{appDetail.campusName} • {appDetail.methodName}</div>
                 </div>
+                <StatusBadge status={appDetail.status} />
               </div>
-            )}
 
-            {/* Documents */}
-            {appDetail.documents && appDetail.documents.length > 0 && (
-              <div>
-                <h4 className="font-bold text-orange-600 text-sm mb-3 uppercase tracking-wider">📄 Tài liệu minh chứng</h4>
-                <div className="space-y-2">
-                  {appDetail.documents.map((doc, idx) => (
-                    <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg text-sm">
-                      <div>
-                        <span className="font-semibold text-gray-800">{doc.desc || doc.name}</span>
-                        <div className="text-xs text-gray-400 mt-0.5">{doc.name}</div>
+              {/* Thông tin cá nhân */}
+              <Section icon={User} title="Thông tin cá nhân">
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px" }}>
+                  <Field label="Họ và tên" value={appDetail.fullName} />
+                  <Field label="Ngày sinh" value={formatDateDisplay(appDetail.dob)} />
+                  <Field label="Giới tính" value={appDetail.gender === "MALE" ? "Nam" : "Nữ"} />
+                  <Field label="CCCD/CMND" value={appDetail.cccd} />
+                  <Field label="Số điện thoại" value={appDetail.phone} />
+                  <Field label="Họ tên phụ huynh" value={appDetail.parentName} />
+                  <Field label="SĐT phụ huynh" value={appDetail.parentPhone} />
+                  <Field label="Địa chỉ" value={appDetail.permanentAddress} />
+                </div>
+              </Section>
+
+              {/* Kết quả học tập */}
+              {bg && (
+                <Section icon={BookOpen} title="Kết quả học tập" color="#2563EB">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px", marginBottom: 14 }}>
+                    <Field label="Trường THPT" value={bg.schoolName} />
+                    <Field label="Năm tốt nghiệp" value={bg.graduationYear} />
+                  </div>
+
+                  {isHocBa ? (
+                    /* Học bạ: chỉ hiện GPA 10/11/12 + tổng */
+                    <div style={{ background: "#EFF6FF", borderRadius: 12, padding: "14px 16px" }}>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: "#1D4ED8", marginBottom: 12, textTransform: "uppercase", letterSpacing: "0.04em" }}>Bảng điểm học bạ</div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12, marginBottom: 12 }}>
+                        {[["GPA Lớp 10", bg.gpa10], ["GPA Lớp 11", bg.gpa11], ["GPA Lớp 12", bg.gpa12]].map(([label, val]) => (
+                          <div key={label} style={{ background: "white", borderRadius: 10, padding: "12px 14px", textAlign: "center", border: "1px solid #BFDBFE" }}>
+                            <div style={{ fontSize: 11, color: "#64748B", marginBottom: 4 }}>{label}</div>
+                            <div style={{ fontSize: 22, fontWeight: 800, color: "#2563EB" }}>{val ?? "—"}</div>
+                          </div>
+                        ))}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 rounded text-xs font-semibold ${getDocStatusColor(doc.status)}`}>
-                          {getDocStatusLabel(doc.status)}
-                        </span>
-                        {doc.filePath && (
-                          <a href={getFilePreviewUrl(doc.filePath)} target="_blank" rel="noreferrer" className="text-orange-600 font-semibold hover:underline">
-                            Xem file
-                          </a>
-                        )}
+                      <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span style={{ color: "white", fontWeight: 700, fontSize: 13 }}>Tổng điểm xét tuyển (GPA 10+11+12)</span>
+                        <span style={{ color: "white", fontWeight: 900, fontSize: 22 }}>{totalGpa}</span>
                       </div>
                     </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="py-12 text-center text-red-500">Không tìm thấy thông tin chi tiết.</div>
-        )}
+                  ) : (
+                    /* Các phương thức khác */
+                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px" }}>
+                      {bg.mathScore != null && <Field label="Điểm Toán" value={bg.mathScore} />}
+                      {bg.literatureScore != null && <Field label="Điểm Ngữ văn" value={bg.literatureScore} />}
+                      {bg.englishScore != null && <Field label="Điểm Tiếng Anh" value={bg.englishScore} />}
+                      {bg.ieltsScore != null && <Field label="IELTS" value={bg.ieltsScore} />}
+                      {bg.satScore != null && <Field label="SAT" value={bg.satScore} />}
+                      {bg.totalScore != null && (
+                        <div style={{ gridColumn: "1/-1", background: "#FFF7F4", border: "1px solid #FFEDD5", borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between" }}>
+                          <span style={{ fontWeight: 700, color: "#C2410C" }}>Tổng điểm xét tuyển</span>
+                          <span style={{ fontWeight: 900, fontSize: 18, color: "#FF6B35" }}>{bg.totalScore}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Section>
+              )}
 
-        <div className="pt-4 border-t flex justify-end">
-          <button onClick={onClose}
-            className="px-5 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
-            style={{ padding: "8px 20px", borderRadius: "10px", border: "none", cursor: "pointer" }}>
+              {/* Tài liệu */}
+              {appDetail.documents?.length > 0 && (
+                <Section icon={FileText} title="Tài liệu minh chứng" color="#7C3AED">
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                    {appDetail.documents.map((doc, idx) => {
+                      const ds = docStatusStyle(doc.status);
+                      return (
+                        <div key={idx} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "10px 14px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #F1F5F9" }}>
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "#1E293B" }}>{doc.desc || doc.name}</div>
+                            <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 2 }}>{doc.name}</div>
+                          </div>
+                          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                            <span style={{ padding: "3px 10px", borderRadius: 999, fontSize: 11, fontWeight: 700, background: ds.bg, color: ds.color }}>{ds.label}</span>
+                            {doc.filePath && (
+                              <a href={getFilePreviewUrl(doc.filePath)} target="_blank" rel="noreferrer"
+                                style={{ fontSize: 12, color: "#FF6B35", fontWeight: 600, textDecoration: "none" }}>Xem file</a>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </Section>
+              )}
+            </>
+          ) : (
+            <div style={{ padding: "60px 0", textAlign: "center", color: "#EF4444" }}>Không tìm thấy thông tin chi tiết.</div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div style={{ padding: "14px 24px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", background: "white", flexShrink: 0 }}>
+          <button onClick={onClose} style={{ padding: "10px 24px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             Đóng
           </button>
         </div>

@@ -141,27 +141,40 @@ export default function SectionAcademic({
             Nộp học bạ
           </h3>
           <div style={{ display: "flex", flexDirection: "column", gap: "20px" }}>
-            {/* Input GPA 12 */}
-            <div style={{ maxWidth: "320px", border: "1px solid #E2E8F0", borderRadius: "12px", padding: "16px", backgroundColor: "#F8FAFC" }}>
-              <label className="form-label" style={{ fontWeight: "600", fontSize: "13px" }}>
-                Điểm trung bình năm lớp 12 <span style={{ color: "#EF4444" }}>(*)</span>
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                max="10"
-                className="form-input"
-                value={form.gpa12}
-                onChange={update("gpa12")}
-                placeholder="VD: 8.25"
-                required
-                style={{ marginTop: "6px" }}
-              />
-              <span style={{ fontSize: "11px", color: "#64748B", marginTop: "4px", display: "block" }}>
-                Thang điểm 10.
-              </span>
+            {/* GPA 10, 11, 12 — 3 cột */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px" }}>
+              {[
+                { field: "gpa10", label: "GPA Lớp 10" },
+                { field: "gpa11", label: "GPA Lớp 11" },
+                { field: "gpa12", label: "GPA Lớp 12" },
+              ].map(({ field, label }) => (
+                <div key={field} style={{ border: "1px solid #E2E8F0", borderRadius: "12px", padding: "16px", backgroundColor: "#F8FAFC" }}>
+                  <label className="form-label" style={{ fontWeight: "600", fontSize: "13px" }}>
+                    {label} <span style={{ color: "#EF4444" }}>(*)</span>
+                  </label>
+                  <input
+                    type="number" step="0.01" min="0" max="10"
+                    className="form-input"
+                    value={form[field] || ""}
+                    onChange={update(field)}
+                    placeholder="VD: 8.25"
+                    required
+                    style={{ marginTop: "6px" }}
+                  />
+                  <span style={{ fontSize: "11px", color: "#64748B", marginTop: "4px", display: "block" }}>Thang điểm 10</span>
+                </div>
+              ))}
             </div>
+
+            {/* Tổng điểm xét tuyển */}
+            {(form.gpa10 || form.gpa11 || form.gpa12) && (
+              <div style={{ padding: "14px 18px", background: "#FFF7F4", border: "1px solid #FFEDD5", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <span style={{ fontSize: "14px", fontWeight: "600", color: "#C2410C" }}>Tổng điểm xét tuyển (GPA 10 + 11 + 12):</span>
+                <span style={{ fontSize: "20px", fontWeight: "800", color: "#FF6B35" }}>
+                  {((parseFloat(form.gpa10) || 0) + (parseFloat(form.gpa11) || 0) + (parseFloat(form.gpa12) || 0)).toFixed(2)}
+                </span>
+              </div>
+            )}
 
             {/* Instruction Card (Orange) */}
             <div style={{

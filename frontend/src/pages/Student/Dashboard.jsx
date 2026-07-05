@@ -3,10 +3,18 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../config/axiosConfig";
 import {
-  FileText, CheckCircle, Clock, XCircle, Bell, ArrowRight,
-  BookOpen, Award, Calendar, GraduationCap
+  FileText, CheckCircle, Clock, Bell, ArrowRight,
+  Calendar, GraduationCap, X, Info, Trophy, MessageSquare
 } from "lucide-react";
 import { STATUS_CONFIG, STEPS } from "../../utils/statusUtils";
+
+const NOTIF_TYPE_CONFIG = {
+  ADMISSION_UPDATE: { icon: Clock, color: "#2563EB", bg: "#DBEAFE" },
+  SYSTEM:           { icon: Info, color: "#64748B", bg: "#F1F5F9" },
+  RESULT:           { icon: Trophy, color: "#059669", bg: "#D1FAE5" },
+  REMINDER:         { icon: Bell, color: "#D97706", bg: "#FEF3C7" },
+  MESSAGE:          { icon: MessageSquare, color: "#7C3AED", bg: "#EDE9FE" },
+};
 
 const deadlines = [
   { label: "Nộp hồ sơ đợt 1", date: "30/03/2026", urgent: false },
@@ -18,6 +26,8 @@ const deadlines = [
 export default function StudentDashboard() {
   const { user } = useAuth();
   const [data, setData] = useState(null);
+  const [latestNotif, setLatestNotif] = useState(null);
+  const [showNotifModal, setShowNotifModal] = useState(false);
 
   useEffect(() => {
     api.get("/api/student/dashboard")
@@ -28,6 +38,17 @@ export default function StudentDashboard() {
           allowNewApplication: false, newApplicationRequest: "NONE"
         });
       });
+    // Load thông báo gần nhất
+    api.get("/api/student/notifications?page=0&size=1")
+      .then(r => {
+        const list = r.data?.content || r.data || [];
+        const first = Array.isArray(list) ? list[0] : null;
+        if (first && !first.isRead) {
+          setLatestNotif(first);
+          setShowNotifModal(true);
+        }
+      })
+      .catch(() => {});
   }, []);
 
   if (!data) {
@@ -44,6 +65,48 @@ export default function StudentDashboard() {
 
   return (
     <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "8px 0" }}>
+
+      {/* Modal thông báo gần nhất */}
+      {showNotifModal && latestNotif && (() => {
+        const cfg = NOTIF_TYPE_CONFIG[latestNotif.type] || NOTIF_TYPE_CONFIG.SYSTEM;
+        const Icon = cfg.icon;
+        return (
+          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "white", borderRadius: 20, maxWidth: 460, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+              <div style={{ background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Icon size={20} color="white" />
+                  </div>
+                  <div>
+                    <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Thông báo mới</div>
+                    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>{new Date(latestNotif.createdAt).toLocaleDateString("vi-VN")}</div>
+                  </div>
+                </div>
+                <button onClick={() => setShowNotifModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", color: "white", display: "flex" }}>
+                  <X size={18} />
+                </button>
+              </div>
+              <div style={{ padding: "24px" }}>
+                <h3 style={{ margin: "0 0 10px", fontSize: 17, fontWeight: 700, color: "#0F172A" }}>{latestNotif.title}</h3>
+                <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.7 }}>{latestNotif.message}</p>
+              </div>
+              <div style={{ padding: "0 24px 20px", display: "flex", gap: 10 }}>
+                <Link to="/student/notifications"
+                  onClick={() => setShowNotifModal(false)}
+                  style={{ flex: 1, padding: "10px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer", textAlign: "center", textDecoration: "none" }}>
+                  Xem tất cả thông báo
+                </Link>
+                <button onClick={() => setShowNotifModal(false)}
+                  style={{ padding: "10px 20px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                  Đóng
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Welcome Banner */}
       <div className="student-banner">
         <div className="absolute right-0 top-0 w-64 h-full opacity-10">
@@ -193,7 +256,37 @@ export default function StudentDashboard() {
         ))}
       </div>
 
-      {/* FPT Info Promo Card */}
+      {/* FPT University Info — đặt trước Quick Actions */}
+      <div style={{
+        background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
+        borderRadius: "18px", padding: "24px 28px",
+        display: "flex", alignItems: "center", gap: "20px",
+        position: "relative", overflow: "hidden",
+        boxShadow: "0 4px 16px rgba(15,23,42,0.15)"
+      }}>
+        <div style={{ position: "absolute", right: "-10px", top: "-20px", width: "160px", height: "160px", background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
+        <div style={{ position: "absolute", right: "80px", bottom: "-30px", width: "100px", height: "100px", background: "rgba(255,107,53,0.05)", borderRadius: "50%" }} />
+        <div style={{ width: "52px", height: "52px", background: "rgba(255,107,53,0.15)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
+          <GraduationCap size={26} color="#FF6B35" />
+        </div>
+        <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
+          <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>
+            Thông tin tuyển sinh FPT University 2026
+          </div>
+          <div style={{ color: "rgba(148,163,184,1)", fontSize: "13px" }}>
+            Giới thiệu trường • Phương thức xét tuyển • Ngành học • Học phí • Học bổng
+          </div>
+        </div>
+        <Link to="/student/university-info" style={{
+          display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "12px",
+          background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", fontWeight: "600", fontSize: "13px",
+          flexShrink: 0, zIndex: 1, boxShadow: "0 4px 12px rgba(232,90,42,0.35)", textDecoration: "none"
+        }}>
+          Khám phá <ArrowRight size={15} />
+        </Link>
+      </div>
+
+      {/* FPT Info Promo Card (bottom) */}
       <Link to="/student/university-info" style={{ textDecoration: "none" }}>
         <div style={{
           background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
