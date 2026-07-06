@@ -131,12 +131,12 @@ export default function NewApplication() {
 
       // Method specific validation
       if (selectedMethod?.code === 'HOC_BA') {
-        if (!form.gpa12) {
-          alert("Vui lòng nhập điểm trung bình năm lớp 12");
+        if (!form.gpa10 || !form.gpa11 || !form.gpa12) {
+          alert("Vui lòng nhập điểm trung bình năm lớp 10, 11 và 12");
           return false;
         }
-        if (!files.hocBaFile) {
-          alert("Vui lòng tải lên minh chứng điểm trung bình lớp 12");
+        if (!files.gpa10File || !files.gpa11File || !files.hocBaFile) {
+          alert("Vui lòng tải lên minh chứng điểm trung bình lớp 10, 11 và 12");
           return false;
         }
       } else if (selectedMethod?.code === 'SAT_IELTS') {

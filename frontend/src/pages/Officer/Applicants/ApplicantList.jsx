@@ -38,20 +38,6 @@ function getInitials(name) {
   return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
-// Mini bar chart for score display
-function ScoreBar({ score, maxScore = 10 }) {
-  const pct = Math.min((score / maxScore) * 100, 100);
-  const color = score >= 8 ? "#16A34A" : score >= 6 ? "#FF6B35" : "#DC2626";
-  return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-      <span style={{ fontSize: 13, fontWeight: 700, color }}>{score}</span>
-      <div style={{ flex: 1, height: 6, background: "#F1F5F9", borderRadius: 99, overflow: "hidden", minWidth: 40 }}>
-        <div style={{ height: "100%", width: `${pct}%`, background: color, borderRadius: 99, transition: "width 0.5s" }} />
-      </div>
-    </div>
-  );
-}
-
 export default function ApplicantList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -63,7 +49,7 @@ export default function ApplicantList() {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
   const [statusCounts, setStatusCounts] = useState({
-    "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, REJECTED: 0, ENROLLED: 0
+    "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, APPROVED_TODAY: 0, REJECTED: 0, ENROLLED: 0
   });
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [deleting, setDeleting] = useState(false);
@@ -94,6 +80,7 @@ export default function ApplicantList() {
           SUBMITTED: d.submitted || 0,
           UNDER_REVIEW: d.underReview || 0,
           APPROVED: d.approved || 0,
+          APPROVED_TODAY: d.approvedToday || 0,
           REJECTED: d.rejected || 0,
           ENROLLED: d.enrolled || 0
         });
@@ -150,15 +137,14 @@ export default function ApplicantList() {
     document.body.removeChild(link);
   };
 
-  const approvedToday = statusCounts.APPROVED || 0;
   const approvalRate = statusCounts[""] > 0
     ? ((statusCounts.APPROVED / statusCounts[""]) * 100).toFixed(1)
     : "0";
 
   const kpis = [
     { label: "Tổng số hồ sơ", value: statusCounts[""] || 0, badge: "+12%", badgePositive: true, borderColor: "#FF6B35" },
-    { label: "Đang chờ duyệt", value: statusCounts.UNDER_REVIEW + statusCounts.SUBMITTED || 0, badge: "Quan trọng", badgeType: "warning", borderColor: "#F59E0B" },
-    { label: "Đã duyệt hôm nay", value: approvedToday, badge: "Đạt mục tiêu", badgeType: "success", borderColor: "#10B981" },
+    { label: "Đang chờ duyệt", value: (statusCounts.UNDER_REVIEW || 0) + (statusCounts.SUBMITTED || 0), badge: "Quan trọng", badgeType: "warning", borderColor: "#F59E0B" },
+    { label: "Đã duyệt hôm nay", value: statusCounts.APPROVED_TODAY || 0, badge: "Đạt mục tiêu", badgeType: "success", borderColor: "#10B981" },
     { label: "Hồ sơ bị từ chối", value: statusCounts.REJECTED || 0, badge: "-2%", badgePositive: false, borderColor: "#EF4444" },
   ];
 
@@ -337,9 +323,6 @@ export default function ApplicantList() {
             }}
           >
             <option value="all">Tất cả chuyên ngành</option>
-            <option value="CNTT">Công nghệ thông tin (IT)</option>
-            <option value="Kinh tế">Kinh tế (Kinh doanh & Marketing)</option>
-            <option value="Thiết kế">Thiết kế đồ họa & Truyền thông</option>
             {majors.map(name => (
               <option key={name} value={name}>{name}</option>
             ))}
@@ -443,8 +426,12 @@ export default function ApplicantList() {
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#475569", borderBottom: "1px solid #F8FAFC" }}>
                         {app.majorName || "—"}
                       </td>
-                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC", minWidth: 120 }}>
-                        <ScoreBar score={app.totalScore || 0} />
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        {(() => {
+                          const val = parseFloat(app.totalScore) || 0;
+                          const color = val >= 25 ? "#16A34A" : val >= 20 ? "#FF6B35" : "#DC2626";
+                          return <span style={{ fontSize: 15, fontWeight: 800, color }}>{val.toFixed(2)}</span>;
+                        })()}
                       </td>
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
                         <span style={{

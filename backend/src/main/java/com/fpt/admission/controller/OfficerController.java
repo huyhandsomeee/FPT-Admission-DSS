@@ -25,29 +25,6 @@ public class OfficerController {
     private final NotificationRepository notificationRepository;
     private final JwtUtil jwtUtil;
     private final JdbcTemplate jdbcTemplate;
-    private final AdmissionYearRepository admissionYearRepository;
-
-    @GetMapping("/dashboard")
-    public ResponseEntity<?> getDashboard() {
-        Map<String, Object> data = new LinkedHashMap<>();
-        data.put("totalApplications", applicationRepository.count());
-        data.put("submitted", applicationRepository.countByStatus(ApplicationStatus.SUBMITTED));
-        data.put("underReview", applicationRepository.countByStatus(ApplicationStatus.UNDER_REVIEW));
-        data.put("approved", applicationRepository.countByStatus(ApplicationStatus.APPROVED));
-        data.put("rejected", applicationRepository.countByStatus(ApplicationStatus.REJECTED));
-        data.put("enrolled", applicationRepository.countByStatus(ApplicationStatus.ENROLLED));
-
-        var activeYear = admissionYearRepository.findByStatus("ACTIVE")
-            .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElse(null));
-        if (activeYear != null) {
-            data.put("activeYear", activeYear.getYear());
-            data.put("quota", activeYear.getQuotaTotal());
-        } else {
-            data.put("activeYear", 2026);
-            data.put("quota", 18000);
-        }
-        return ResponseEntity.ok(data);
-    }
 
     @GetMapping("/applications")
     public ResponseEntity<?> getApplications(
@@ -66,9 +43,14 @@ public class OfficerController {
         // Convert empty string to null for JPQL IS NULL check
         String searchParam = (search != null && !search.isBlank()) ? search : null;
 
+        // Sort: ưu tiên SUBMITTED/UNDER_REVIEW lên trên, sau đó theo createdAt desc
+        Sort sort = appStatus == null
+            ? Sort.by(Sort.Order.asc("status"), Sort.Order.desc("createdAt"))
+            : Sort.by("createdAt").descending();
+
         Page<Application> apps = applicationRepository.findWithFilters(
             appStatus, campusId, majorId, methodId, searchParam,
-            PageRequest.of(page, size, Sort.by("createdAt").descending())
+            PageRequest.of(page, size, sort)
         );
 
         return ResponseEntity.ok(Map.of(

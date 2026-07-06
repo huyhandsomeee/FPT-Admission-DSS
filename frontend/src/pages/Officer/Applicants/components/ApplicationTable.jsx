@@ -54,7 +54,13 @@ export default function ApplicationTable({ apps, loading }) {
                   <div style={{ fontSize: 11, color: "#94A3B8" }}>{app.campusName}</div>
                 </td>
                 <td style={{ padding: "14px 16px", fontSize: 13, color: "#64748B", borderBottom: "1px solid #F8FAFC" }}>{app.methodName}</td>
-                <td style={{ padding: "14px 16px", fontWeight: 800, fontSize: 14, color: "#2563EB", borderBottom: "1px solid #F8FAFC" }}>{app.totalScore}</td>
+                <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                  {(() => {
+                    const val = parseFloat(app.totalScore) || 0;
+                    const color = val >= 25 ? "#16A34A" : val >= 20 ? "#FF6B35" : "#DC2626";
+                    return <span style={{ fontSize: 15, fontWeight: 800, color }}>{val.toFixed(2)}</span>;
+                  })()}
+                </td>
                 <td style={{ padding: "14px 16px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>
                   {app.submittedAt ? formatDate(app.submittedAt) : "Chưa nộp"}
                 </td>

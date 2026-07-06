@@ -269,6 +269,29 @@
     );
 
     -- ============================================================
+    -- application_files: Lưu file/ảnh tài liệu sinh viên nộp
+    -- Thay thế hoàn toàn việc lưu file trên disk (uploads/)
+    -- file_data: LONGBLOB chứa nội dung nhị phân của file
+    -- ============================================================
+    CREATE TABLE IF NOT EXISTS application_files (
+        id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+        application_id BIGINT NOT NULL,
+        file_type    ENUM('CCCD','HOC_BA','BANG_TN','CHUNG_CHI','ANH_THE','GK_THPT','HO_KHAU','OTHER') NOT NULL,
+        file_name    VARCHAR(300) NOT NULL,
+        file_data    LONGBLOB NOT NULL,
+        file_size    BIGINT,
+        mime_type    VARCHAR(100),
+        status       ENUM('PENDING','VERIFIED','REJECTED') DEFAULT 'PENDING',
+        verified_by  BIGINT NULL,
+        verified_at  TIMESTAMP NULL,
+        uploaded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (application_id) REFERENCES applications(id) ON DELETE CASCADE,
+        FOREIGN KEY (verified_by)    REFERENCES users(id),
+        INDEX idx_af_app  (application_id),
+        INDEX idx_af_type (file_type)
+    );
+
+    -- ============================================================
     -- SEED DATA (INSERT IGNORE = bỏ qua nếu đã tồn tại)
     -- ============================================================
 
@@ -412,43 +435,47 @@
 
     -- 10. Academic Backgrounds
     INSERT IGNORE INTO academic_backgrounds (id, student_profile_id, school_name, school_province_id, graduation_year, gpa_10, gpa_11, gpa_12, math_score, literature_score, english_score, total_score, ielts_score) VALUES
-    (1,  1,  'THPT Chu Văn An',              1, 2026, NULL, NULL, 8.9, 8.5, 7.5, 9.0, 25.00, 7.0),
-    (2,  2,  'THPT Lê Hồng Phong',          2, 2026, NULL, NULL, 8.2, 7.5, 8.0, 7.0, 22.50, NULL),
-    (3,  3,  'THPT Trần Phú',               3, 2026, NULL, NULL, 8.5, 8.0, 7.0, 8.5, 23.50, NULL),
-    (4,  4,  'THPT Châu Văn Liêm',          4, 2026, NULL, NULL, 8.0, 7.0, 7.5, 7.0, 21.50, NULL),
-    (5,  5,  'THPT Quốc Học Quy Nhơn',      5, 2026, NULL, NULL, 9.3, 9.0, 8.5, 9.5, 27.00, 8.0),
-    (6,  6,  'THPT Thái Phiên',             6, 2026, NULL, NULL, 8.6, 8.5, 7.8, 8.0, 24.30, NULL),
-    (7,  7,  'THPT Việt Đức',               1, 2026, NULL, NULL, 7.8, 7.5, 7.0, 7.5, 22.00, NULL),
-    (8,  8,  'THPT Marie Curie',            2, 2026, NULL, NULL, 9.1, 8.5, 8.8, 9.0, 26.30, 7.5),
-    (9,  9,  'THPT Phan Châu Trinh',        3, 2026, NULL, NULL, 7.5, 7.0, 7.5, 6.5, 21.00, NULL),
-    (10, 10, 'THPT Thủ Khoa Nghĩa',         4, 2026, NULL, NULL, 8.8, 8.0, 8.5, 8.0, 24.50, NULL),
-    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, NULL, NULL, 8.3, 8.0, 7.5, 8.0, 23.50, NULL),
-    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, NULL, NULL, 9.5, 9.5, 9.0, 9.5, 28.00, 8.5),
-    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, NULL, NULL, 7.9, 7.5, 7.8, 7.0, 22.30, NULL),
-    (14, 14, 'THPT Châu Thành',             4, 2026, NULL, NULL, 8.4, 8.0, 8.0, 7.5, 23.50, NULL),
-    (15, 15, 'THPT Kim Liên',               1, 2026, NULL, NULL, 9.0, 9.0, 8.0, 8.5, 25.50, NULL),
-    (16, 16, 'THPT Gia Định',               2, 2026, NULL, NULL, 7.8, 7.5, 7.5, 7.0, 22.00, NULL),
-    (17, 17, 'THPT Quang Trung',            5, 2026, NULL, NULL, 8.7, 8.5, 8.0, 8.5, 25.00, NULL);
+    (1,  1,  'THPT Chu Văn An',              1, 2026, 8.7, 8.8, 8.9, 8.5, 7.5, 9.0, 26.40, 7.0),
+    (2,  2,  'THPT Lê Hồng Phong',          2, 2026, 7.9, 8.0, 8.2, 7.5, 8.0, 7.0, 24.10, NULL),
+    (3,  3,  'THPT Trần Phú',               3, 2026, 8.2, 8.3, 8.5, 8.0, 7.0, 8.5, 25.00, NULL),
+    (4,  4,  'THPT Châu Văn Liêm',          4, 2026, 7.8, 7.9, 8.0, 7.0, 7.5, 7.0, 23.70, NULL),
+    (5,  5,  'THPT Quốc Học Quy Nhơn',      5, 2026, 9.0, 9.1, 9.3, 9.0, 8.5, 9.5, 27.40, 8.0),
+    (6,  6,  'THPT Thái Phiên',             6, 2026, 8.4, 8.5, 8.6, 8.5, 7.8, 8.0, 25.50, NULL),
+    (7,  7,  'THPT Việt Đức',               1, 2026, 7.5, 7.6, 7.8, 7.5, 7.0, 7.5, 22.90, NULL),
+    (8,  8,  'THPT Marie Curie',            2, 2026, 8.8, 9.0, 9.1, 8.5, 8.8, 9.0, 26.90, 7.5),
+    (9,  9,  'THPT Phan Châu Trinh',        3, 2026, 7.2, 7.3, 7.5, 7.0, 7.5, 6.5, 22.00, NULL),
+    (10, 10, 'THPT Thủ Khoa Nghĩa',         4, 2026, 8.5, 8.6, 8.8, 8.0, 8.5, 8.0, 25.90, NULL),
+    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 8.0, 8.1, 8.3, 8.0, 7.5, 8.0, 24.40, NULL),
+    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.2, 9.3, 9.5, 9.5, 9.0, 9.5, 28.00, 8.5),
+    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.6, 7.7, 7.9, 7.0, 7.8, 7.0, 23.20, NULL),
+    (14, 14, 'THPT Châu Thành',             4, 2026, 8.1, 8.2, 8.4, 7.5, 8.0, 7.5, 24.70, NULL),
+    (15, 15, 'THPT Kim Liên',               1, 2026, 8.7, 8.8, 9.0, 8.5, 8.0, 8.5, 26.50, NULL),
+    (16, 16, 'THPT Gia Định',               2, 2026, 7.5, 7.6, 7.8, 7.0, 7.5, 7.0, 22.90, NULL),
+    (17, 17, 'THPT Quang Trung',            5, 2026, 8.4, 8.5, 8.7, 8.5, 8.0, 8.5, 25.60, NULL);
 
-    -- 11. Applications
+    -- 11. Applications (Tạo 1000+ mã hồ sơ chia đều các ngành)
+    -- Công nghệ thông tin (SE, AI, IS): 450 hồ sơ
+    -- Quản trị kinh doanh (BA): 250 hồ sơ
+    -- Thiết kế (GD, MC): 150 hồ sơ
+    -- Khác (HT, FIN): 150 hồ sơ
     INSERT IGNORE INTO applications (id, application_code, student_profile_id, admission_year_id, campus_id, major_id, admission_method_id, priority_number, total_score, status, submitted_at, reviewed_at, reviewed_by, officer_notes) VALUES
-    (1,  'SE260001',  1,  3, 1, 1,  1, 1, 8.90,  'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
-    (2,  'SE260002',  2,  3, 2, 8,  2, 1, 22.50, 'UNDER_REVIEW', '2026-03-03 10:15:00', NULL,                  NULL, NULL),
-    (3,  'SE260003',  3,  3, 3, 13, 1, 1, 8.50,  'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
-    (4,  'SE260004',  4,  3, 4, 16, 2, 1, 21.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
-    (5,  'AI260001',  5,  3, 1, 2,  3, 1, 27.00, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
-    (6,  'SE260005',  6,  3, 1, 1,  3, 1, 24.30, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
-    (7,  'SE260006',  7,  3, 1, 1,  2, 2, 22.00, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
-    (8,  'SE260007',  8,  3, 2, 8,  4, 1, 26.30, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
-    (9,  'SE260008',  9,  3, 3, 13, 2, 2, 21.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
-    (10, 'SE260009',  10, 3, 4, 16, 1, 1, 8.80,  'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
-    (11, 'SE260010',  11, 3, 1, 1,  1, 1, 8.30,  'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
+    (1,  'SE260001',  1,  3, 1, 1,  1, 1, 26.90, 'APPROVED',     '2026-03-01 09:00:00', '2026-03-05 14:30:00', 6, 'Hồ sơ đầy đủ, điểm tốt'),
+    (2,  'SE260002',  2,  3, 2, 8,  2, 1, 23.70, 'UNDER_REVIEW', '2026-03-03 10:15:00', NULL,                  NULL, NULL),
+    (3,  'SE260003',  3,  3, 3, 13, 1, 1, 24.00, 'SUBMITTED',    '2026-03-05 11:30:00', NULL,                  NULL, NULL),
+    (4,  'SE260004',  4,  3, 4, 16, 2, 1, 23.50, 'REJECTED',     '2026-03-02 08:45:00', '2026-03-06 09:00:00', 7, 'Điểm chưa đủ yêu cầu'),
+    (5,  'AI260001',  5,  3, 1, 2,  3, 1, 26.80, 'ENROLLED',     '2026-02-28 14:00:00', '2026-03-04 10:00:00', 6, 'Xuất sắc, ưu tiên nhập học'),
+    (6,  'SE260005',  6,  3, 1, 1,  3, 1, 24.90, 'APPROVED',     '2026-03-04 09:30:00', '2026-03-08 11:00:00', 6, 'Hồ sơ đầy đủ, đạt yêu cầu'),
+    (7,  'SE260006',  7,  3, 1, 1,  2, 2, 22.80, 'SUBMITTED',    '2026-03-06 13:00:00', NULL,                  NULL, NULL),
+    (8,  'SE260007',  8,  3, 2, 8,  4, 1, 26.40, 'APPROVED',     '2026-03-01 10:30:00', '2026-03-07 14:00:00', 7, 'IELTS cao, hồ sơ tốt'),
+    (9,  'SE260008',  9,  3, 3, 13, 2, 2, 22.00, 'UNDER_REVIEW', '2026-03-07 08:00:00', NULL,                  NULL, NULL),
+    (10, 'SE260009',  10, 3, 4, 16, 1, 1, 25.30, 'SUBMITTED',    '2026-03-08 15:00:00', NULL,                  NULL, NULL),
+    (11, 'SE260010',  11, 3, 1, 1,  1, 1, 23.80, 'UNDER_REVIEW', '2026-03-09 09:00:00', NULL,                  NULL, NULL),
     (12, 'BA260001',  12, 3, 2, 10, 4, 1, 28.00, 'ENROLLED',     '2026-02-25 10:00:00', '2026-03-01 09:00:00', 7, 'IELTS 8.5, học lực xuất sắc'),
-    (13, 'HT260001',  13, 3, 3, 15, 2, 1, 22.30, 'SUBMITTED',    '2026-03-10 11:00:00', NULL,                  NULL, NULL),
-    (14, 'BA260002',  14, 3, 4, 17, 1, 1, 8.40,  'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
-    (15, 'SE260011',  15, 3, 1, 1,  1, 1, 9.00,  'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
-    (16, 'GD260001',  16, 3, 2, 12, 1, 1, 7.80,  'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
-    (17, 'AI260002',  17, 3, 5, 2,  3, 1, 25.00, 'SUBMITTED',    '2026-03-11 09:00:00', NULL,                  NULL, NULL);
+    (13, 'HT260001',  13, 3, 3, 15, 2, 1, 23.20, 'SUBMITTED',    '2026-03-10 11:00:00', NULL,                  NULL, NULL),
+    (14, 'BA260002',  14, 3, 4, 17, 1, 1, 24.40, 'APPROVED',     '2026-03-03 14:30:00', '2026-03-09 10:00:00', 8, 'Đạt yêu cầu'),
+    (15, 'SE260011',  15, 3, 1, 1,  1, 1, 26.00, 'UNDER_REVIEW', '2026-03-05 08:30:00', NULL,                  NULL, NULL),
+    (16, 'GD260001',  16, 3, 2, 12, 1, 1, 22.80, 'REJECTED',     '2026-03-04 10:00:00', '2026-03-10 15:00:00', 8, 'Thiếu học bạ năm lớp 10'),
+    (17, 'AI260002',  17, 3, 5, 2,  3, 1, 26.20, 'SUBMITTED',    '2026-03-11 09:00:00', NULL,                  NULL, NULL);
 
     -- 12. Application Status History
     INSERT IGNORE INTO application_status_history (id, application_id, old_status, new_status, changed_by, reason) VALUES
@@ -780,41 +807,184 @@
     SET FOREIGN_KEY_CHECKS = 1;
 
 -- ============================================================
--- MIGRATION: Cập nhật mã hồ sơ cũ sang format mới
--- Format: {MAJOR_CODE}{COHORT}{SEQUENTIAL}
--- Ví dụ: SE260001 (SE + 26 + 0001)
--- Chạy section này nếu DB đã có data cũ dạng FPT2026-xxx / APP2026xxxxxx
+-- SEED: Tạo 1000 mã hồ sơ chia đều các ngành (năm 2026)
+-- SE:350 | BA:250 | AI:100 | GD:100 | IS:50 | MC:50 | HT:50 | FIN:50
+-- Chạy sau khi đã insert 17 hồ sơ mẫu ở trên
 -- ============================================================
+DROP PROCEDURE IF EXISTS SeedApplications;
 
--- Migration: Update application_code to new format
-SET @row_se := 0, @row_ai := 0, @row_ba := 0, @row_gd := 0, @row_ht := 0, @row_mc := 0, @row_is := 0, @row_mk := 0, @row_fin := 0;
+DELIMITER $$
+CREATE PROCEDURE SeedApplications()
+BEGIN
+    DECLARE i INT DEFAULT 1;
+    DECLARE v_major_id   INT;
+    DECLARE v_campus_id  INT;
+    DECLARE v_method_id  INT;
+    DECLARE v_status     VARCHAR(20);
+    DECLARE v_score      DECIMAL(5,2);
+    DECLARE v_days_ago   INT;
+    DECLARE v_code       VARCHAR(30);
 
-UPDATE applications a
-JOIN majors m ON a.major_id = m.id
-JOIN admission_years ay ON a.admission_year_id = ay.id
-SET a.application_code = CONCAT(
-    m.code,
-    RIGHT(ay.year, 2),
-    LPAD(
-      CASE m.code
-        WHEN 'SE'  THEN (@row_se  := @row_se  + 1)
-        WHEN 'AI'  THEN (@row_ai  := @row_ai  + 1)
-        WHEN 'BA'  THEN (@row_ba  := @row_ba  + 1)
-        WHEN 'GD'  THEN (@row_gd  := @row_gd  + 1)
-        WHEN 'HT'  THEN (@row_ht  := @row_ht  + 1)
-        WHEN 'MC'  THEN (@row_mc  := @row_mc  + 1)
-        WHEN 'IS'  THEN (@row_is  := @row_is  + 1)
-        WHEN 'MK'  THEN (@row_mk  := @row_mk  + 1)
-        WHEN 'FIN' THEN (@row_fin := @row_fin + 1)
-        ELSE 1
-      END
-    , 4, '0')
-)
-WHERE a.application_code LIKE 'FPT%' OR a.application_code LIKE 'APP%'
-ORDER BY a.created_at ASC;
+    -- Helper: map (major_code, batch) -> (major_id, campus_id)
+    -- SE: 1(HL),8(HCM),13(DN),16(CT)  AI: 2(HL),9(HCM)  IS: 3(HL)
+    -- BA: 4(HL),10(HCM),14(DN),17(CT) GD: 7(HL),12(HCM) MC: 6(HL)
+    -- HT: 15(DN)  FIN: 11(HCM)
 
--- Verify migration
-SELECT id, application_code, status, created_at
+    -- ---- SE: 350 hồ sơ (id 18..367) ----
+    SET i = 1;
+    WHILE i <= 350 DO
+        SET v_major_id  = ELT((i-1) MOD 4 + 1, 1, 8, 13, 16);
+        SET v_campus_id = ELT((i-1) MOD 4 + 1, 1, 2,  3,  4);
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('SE26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, v_campus_id, v_major_id, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- BA: 250 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 250 DO
+        SET v_major_id  = ELT((i-1) MOD 4 + 1, 4, 10, 14, 17);
+        SET v_campus_id = ELT((i-1) MOD 4 + 1, 1,  2,  3,  4);
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('BA26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, v_campus_id, v_major_id, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- AI: 100 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 100 DO
+        SET v_major_id  = IF(i MOD 2 = 0, 2, 9);
+        SET v_campus_id = IF(i MOD 2 = 0, 1, 2);
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(20.0 + (i MOD 100) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('AI26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, v_campus_id, v_major_id, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- GD: 100 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 100 DO
+        SET v_major_id  = IF(i MOD 2 = 0, 7, 12);
+        SET v_campus_id = IF(i MOD 2 = 0, 1,  2);
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('GD26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, v_campus_id, v_major_id, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- IS: 50 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 50 DO
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(20.0 + (i MOD 100) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('IS26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, 1, 3, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- MC: 50 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 50 DO
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('MC26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, 1, 6, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- HT: 50 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 50 DO
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('HT26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, 3, 15, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+    -- ---- FIN: 50 hồ sơ ----
+    SET i = 1;
+    WHILE i <= 50 DO
+        SET v_method_id = (i-1) MOD 4 + 1;
+        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
+        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_code      = CONCAT('FIN26', LPAD(i, 4, '0'));
+        INSERT IGNORE INTO applications
+            (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
+        VALUES
+            (v_code, (i MOD 17)+1, 3, 2, 11, v_method_id, 1, v_score, v_status,
+             DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        SET i = i + 1;
+    END WHILE;
+
+END$$
+DELIMITER ;
+
+CALL SeedApplications();
+DROP PROCEDURE IF EXISTS SeedApplications;
+
+-- Kiểm tra kết quả
+SELECT
+    SUBSTRING(application_code,1,
+        CASE WHEN application_code REGEXP '^[A-Z]{2}[0-9]' THEN 2
+             WHEN application_code REGEXP '^[A-Z]{3}[0-9]' THEN 3
+             ELSE 2 END) AS major_code,
+    COUNT(*) AS total,
+    SUM(status='SUBMITTED')    AS submitted,
+    SUM(status='UNDER_REVIEW') AS under_review,
+    SUM(status='APPROVED')     AS approved,
+    SUM(status='REJECTED')     AS rejected,
+    SUM(status='ENROLLED')     AS enrolled
 FROM applications
-ORDER BY created_at;
+GROUP BY major_code
+ORDER BY total DESC;
 

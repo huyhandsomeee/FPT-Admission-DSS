@@ -19,15 +19,19 @@ export default function EvaluationPanel({
 
       {/* Score */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>Điểm xét tuyển tổ hợp *</label>
+        <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>Tổng điểm GPA (Lớp 10 + 11 + 12) *</label>
         <input value={score} onChange={e => setScore(e.target.value)} type="text"
-          placeholder="Nhập điểm tổ hợp thực tế..."
+          placeholder="Tự động tính từ GPA..."
           style={{ width: "100%", padding: "10px 14px", border: "1px solid #CBD5E1", borderRadius: 10, fontSize: 13, color: "#0F172A", outline: "none", boxSizing: "border-box" }}
           onFocus={e => e.target.style.borderColor = "#FF6B35"}
           onBlur={e => e.target.style.borderColor = "#CBD5E1"} />
-        <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B" }}>
-          Điểm khai báo: <strong>{app.totalScore || "Chưa có"}</strong>
-        </p>
+        {app.academicBackground && (
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B" }}>
+            GPA 10: <strong>{app.academicBackground.gpa10 ?? "—"}</strong> &nbsp;|
+            GPA 11: <strong>{app.academicBackground.gpa11 ?? "—"}</strong> &nbsp;|
+            GPA 12: <strong>{app.academicBackground.gpa12 ?? "—"}</strong>
+          </p>
+        )}
       </div>
 
       {/* Decision Dropdown */}

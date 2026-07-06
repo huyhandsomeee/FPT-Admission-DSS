@@ -7,16 +7,21 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     List<Application> findByStudentProfileId(Long studentProfileId);
     Page<Application> findByStatus(ApplicationStatus status, Pageable pageable);
     long countByStatus(ApplicationStatus status);
+    long countByStatusAndReviewedAtBetween(ApplicationStatus status, LocalDateTime start, LocalDateTime end);
     long countByAdmissionYearId(Long yearId);
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.major.code = :majorCode AND a.admissionYear.year = :year")
     long countByMajorCodeAndYear(@Param("majorCode") String majorCode, @Param("year") int year);
+
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.major.code IN :codes")
+    long countByMajorCodes(@Param("codes") List<String> codes);
 
     @Query("SELECT COUNT(a) FROM Application a WHERE a.admissionYear.year = :year")
     long countByYear(@Param("year") int year);

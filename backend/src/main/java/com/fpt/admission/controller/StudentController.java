@@ -136,6 +136,8 @@ public class StudentController {
             @RequestParam(value = "cccdFrontFile", required = false) MultipartFile cccdFrontFile,
             @RequestParam(value = "cccdBackFile", required = false) MultipartFile cccdBackFile,
             @RequestParam(value = "hocBaFile", required = false) MultipartFile hocBaFile,
+            @RequestParam(value = "gpa10File", required = false) MultipartFile gpa10File,
+            @RequestParam(value = "gpa11File", required = false) MultipartFile gpa11File,
             @RequestParam(value = "bangTNFile", required = false) MultipartFile bangTNFile,
             @RequestParam(value = "anhTheFile", required = false) MultipartFile anhTheFile,
             @RequestParam(value = "giayKhaiSinhFile", required = false) MultipartFile giayKhaiSinhFile,
@@ -217,7 +219,9 @@ public class StudentController {
         profile.setStudentCode(code);
         studentProfileRepository.save(profile);
 
-        java.math.BigDecimal appTotalScore = method.getCode().equals("HOC_BA") ? ab.getGpa12() : ab.getTotalScore();
+        java.math.BigDecimal appTotalScore = method.getCode().equals("HOC_BA")
+            ? BigDecimal.valueOf(gpa10).add(BigDecimal.valueOf(gpa11)).add(BigDecimal.valueOf(gpa12))
+            : ab.getTotalScore();
 
         var app = Application.builder()
             .applicationCode(code)
@@ -246,6 +250,12 @@ public class StudentController {
             }
             if (hocBaFile != null && !hocBaFile.isEmpty()) {
                 saveAppDoc(app.getId(), 2L, hocBaFile, userId);
+            }
+            if (gpa10File != null && !gpa10File.isEmpty()) {
+                saveAppDoc(app.getId(), 2L, gpa10File, userId);
+            }
+            if (gpa11File != null && !gpa11File.isEmpty()) {
+                saveAppDoc(app.getId(), 2L, gpa11File, userId);
             }
             if (bangTNFile != null && !bangTNFile.isEmpty()) {
                 saveAppDoc(app.getId(), 3L, bangTNFile, userId);

@@ -81,6 +81,7 @@ export default function OfficerDashboard() {
     quota: 18000
   });
 
+  const [statsByMajor, setStatsByMajor] = useState({});
   const [recentApps, setRecentApps] = useState([]);
   const [loadingRecent, setLoadingRecent] = useState(false);
   const navigate = useNavigate();
@@ -88,6 +89,10 @@ export default function OfficerDashboard() {
   useEffect(() => {
     api.get("/api/officer/dashboard")
       .then(r => { if (r.data) setStats(r.data); })
+      .catch(() => {});
+
+    api.get("/api/officer/dashboard/by-major")
+      .then(r => { if (r.data) setStatsByMajor(r.data); })
       .catch(() => {});
 
     setLoadingRecent(true);
@@ -123,35 +128,19 @@ export default function OfficerDashboard() {
     document.body.removeChild(link);
   };
 
-  const quotaPercent = stats.quota > 0 ? Math.round((stats.enrolled / stats.quota) * 100) : 0;
+  const quotaPercent = Math.round(stats.enrollmentRate ?? 0);
 
-  // Mock data for charts
   const barChartData = [
     { label: "T2", value: 35 }, { label: "T3", value: 50 }, { label: "T4", value: 42 },
     { label: "T5", value: 68 }, { label: "T6", value: 55 }, { label: "T7", value: 30 }, { label: "CN", value: 20 }
   ];
   const barColors = ["#FFB088", "#FFB088", "#FFB088", "#FF6B35", "#FFB088", "#FFB088", "#FFB088"];
 
-  const conversionData = [
-    { label: "Công nghệ thông tin", percent: 68 },
-    { label: "Quản trị kinh doanh", percent: 45 },
-    { label: "Ngôn ngữ & Truyền thông", percent: 32 },
-    { label: "Thiết kế mỹ thuật", percent: 51 },
-  ];
-
-  const majorGroups = [
-    { name: "Công nghệ thông tin (IT)", icon: Monitor, color: "#1E293B", bgColor: "#F1F5F9",
-      desc: "Ngành trọng điểm với sự quan tâm lớn nhất. Bao gồm Kỹ thuật phần mềm, Trí tuệ nhân tạo, và An toàn thông tin.",
-      pending: stats.underReview || 48, trend: "+12% xu hướng", trendPositive: true, large: true },
-    { name: "Quản trị kinh doanh", icon: Briefcase, color: "#FF6B35", bgColor: "#FFF7ED",
-      count: 32, small: true },
-    { name: "Ngôn ngữ & Truyền thông", icon: Languages, color: "#FF6B35", bgColor: "#FFF7ED",
-      count: 24, small: true },
-    { name: "Thiết kế và Nghệ thuật", icon: Palette, color: "#FF6B35", bgColor: "#FFF7ED",
-      count: 15, label: "hồ sơ mới", small: true, hasEdit: true },
-    { name: "Kỹ thuật và Công nghệ", icon: Wrench, color: "#FF6B35", bgColor: "#FFF7ED",
-      count: 5, label: "hồ sơ mới", small: true, hasEdit: true },
-  ];
+  const MAJOR_LABELS = { SE: "Kỹ thuật phần mềm", AI: "Trí tuệ nhân tạo", IS: "An toàn thông tin", BA: "Quản trị kinh doanh", GD: "Thiết kế đồ họa", MC: "Truyền thông đa phương tiện", FIN: "Tài chính", HT: "Khách sạn & Du lịch", MK: "Marketing" };
+  const conversionData = Object.entries(statsByMajor).slice(0, 4).map(([code, count]) => ({
+    label: MAJOR_LABELS[code] || code,
+    percent: stats.totalApplications > 0 ? Math.round((count / stats.totalApplications) * 100) : 0
+  }));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -312,11 +301,11 @@ export default function OfficerDashboard() {
             <div style={{ display: "flex", gap: 24, marginTop: 12 }}>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600 }}>ĐÃ TUYỂN</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{(stats.enrolled || 1240).toLocaleString()}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{(stats.enrolled ?? 0).toLocaleString()}</div>
               </div>
               <div style={{ textAlign: "center" }}>
                 <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600 }}>CÒN LẠI</div>
-                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{((stats.quota || 1550) - (stats.enrolled || 1240)).toLocaleString()}</div>
+                <div style={{ fontSize: 16, fontWeight: 800, color: "#1E293B" }}>{((stats.quota ?? 0) - (stats.enrolled ?? 0)).toLocaleString()}</div>
               </div>
             </div>
           </div>
@@ -335,141 +324,83 @@ export default function OfficerDashboard() {
           </button>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
-          {/* IT — Large card */}
-          <div style={{
-            background: "white", borderRadius: 16, padding: "24px",
-            border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            gridRow: "1 / 3"
-          }}>
-            <div style={{ display: "flex", alignItems: "flex-start", gap: 14, marginBottom: 16 }}>
-              <div style={{
-                width: 48, height: 48, borderRadius: 12,
-                background: "#1E293B", display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <Monitor size={22} color="white" />
-              </div>
-              <div>
-                <span style={{
-                  fontSize: 11, fontWeight: 700, color: "#16A34A", background: "#DCFCE7",
-                  padding: "3px 8px", borderRadius: 99, marginBottom: 6, display: "inline-block"
-                }}>
-                  +12% xu hướng
-                </span>
-              </div>
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 700, color: "#0F172A", marginBottom: 8 }}>
-              Công nghệ thông tin (IT)
-            </div>
-            <p style={{ fontSize: 13, color: "#64748B", lineHeight: 1.6, margin: "0 0 20px" }}>
-              Ngành trọng điểm với sự quan tâm lớn nhất. Bao gồm Kỹ thuật phần mềm, Trí tuệ nhân tạo, và An toàn thông tin.
-            </p>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
-              <div>
-                <div style={{ fontSize: 36, fontWeight: 900, color: "#0F172A" }}>48</div>
-                <div style={{ fontSize: 12, color: "#94A3B8", fontWeight: 600 }}>HỒ SƠ CHỜ DUYỆT</div>
-              </div>
-              <button onClick={() => navigate("/officer/applicants?search=CNTT")} style={{
-                padding: "10px 20px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
-                border: "none", borderRadius: 10, color: "white", fontWeight: 600, fontSize: 13,
-                cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-                boxShadow: "0 4px 12px rgba(255,107,53,0.3)"
-              }}>
-                Xem chi tiết <ArrowUpRight size={14} />
-              </button>
-            </div>
-          </div>
- 
-          {/* Quản trị kinh doanh */}
-          <div style={{
-            background: "white", borderRadius: 14, padding: "20px",
-            border: "1px solid #FDDCCE", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-            display: "flex", flexDirection: "column", alignItems: "flex-end"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, width: "100%", marginBottom: 12 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <Briefcase size={18} color="#FF6B35" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", textAlign: "right" }}>32</div>
-              </div>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B", width: "100%", textAlign: "left" }}>
-              Quản trị kinh doanh
-            </div>
-            <button onClick={() => navigate("/officer/applicants?search=Quản trị kinh doanh")} style={{
-              marginTop: 10, padding: "8px 20px", background: "white",
-              border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
-              fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
-            }}>
-              Xem chi tiết
-            </button>
-          </div>
- 
-          {/* Ngôn ngữ & Truyền thông */}
-          <div style={{
-            background: "white", borderRadius: 14, padding: "20px",
-            border: "1px solid #FDDCCE", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
-          }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
-              <div style={{
-                width: 40, height: 40, borderRadius: 10,
-                background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
-              }}>
-                <Languages size={18} color="#FF6B35" />
-              </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 28, fontWeight: 800, color: "#0F172A", textAlign: "right" }}>24</div>
-              </div>
-            </div>
-            <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>
-              Ngôn ngữ & Truyền thông
-            </div>
-            <button onClick={() => navigate("/officer/applicants?search=Truyền thông")} style={{
-              marginTop: 10, padding: "8px 20px", background: "white",
-              border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12,
-              fontWeight: 600, color: "#64748B", cursor: "pointer", width: "100%"
-            }}>
-              Xem chi tiết
-            </button>
-          </div>
-        </div>
- 
-        {/* Bottom row: smaller cards */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginTop: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
           {[
-            { name: "Thiết kế và Nghệ thuật", icon: Palette, count: 15, label: "hồ sơ mới" },
-            { name: "Kỹ thuật và Công nghệ", icon: Wrench, count: 5, label: "hồ sơ mới" },
+            {
+              name: "Công nghệ thông tin (IT)",
+              desc: "Kỹ thuật phần mềm, Trí tuệ nhân tạo, An toàn thông tin",
+              icon: Monitor,
+              count: stats.itTotal ?? 0,
+              search: "CNTT",
+              accent: "#FF6B35",
+              iconBg: "#FFF7ED",
+              iconColor: "#FF6B35",
+            },
+            {
+              name: "Kinh tế & Quản trị",
+              desc: "Quản trị kinh doanh, Digital Marketing, Tài chính - Ngân hàng",
+              icon: Briefcase,
+              count: (statsByMajor['BA'] ?? 0) + (statsByMajor['MK'] ?? 0) + (statsByMajor['FIN'] ?? 0),
+              search: "Kinh tế",
+              accent: "#FF6B35",
+              iconBg: "#FFF7ED",
+              iconColor: "#FF6B35",
+            },
+            {
+              name: "Thiết kế & Nghệ thuật",
+              desc: "Thiết kế đồ họa, Truyền thông đa phương tiện",
+              icon: Palette,
+              count: (statsByMajor['GD'] ?? 0) + (statsByMajor['MC'] ?? 0),
+              search: "Thiết kế",
+              accent: "#FF6B35",
+              iconBg: "#FFF7ED",
+              iconColor: "#FF6B35",
+            },
+            {
+              name: "Du lịch & Khách sạn",
+              desc: "Quản trị khách sạn, Quản trị du lịch",
+              icon: Trophy,
+              count: statsByMajor['HT'] ?? 0,
+              search: "Khách sạn",
+              accent: "#FF6B35",
+              iconBg: "#FFF7ED",
+              iconColor: "#FF6B35",
+            },
           ].map(g => (
             <div key={g.name} style={{
-              background: "white", borderRadius: 14, padding: "16px 20px",
+              background: "white", borderRadius: 16, padding: "24px",
               border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
-              display: "flex", alignItems: "center", justifyContent: "space-between"
+              display: "flex", flexDirection: "column", justifyContent: "space-between", gap: 16
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              <div style={{ display: "flex", alignItems: "flex-start", gap: 14 }}>
                 <div style={{
-                  width: 40, height: 40, borderRadius: 10,
-                  background: "#FFF7ED", display: "flex", alignItems: "center", justifyContent: "center"
+                  width: 44, height: 44, borderRadius: 12, flexShrink: 0,
+                  background: g.iconBg, display: "flex", alignItems: "center", justifyContent: "center"
                 }}>
-                  <g.icon size={18} color="#FF6B35" />
+                  <g.icon size={20} color={g.iconColor} />
                 </div>
-                <div>
-                  <div style={{ fontSize: 14, fontWeight: 600, color: "#1E293B" }}>{g.name}</div>
-                  <div style={{ fontSize: 12, color: "#94A3B8" }}>{g.count} {g.label}</div>
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: "#0F172A", marginBottom: 4 }}>{g.name}</div>
+                  <div style={{ fontSize: 12, color: "#94A3B8", lineHeight: 1.5 }}>{g.desc}</div>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  const query = g.name === "Thiết kế và Nghệ thuật" ? "Thiết kế" : "Kỹ thuật phần mềm";
-                  navigate(`/officer/applicants?search=${query}`);
-                }}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#FF6B35" }}
-              >
-                <ExternalLink size={16} />
-              </button>
+              <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+                <div>
+                  <div style={{ fontSize: 34, fontWeight: 900, color: "#0F172A", lineHeight: 1 }}>{g.count.toLocaleString()}</div>
+                  <div style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, marginTop: 4 }}>TỔNG HỒ SƠ</div>
+                </div>
+                <button onClick={() => navigate(`/officer/applicants?search=${encodeURIComponent(g.search)}`)} style={{
+                  padding: "9px 20px",
+                  background: g.iconBg === "#1E293B" ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "white",
+                  border: g.iconBg === "#1E293B" ? "none" : "1px solid #E2E8F0",
+                  borderRadius: 10, fontSize: 13, fontWeight: 600,
+                  color: g.iconBg === "#1E293B" ? "white" : "#64748B",
+                  cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                  boxShadow: g.iconBg === "#1E293B" ? "0 4px 12px rgba(255,107,53,0.3)" : "none"
+                }}>
+                  Xem chi tiết <ArrowUpRight size={14} />
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -13,21 +13,54 @@ export default function SectionAcademic({
   files,
   setFiles,
   fetchSchools,
-  showHocBaSection // Pass this flag from parent: true if form.methodId matches Method 1 (Học bạ)
+  showHocBaSection
 }) {
   const fileInputRef = useRef(null);
+  const gpa10FileRef = useRef(null);
+  const gpa11FileRef = useRef(null);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = (key, ref) => (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFiles(prev => ({ ...prev, hocBaFile: e.target.files[0] }));
+      setFiles(prev => ({ ...prev, [key]: e.target.files[0] }));
     }
   };
 
-  const removeFile = (e) => {
+  const removeFile = (key, ref) => (e) => {
     e.stopPropagation();
-    setFiles(prev => ({ ...prev, hocBaFile: null }));
-    if (fileInputRef.current) fileInputRef.current.value = "";
+    setFiles(prev => ({ ...prev, [key]: null }));
+    if (ref?.current) ref.current.value = "";
   };
+
+  const renderUploadRow = (key, label, ref) => (
+    <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+      <span style={{ fontSize: "14px", fontWeight: "600", color: "#1E293B" }}>
+        {label} <span style={{ color: "#EF4444" }}>(*)</span>
+      </span>
+      <div
+        onClick={() => ref.current?.click()}
+        style={{
+          border: files[key] ? "1px solid #10B981" : "1px dashed #CBD5E1",
+          borderRadius: "10px", padding: "14px 16px",
+          backgroundColor: files[key] ? "#F0FDF4" : "#F8FAFC",
+          cursor: "pointer", display: "flex", alignItems: "center",
+          justifyContent: "space-between", transition: "all 0.2s ease"
+        }}
+      >
+        <input type="file" ref={ref} onChange={handleFileChange(key, ref)} accept="image/*,application/pdf" style={{ display: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <Upload size={18} style={{ color: files[key] ? "#10B981" : "#FF6B35" }} />
+          <span style={{ fontSize: "14px", color: files[key] ? "#15803D" : "#475569", fontWeight: files[key] ? "600" : "400" }}>
+            {files[key] ? files[key].name : "Chọn vào đây để tải ảnh lên"}
+          </span>
+        </div>
+        {files[key] && (
+          <button type="button" onClick={removeFile(key, ref)} style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center" }}>
+            <Trash2 size={16} />
+          </button>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "32px" }}>
@@ -210,6 +243,10 @@ export default function SectionAcademic({
             </div>
 
             {/* File Upload minh chứng */}
+            {renderUploadRow("gpa10File", "Upload minh chứng điểm trung bình lớp 10", gpa10FileRef)}
+            {renderUploadRow("gpa11File", "Upload minh chứng điểm trung bình lớp 11", gpa11FileRef)}
+
+            {/* File Upload lớp 12 */}
             <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <span style={{ fontSize: "14px", fontWeight: "600", color: "#1E293B" }}>
                 Upload minh chứng điểm trung bình lớp 12 <span style={{ color: "#EF4444" }}>(*)</span>
@@ -231,7 +268,7 @@ export default function SectionAcademic({
                 <input
                   type="file"
                   ref={fileInputRef}
-                  onChange={handleFileChange}
+                  onChange={handleFileChange("hocBaFile", fileInputRef)}
                   accept="image/*,application/pdf"
                   style={{ display: "none" }}
                 />
@@ -244,38 +281,24 @@ export default function SectionAcademic({
                 {files.hocBaFile && (
                   <button
                     type="button"
-                    onClick={removeFile}
-                    style={{
-                      background: "none",
-                      border: "none",
-                      color: "#EF4444",
-                      cursor: "pointer",
-                      display: "flex",
-                      alignItems: "center"
-                    }}
+                    onClick={removeFile("hocBaFile", fileInputRef)}
+                    style={{ background: "none", border: "none", color: "#EF4444", cursor: "pointer", display: "flex", alignItems: "center" }}
                   >
                     <Trash2 size={16} />
                   </button>
                 )}
               </div>
 
-              {/* Add other files button (Static representation as in image) */}
+              {/* Add other files button */}
               <div style={{ alignSelf: "flex-start", marginTop: "4px" }}>
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
                   style={{
-                    backgroundColor: "#10B981",
-                    color: "white",
-                    border: "none",
-                    borderRadius: "6px",
-                    padding: "6px 12px",
-                    fontSize: "13px",
-                    fontWeight: "600",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "6px",
-                    cursor: "pointer"
+                    backgroundColor: "#10B981", color: "white", border: "none",
+                    borderRadius: "6px", padding: "6px 12px", fontSize: "13px",
+                    fontWeight: "600", display: "flex", alignItems: "center",
+                    gap: "6px", cursor: "pointer"
                   }}
                 >
                   <Plus size={14} /> Thêm tập tin khác

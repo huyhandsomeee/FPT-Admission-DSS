@@ -16,7 +16,13 @@ export default function Step3Confirmation({ form, campuses, majors, methods, fil
   ];
 
   if (selectedMethod?.code === 'HOC_BA') {
-    summary.push(["Điểm TB năm lớp 12", form.gpa12]);
+    summary.push(
+      ["GPA Lớp 10", form.gpa10 || "—"],
+      ["GPA Lớp 11", form.gpa11 || "—"],
+      ["GPA Lớp 12", form.gpa12 || "—"],
+      ["Tổng điểm xét tuyển (GPA 10+11+12)",
+        ((parseFloat(form.gpa10)||0)+(parseFloat(form.gpa11)||0)+(parseFloat(form.gpa12)||0)).toFixed(2), true]
+    );
   } else if (selectedMethod?.code === 'SAT_IELTS') {
     summary.push(["Thuộc diện tuyển thẳng", form.academicAchievement || "—"]);
   }

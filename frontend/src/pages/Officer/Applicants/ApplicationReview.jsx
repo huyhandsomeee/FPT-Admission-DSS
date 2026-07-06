@@ -54,7 +54,14 @@ export default function ApplicationReview() {
           
           if (data.officerNotes) setNotes(data.officerNotes);
           if (data.rejectionReason) setRejectionReason(data.rejectionReason);
-          if (data.totalScore !== null && data.totalScore !== undefined) setScore(data.totalScore);
+          // Tính điểm tự động từ GPA 10+11+12
+          const bg = data.academicBackground;
+          if (bg) {
+            const gpaTotal = ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2);
+            setScore(gpaTotal);
+          } else if (data.totalScore !== null && data.totalScore !== undefined) {
+            setScore(data.totalScore);
+          }
           if (data.status) setDecision(statusLabelMap[data.status] || "Duyệt");
         }
       })

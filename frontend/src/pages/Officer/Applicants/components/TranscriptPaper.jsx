@@ -1,10 +1,11 @@
 import React from "react";
-import { AlertCircle, User, MapPin, Phone } from "lucide-react";
+import { AlertCircle } from "lucide-react";
 
 export default function TranscriptPaper({ app }) {
   const bg = app.academicBackground;
-  const isHocBa = app.methodName?.toLowerCase().includes("học bạ");
-  const totalGpa = bg ? ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2) : null;
+  const totalGpa = bg
+    ? ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2)
+    : null;
 
   return (
     <div style={{ padding: "30px 20px", display: "flex", justifyContent: "center" }}>
@@ -26,67 +27,38 @@ export default function TranscriptPaper({ app }) {
         <div style={{ marginBottom: 20, padding: "14px 16px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0" }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: "#FF6B35", marginBottom: 10, textTransform: "uppercase", letterSpacing: "0.04em" }}>Thông tin thí sinh</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "8px 24px", fontSize: 13, color: "#334155" }}>
-            <div><strong>Họ tên:</strong> {app.fullName}</div>
-            <div><strong>Email:</strong> {app.studentEmail || app.email}</div>
-            <div><strong>Điện thoại:</strong> {app.phone}</div>
-            <div><strong>CCCD:</strong> {app.cccd}</div>
-            <div style={{ gridColumn: "1/-1" }}><strong>Địa chỉ:</strong> {app.permanentAddress}</div>
+            <div><strong>Họ tên:</strong> {app.studentName}</div>
+            <div><strong>Email:</strong> {app.studentEmail}</div>
+            <div><strong>Điện thoại:</strong> {app.studentPhone}</div>
             <div style={{ gridColumn: "1/-1" }}><strong>Trường THPT:</strong> {bg?.schoolName}</div>
           </div>
         </div>
 
         {bg ? (
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            <div style={{ marginTop: 8 }}>
-              <h4 style={{ margin: "0 0 8px", fontSize: 12, color: "#475569", fontWeight: 700 }}>BẢNG ĐIỂM CHI TIẾT:</h4>
-              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, border: "1px solid #CBD5E1" }}>
-                <thead>
-                  <tr style={{ background: "#F1F5F9" }}>
-                    <th style={{ padding: "8px 12px", textAlign: "left", border: "1px solid #CBD5E1", color: "#1E293B", fontWeight: 700 }}>Hạng mục</th>
-                    <th style={{ padding: "8px 12px", textAlign: "right", border: "1px solid #CBD5E1", color: "#1E293B", fontWeight: 700, width: "150px" }}>Điểm số</th>
+          <div style={{ marginTop: 8 }}>
+            <h4 style={{ margin: "0 0 8px", fontSize: 12, color: "#475569", fontWeight: 700 }}>BẢNG ĐIỂM CHI TIẾT:</h4>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12, border: "1px solid #CBD5E1" }}>
+              <thead>
+                <tr style={{ background: "#F1F5F9" }}>
+                  <th style={{ padding: "8px 12px", textAlign: "left", border: "1px solid #CBD5E1", color: "#1E293B", fontWeight: 700 }}>Hạng mục</th>
+                  <th style={{ padding: "8px 12px", textAlign: "right", border: "1px solid #CBD5E1", color: "#1E293B", fontWeight: 700, width: "150px" }}>Điểm số</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[["GPA Lớp 10", bg.gpa10], ["GPA Lớp 11", bg.gpa11], ["GPA Lớp 12", bg.gpa12]].map(([label, val]) => (
+                  <tr key={label} style={{ borderBottom: "1px solid #E2E8F0" }}>
+                    <td style={{ padding: "8px 12px", color: "#475569", fontWeight: 500 }}>{label}</td>
+                    <td style={{ padding: "8px 12px", textAlign: "right", color: "#2563EB", fontWeight: 700, fontSize: 13 }}>
+                      {val ?? "—"}
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {isHocBa ? (
-                    /* Học bạ: chỉ GPA 10/11/12 */
-                    <>
-                      {["GPA Lớp 10", "GPA Lớp 11", "GPA Lớp 12"].map((label, i) => (
-                        <tr key={label} style={{ borderBottom: "1px solid #E2E8F0" }}>
-                          <td style={{ padding: "8px 12px", color: "#475569", fontWeight: 500 }}>{label}</td>
-                          <td style={{ padding: "8px 12px", textAlign: "right", color: "#2563EB", fontWeight: 700, fontSize: 13 }}>
-                            {[bg.gpa10, bg.gpa11, bg.gpa12][i] ?? "—"}
-                          </td>
-                        </tr>
-                      ))}
-                      <tr style={{ background: "#FFF7F4", borderTop: "2px solid #FF6B35" }}>
-                        <td style={{ padding: "10px 12px", color: "#1E293B", fontWeight: 700 }}>Tổng điểm xét tuyển (GPA 10+11+12)</td>
-                        <td style={{ padding: "10px 12px", textAlign: "right", color: "#FF6B35", fontWeight: 800, fontSize: 15 }}>{totalGpa}</td>
-                      </tr>
-                    </>
-                  ) : (
-                    /* Các phương thức khác */
-                    <>
-                      {["Điểm Toán THPT", "Điểm Ngữ văn THPT", "Điểm Tiếng Anh THPT", "Chứng chỉ IELTS", "Điểm thi SAT"].map(([label, field]) => {
-                        const val = bg[field];
-                        if (val === null || val === undefined) return null;
-                        return (
-                          <tr key={field} style={{ borderBottom: "1px solid #E2E8F0" }}>
-                            <td style={{ padding: "8px 12px", color: "#475569", fontWeight: 500 }}>{label}</td>
-                            <td style={{ padding: "8px 12px", textAlign: "right", color: "#FF6B35", fontWeight: 700, fontSize: 13 }}>{val}</td>
-                          </tr>
-                        );
-                      })}
-                      {bg.totalScore && (
-                        <tr style={{ background: "#FFF7F4", borderTop: "2px solid #FF6B35" }}>
-                          <td style={{ padding: "10px 12px", color: "#1E293B", fontWeight: 700 }}>Tổng điểm tổ hợp xét tuyển</td>
-                          <td style={{ padding: "10px 12px", textAlign: "right", color: "#FF6B35", fontWeight: 800, fontSize: 15 }}>{bg.totalScore}</td>
-                        </tr>
-                      )}
-                    </>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                ))}
+                <tr style={{ background: "#FFF7F4", borderTop: "2px solid #FF6B35" }}>
+                  <td style={{ padding: "10px 12px", color: "#1E293B", fontWeight: 700 }}>Tổng điểm xét tuyển (GPA 10+11+12)</td>
+                  <td style={{ padding: "10px 12px", textAlign: "right", color: "#FF6B35", fontWeight: 800, fontSize: 15 }}>{totalGpa}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         ) : (
           <div style={{ textAlign: "center", padding: "40px 0", color: "#94A3B8" }}>
