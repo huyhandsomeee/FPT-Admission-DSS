@@ -38,6 +38,25 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
     @Query("SELECT a.status, COUNT(a) FROM Application a WHERE a.admissionYear.id = :yearId GROUP BY a.status")
     List<Object[]> countByStatusForYear(@Param("yearId") Long yearId);
 
+    // Daily trend: số hồ sơ nộp theo ngày trong N ngày gần nhất
+    @Query(value = "SELECT DATE(submitted_at) as day, COUNT(*) as cnt " +
+           "FROM applications WHERE submitted_at >= :since AND submitted_at IS NOT NULL " +
+           "GROUP BY DATE(submitted_at) ORDER BY day ASC", nativeQuery = true)
+    List<Object[]> countDailySubmissions(@Param("since") LocalDateTime since);
+
+    // Tỷ lệ chuyển đổi: submitted -> approved/enrolled
+    @Query("SELECT COUNT(a) FROM Application a WHERE a.status IN :statuses AND a.admissionYear.id = :yearId")
+    long countByStatusesAndYear(@Param("statuses") List<ApplicationStatus> statuses, @Param("yearId") Long yearId);
+
+    // Top hồ sơ tiềm năng cao (dựa trên GPA 10+11+12)
+    @Query("SELECT a FROM Application a " +
+           "JOIN FETCH a.studentProfile sp JOIN FETCH sp.user u " +
+           "LEFT JOIN FETCH sp.academicBackground ab " +
+           "WHERE a.admissionYear.id = :yearId AND a.status IN ('SUBMITTED','UNDER_REVIEW') " +
+           "AND ab IS NOT NULL AND ab.gpa10 IS NOT NULL AND ab.gpa11 IS NOT NULL AND ab.gpa12 IS NOT NULL " +
+           "ORDER BY (ab.gpa10 + ab.gpa11 + ab.gpa12) DESC")
+    List<Application> findTopPotentialApplications(@Param("yearId") Long yearId, Pageable pageable);
+
     @Query(value = "SELECT a FROM Application a " +
            "JOIN FETCH a.studentProfile sp JOIN FETCH sp.user u " +
             "WHERE (:status IS NULL OR a.status = :status) AND " +

@@ -433,25 +433,26 @@
     (16, 24, 'GD260001', '2007-06-06', 'FEMALE', '123 Nguyễn Thị Thập, Q7, TP. HCM',        2, '079207016016', 'Vũ Văn Tài',      '0912000016'),
     (17, 25, 'AI260002', '2007-09-09', 'MALE',   '9 Quang Trung, TP. Quy Nhơn, Bình Định',   5, '052207017017', 'Lý Văn Ân',       '0912000017');
 
-    -- 10. Academic Backgrounds
+    -- 10. Academic Backgrounds (đầy đủ GPA lớp 10, 11, 12 cho tất cả hồ sơ)
+    -- potential_score = gpa_10 + gpa_11 + gpa_12 (tổng 3 năm, tối đa 30.0)
     INSERT IGNORE INTO academic_backgrounds (id, student_profile_id, school_name, school_province_id, graduation_year, gpa_10, gpa_11, gpa_12, math_score, literature_score, english_score, total_score, ielts_score) VALUES
-    (1,  1,  'THPT Chu Văn An',              1, 2026, 8.7, 8.8, 8.9, 8.5, 7.5, 9.0, 26.40, 7.0),
-    (2,  2,  'THPT Lê Hồng Phong',          2, 2026, 7.9, 8.0, 8.2, 7.5, 8.0, 7.0, 24.10, NULL),
-    (3,  3,  'THPT Trần Phú',               3, 2026, 8.2, 8.3, 8.5, 8.0, 7.0, 8.5, 25.00, NULL),
-    (4,  4,  'THPT Châu Văn Liêm',          4, 2026, 7.8, 7.9, 8.0, 7.0, 7.5, 7.0, 23.70, NULL),
-    (5,  5,  'THPT Quốc Học Quy Nhơn',      5, 2026, 9.0, 9.1, 9.3, 9.0, 8.5, 9.5, 27.40, 8.0),
-    (6,  6,  'THPT Thái Phiên',             6, 2026, 8.4, 8.5, 8.6, 8.5, 7.8, 8.0, 25.50, NULL),
-    (7,  7,  'THPT Việt Đức',               1, 2026, 7.5, 7.6, 7.8, 7.5, 7.0, 7.5, 22.90, NULL),
-    (8,  8,  'THPT Marie Curie',            2, 2026, 8.8, 9.0, 9.1, 8.5, 8.8, 9.0, 26.90, 7.5),
-    (9,  9,  'THPT Phan Châu Trinh',        3, 2026, 7.2, 7.3, 7.5, 7.0, 7.5, 6.5, 22.00, NULL),
-    (10, 10, 'THPT Thủ Khoa Nghĩa',         4, 2026, 8.5, 8.6, 8.8, 8.0, 8.5, 8.0, 25.90, NULL),
-    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 8.0, 8.1, 8.3, 8.0, 7.5, 8.0, 24.40, NULL),
-    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.2, 9.3, 9.5, 9.5, 9.0, 9.5, 28.00, 8.5),
-    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.6, 7.7, 7.9, 7.0, 7.8, 7.0, 23.20, NULL),
-    (14, 14, 'THPT Châu Thành',             4, 2026, 8.1, 8.2, 8.4, 7.5, 8.0, 7.5, 24.70, NULL),
-    (15, 15, 'THPT Kim Liên',               1, 2026, 8.7, 8.8, 9.0, 8.5, 8.0, 8.5, 26.50, NULL),
-    (16, 16, 'THPT Gia Định',               2, 2026, 7.5, 7.6, 7.8, 7.0, 7.5, 7.0, 22.90, NULL),
-    (17, 17, 'THPT Quang Trung',            5, 2026, 8.4, 8.5, 8.7, 8.5, 8.0, 8.5, 25.60, NULL);
+    (1,  1,  'THPT Chu Văn An',             1, 2026, 8.70, 8.80, 8.90, 8.5, 7.5, 9.0, 26.40, 7.0),
+    (2,  2,  'THPT Lê Hồng Phong',         2, 2026, 7.90, 8.00, 8.20, 7.5, 8.0, 7.0, 24.10, NULL),
+    (3,  3,  'THPT Trần Phú',              3, 2026, 8.20, 8.30, 8.50, 8.0, 7.0, 8.5, 25.00, NULL),
+    (4,  4,  'THPT Châu Văn Liêm',         4, 2026, 7.80, 7.90, 8.00, 7.0, 7.5, 7.0, 23.70, NULL),
+    (5,  5,  'THPT Quốc Học Quy Nhơn',     5, 2026, 9.00, 9.10, 9.30, 9.0, 8.5, 9.5, 27.40, 8.0),
+    (6,  6,  'THPT Thái Phiên',            6, 2026, 8.40, 8.50, 8.60, 8.5, 7.8, 8.0, 25.50, NULL),
+    (7,  7,  'THPT Việt Đức',              1, 2026, 7.50, 7.60, 7.80, 7.5, 7.0, 7.5, 22.90, NULL),
+    (8,  8,  'THPT Marie Curie',           2, 2026, 8.80, 9.00, 9.10, 8.5, 8.8, 9.0, 26.90, 7.5),
+    (9,  9,  'THPT Phan Châu Trinh',       3, 2026, 7.20, 7.30, 7.50, 7.0, 7.5, 6.5, 22.00, NULL),
+    (10, 10, 'THPT Thủ Khoa Nghĩa',        4, 2026, 8.50, 8.60, 8.80, 8.0, 8.5, 8.0, 25.90, NULL),
+    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 8.00, 8.10, 8.30, 8.0, 7.5, 8.0, 24.40, NULL),
+    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.20, 9.30, 9.50, 9.5, 9.0, 9.5, 28.00, 8.5),
+    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.60, 7.70, 7.90, 7.0, 7.8, 7.0, 23.20, NULL),
+    (14, 14, 'THPT Châu Thành',            4, 2026, 8.10, 8.20, 8.40, 7.5, 8.0, 7.5, 24.70, NULL),
+    (15, 15, 'THPT Kim Liên',              1, 2026, 8.70, 8.80, 9.00, 8.5, 8.0, 8.5, 26.50, NULL),
+    (16, 16, 'THPT Gia Định',              2, 2026, 7.50, 7.60, 7.80, 7.0, 7.5, 7.0, 22.90, NULL),
+    (17, 17, 'THPT Quang Trung',           5, 2026, 8.40, 8.50, 8.70, 8.5, 8.0, 8.5, 25.60, NULL);
 
     -- 11. Applications (Tạo 1000+ mã hồ sơ chia đều các ngành)
     -- Công nghệ thông tin (SE, AI, IS): 450 hồ sơ
@@ -809,7 +810,8 @@
 -- ============================================================
 -- SEED: Tạo 1000 mã hồ sơ chia đều các ngành (năm 2026)
 -- SE:350 | BA:250 | AI:100 | GD:100 | IS:50 | MC:50 | HT:50 | FIN:50
--- Chạy sau khi đã insert 17 hồ sơ mẫu ở trên
+-- submitted_at trải đều 90 ngày để trend chart có dữ liệu thực
+-- potential_score = gpa_10 + gpa_11 + gpa_12 (được tính trong service)
 -- ============================================================
 DROP PROCEDURE IF EXISTS SeedApplications;
 
@@ -824,27 +826,34 @@ BEGIN
     DECLARE v_score      DECIMAL(5,2);
     DECLARE v_days_ago   INT;
     DECLARE v_code       VARCHAR(30);
+    DECLARE v_gpa10      DECIMAL(4,2);
+    DECLARE v_gpa11      DECIMAL(4,2);
+    DECLARE v_gpa12      DECIMAL(4,2);
 
-    -- Helper: map (major_code, batch) -> (major_id, campus_id)
-    -- SE: 1(HL),8(HCM),13(DN),16(CT)  AI: 2(HL),9(HCM)  IS: 3(HL)
-    -- BA: 4(HL),10(HCM),14(DN),17(CT) GD: 7(HL),12(HCM) MC: 6(HL)
-    -- HT: 15(DN)  FIN: 11(HCM)
-
-    -- ---- SE: 350 hồ sơ (id 18..367) ----
+    -- ---- SE: 350 hồ sơ ----
     SET i = 1;
     WHILE i <= 350 DO
         SET v_major_id  = ELT((i-1) MOD 4 + 1, 1, 8, 13, 16);
         SET v_campus_id = ELT((i-1) MOD 4 + 1, 1, 2,  3,  4);
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
+        SET v_gpa10     = ROUND(6.5 + (i MOD 35) * 0.1, 2);
+        SET v_gpa11     = ROUND(v_gpa10 + 0.1 + (i MOD 5) * 0.05, 2);
+        SET v_gpa12     = ROUND(v_gpa11 + 0.1 + (i MOD 5) * 0.05, 2);
         SET v_code      = CONCAT('SE26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
         VALUES
             (v_code, (i MOD 17)+1, 3, v_campus_id, v_major_id, v_method_id, 1, v_score, v_status,
              DATE_SUB(NOW(), INTERVAL v_days_ago DAY), DATE_SUB(NOW(), INTERVAL v_days_ago DAY));
+        -- Cập nhật GPA cho student_profile tương ứng (nếu chưa có)
+        UPDATE academic_backgrounds SET
+            gpa_10 = COALESCE(gpa_10, v_gpa10),
+            gpa_11 = COALESCE(gpa_11, v_gpa11),
+            gpa_12 = COALESCE(gpa_12, v_gpa12)
+        WHERE student_profile_id = (i MOD 17)+1 AND gpa_10 IS NULL;
         SET i = i + 1;
     END WHILE;
 
@@ -854,9 +863,9 @@ BEGIN
         SET v_major_id  = ELT((i-1) MOD 4 + 1, 4, 10, 14, 17);
         SET v_campus_id = ELT((i-1) MOD 4 + 1, 1,  2,  3,  4);
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('BA26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -872,9 +881,9 @@ BEGIN
         SET v_major_id  = IF(i MOD 2 = 0, 2, 9);
         SET v_campus_id = IF(i MOD 2 = 0, 1, 2);
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(20.0 + (i MOD 100) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('AI26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -890,9 +899,9 @@ BEGIN
         SET v_major_id  = IF(i MOD 2 = 0, 7, 12);
         SET v_campus_id = IF(i MOD 2 = 0, 1,  2);
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('GD26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -906,9 +915,9 @@ BEGIN
     SET i = 1;
     WHILE i <= 50 DO
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(20.0 + (i MOD 100) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('IS26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -922,9 +931,9 @@ BEGIN
     SET i = 1;
     WHILE i <= 50 DO
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('MC26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -938,9 +947,9 @@ BEGIN
     SET i = 1;
     WHILE i <= 50 DO
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('HT26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)
@@ -954,9 +963,9 @@ BEGIN
     SET i = 1;
     WHILE i <= 50 DO
         SET v_method_id = (i-1) MOD 4 + 1;
-        SET v_status    = ELT((i-1) MOD 3 + 1, 'SUBMITTED', 'UNDER_REVIEW', 'APPROVED');
+        SET v_status    = ELT((i-1) MOD 6 + 1, 'SUBMITTED','SUBMITTED','UNDER_REVIEW','UNDER_REVIEW','APPROVED','APPROVED');
         SET v_score     = ROUND(18.0 + (i MOD 120) * 0.1, 2);
-        SET v_days_ago  = (i MOD 30) + 1;
+        SET v_days_ago  = (i MOD 90) + 1;
         SET v_code      = CONCAT('FIN26', LPAD(i, 4, '0'));
         INSERT IGNORE INTO applications
             (application_code,student_profile_id,admission_year_id,campus_id,major_id,admission_method_id,priority_number,total_score,status,submitted_at,created_at)

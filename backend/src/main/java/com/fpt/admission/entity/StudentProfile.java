@@ -71,6 +71,9 @@ public class StudentProfile {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @OneToOne(mappedBy = "studentProfile", fetch = FetchType.LAZY)
+    private AcademicBackground academicBackground;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

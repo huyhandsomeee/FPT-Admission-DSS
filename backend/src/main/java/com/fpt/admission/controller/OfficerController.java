@@ -5,6 +5,7 @@ import com.fpt.admission.entity.enums.ApplicationStatus;
 import com.fpt.admission.entity.enums.UserRole;
 import com.fpt.admission.repository.*;
 import com.fpt.admission.security.JwtUtil;
+import com.fpt.admission.service.OfficerService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -13,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import java.util.*;
+import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/officer")
@@ -25,6 +27,68 @@ public class OfficerController {
     private final NotificationRepository notificationRepository;
     private final JwtUtil jwtUtil;
     private final JdbcTemplate jdbcTemplate;
+    private final OfficerService officerService;
+
+    @GetMapping("/dashboard")
+    public ResponseEntity<?> getDashboard() {
+        return ResponseEntity.ok(officerService.getDashboardStats());
+    }
+
+    @GetMapping("/dashboard/stats")
+    public ResponseEntity<?> getDashboardStatsAlias() {
+        return ResponseEntity.ok(officerService.getDashboardStats());
+    }
+
+    @GetMapping("/dashboard/by-major")
+    public ResponseEntity<?> getStatsByMajor() {
+        return ResponseEntity.ok(officerService.getStatsByMajor());
+    }
+
+    @GetMapping("/dashboard/by-status")
+    public ResponseEntity<?> getStatsByStatus() {
+        return ResponseEntity.ok(officerService.getStatsByStatus());
+    }
+
+    @GetMapping("/dashboard/by-method")
+    public ResponseEntity<?> getStatsByMethod() {
+        return ResponseEntity.ok(officerService.getStatsByMethod());
+    }
+
+    @GetMapping("/dashboard/by-campus")
+    public ResponseEntity<?> getStatsByCampus() {
+        return ResponseEntity.ok(officerService.getStatsByCampus());
+    }
+
+    @GetMapping("/dashboard/daily-trend")
+    public ResponseEntity<?> getDailyTrend(@RequestParam(defaultValue = "30") int days) {
+        return ResponseEntity.ok(officerService.getDailyTrend(Math.min(days, 90)));
+    }
+
+    @GetMapping("/dashboard/trend")
+    public ResponseEntity<?> getDashboardTrend(@RequestParam(defaultValue = "7") int days) {
+        return ResponseEntity.ok(officerService.getDailyTrend(Math.min(days, 90)));
+    }
+
+    @GetMapping("/dashboard/conversion-rates")
+    public ResponseEntity<?> getConversionRates() {
+        return ResponseEntity.ok(officerService.getConversionRates());
+    }
+
+    @GetMapping("/dashboard/ai-prediction")
+    public ResponseEntity<?> getAIPrediction() {
+        return ResponseEntity.ok(officerService.getAIPrediction());
+    }
+
+    @GetMapping("/dashboard/top-potential")
+    public ResponseEntity<?> getTopPotential(@RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(officerService.getTopPotentialApplications(Math.min(limit, 50)));
+    }
+
+    @GetMapping("/dashboard/smart-suggestions")
+    public ResponseEntity<?> getSmartSuggestions() {
+        return ResponseEntity.ok(officerService.getSmartSuggestions());
+    }
+
 
     @GetMapping("/applications")
     public ResponseEntity<?> getApplications(
@@ -187,6 +251,14 @@ public class OfficerController {
         m.put("totalScore", a.getTotalScore());
         m.put("submittedAt", a.getSubmittedAt());
         m.put("createdAt", a.getCreatedAt());
+
+        var ab = a.getStudentProfile() != null ? a.getStudentProfile().getAcademicBackground() : null;
+        double gpa10 = ab != null && ab.getGpa10() != null ? ab.getGpa10().doubleValue() : 0.0;
+        double gpa11 = ab != null && ab.getGpa11() != null ? ab.getGpa11().doubleValue() : 0.0;
+        double gpa12 = ab != null && ab.getGpa12() != null ? ab.getGpa12().doubleValue() : 0.0;
+        double potentialScore = Math.round((gpa10 + gpa11 + gpa12) * 100.0) / 100.0;
+        m.put("potentialScore", potentialScore);
+
         return m;
     }
 

@@ -428,8 +428,8 @@ export default function ApplicantList() {
                       </td>
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
                         {(() => {
-                          const val = parseFloat(app.totalScore) || 0;
-                          const color = val >= 25 ? "#16A34A" : val >= 20 ? "#FF6B35" : "#DC2626";
+                          const val = parseFloat(app.potentialScore) || 0;
+                          const color = val >= 27 ? "#16A34A" : val >= 24 ? "#FF6B35" : "#DC2626";
                           return <span style={{ fontSize: 15, fontWeight: 800, color }}>{val.toFixed(2)}</span>;
                         })()}
                       </td>
