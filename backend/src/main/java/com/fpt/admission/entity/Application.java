@@ -61,6 +61,39 @@ public class Application {
     @Column(name = "officer_notes", columnDefinition = "TEXT")
     private String officerNotes;
 
+    @Column(name = "moet_registered_at")
+    private LocalDateTime moetRegisteredAt;
+
+    @Column(name = "moet_released_at")
+    private LocalDateTime moetReleasedAt;
+
+    @Column(name = "enrolled_at")
+    private LocalDateTime enrolledAt;
+
+    @Column(name = "fee_paid_at")
+    private LocalDateTime feePaidAt;
+
+    @Column(name = "chk_confirm_enrollment")
+    private Boolean chkConfirmEnrollment = false;
+
+    @Column(name = "chk_pay_fee")
+    private Boolean chkPayFee = false;
+
+    @Column(name = "chk_declare_info")
+    private Boolean chkDeclareInfo = false;
+
+    @Column(name = "chk_upload_cccd")
+    private Boolean chkUploadCccd = false;
+
+    @Column(name = "chk_upload_photo")
+    private Boolean chkUploadPhoto = false;
+
+    @Column(name = "chk_register_dorm")
+    private Boolean chkRegisterDorm = false;
+
+    @Column(name = "chk_print_letter")
+    private Boolean chkPrintLetter = false;
+
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 

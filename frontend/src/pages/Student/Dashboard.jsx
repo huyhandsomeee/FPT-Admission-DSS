@@ -29,6 +29,123 @@ export default function StudentDashboard() {
   const [latestNotif, setLatestNotif] = useState(null);
   const [showNotifModal, setShowNotifModal] = useState(false);
 
+  const [moetChecked, setMoetChecked] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
+  
+  // Preference confirmation modal states
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmDate, setConfirmDate] = useState(new Date().toISOString().split("T")[0]);
+  const [preferenceOrder, setPreferenceOrder] = useState("1");
+  const [confirmMajorName, setConfirmMajorName] = useState("");
+  const [confirmMajorCode, setConfirmMajorCode] = useState("");
+  const [evidenceImage, setEvidenceImage] = useState("");
+  const [confirmNote, setConfirmNote] = useState("");
+  const [commitCheckbox, setCommitCheckbox] = useState(false);
+  const [checklistState, setChecklistState] = useState({
+    chkConfirmEnrollment: false,
+    chkPayFee: false,
+    chkDeclareInfo: false,
+    chkUploadCccd: false,
+    chkUploadPhoto: false,
+    chkRegisterDorm: false,
+    chkPrintLetter: false,
+  });
+  const [checklistProgress, setChecklistProgress] = useState(0);
+
+  const VISUAL_STEPS = ["SUBMITTED", "APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED"];
+  const VISUAL_STEP_LABELS = {
+    SUBMITTED: "Nộp hồ sơ",
+    APPROVED: "Đủ điều kiện",
+    REGISTERED_MOET: "Sinh viên đã xác nhận đăng ký NV",
+    WAITING_MOET: "Chờ đồng bộ Bộ GDĐT",
+    ACCEPTED_MOET: "Trúng tuyển chính thức",
+    ENROLLED: "Nhập học",
+  };
+
+  const getVisualStepIdx = (status) => {
+    const mapping = {
+      DRAFT: -1,
+      SUBMITTED: 0,
+      UNDER_REVIEW: 0,
+      APPROVED: 1,
+      REGISTERED_MOET: 2,
+      WAITING_MOET: 3,
+      ACCEPTED_MOET: 4,
+      ENROLLED: 5,
+      REJECTED: -1,
+    };
+    return mapping[status] ?? -1;
+  };
+
+  useEffect(() => {
+    if (data && data.applications && data.applications[0]) {
+      const app = data.applications[0];
+      const initialChecklist = {
+        chkConfirmEnrollment: app.chkConfirmEnrollment || false,
+        chkPayFee: app.chkPayFee || false,
+        chkDeclareInfo: app.chkDeclareInfo || false,
+        chkUploadCccd: app.chkUploadCccd || false,
+        chkUploadPhoto: app.chkUploadPhoto || false,
+        chkRegisterDorm: app.chkRegisterDorm || false,
+        chkPrintLetter: app.chkPrintLetter || false,
+      };
+      setChecklistState(initialChecklist);
+
+      const checked = Object.values(initialChecklist).filter(Boolean).length;
+      setChecklistProgress(Math.round((checked / 7) * 100));
+    }
+  }, [data]);
+
+  const handleConfirmModalSubmit = () => {
+    if (!data.applications?.[0]) return;
+    if (!commitCheckbox) {
+      alert("Vui lòng tích chọn cam kết thông tin là đúng.");
+      return;
+    }
+    const currentApp = data.applications[0];
+    setActionLoading(true);
+    api.post(`/api/student/applications/${currentApp.id}/confirm-moet`, {
+      preferenceOrder: parseInt(preferenceOrder),
+      majorCode: confirmMajorCode,
+      majorName: confirmMajorName,
+      evidenceImage: evidenceImage || null,
+      note: confirmNote
+    })
+      .then(res => {
+        alert("Xác nhận đăng ký nguyện vọng Bộ thành công!");
+        setShowConfirmModal(false);
+        api.get("/api/student/dashboard").then(r => setData(r.data));
+      })
+      .catch(err => {
+        console.error(err);
+        alert(err.response?.data?.message || "Lỗi khi xác nhận nguyện vọng.");
+      })
+      .finally(() => setActionLoading(false));
+  };
+
+  const handleChecklistChange = (key, val) => {
+    const updated = { ...checklistState, [key]: val };
+    setChecklistState(updated);
+    const checked = Object.values(updated).filter(Boolean).length;
+    setChecklistProgress(Math.round((checked / 7) * 100));
+  };
+
+  const handleSaveChecklist = () => {
+    if (!data.applications?.[0]) return;
+    const currentApp = data.applications[0];
+    setActionLoading(true);
+    api.put(`/api/student/applications/${currentApp.id}/checklist`, checklistState)
+      .then(res => {
+        alert("Lưu tiến độ làm thủ tục thành công!");
+        api.get("/api/student/dashboard").then(r => setData(r.data));
+      })
+      .catch(err => {
+        console.error(err);
+        alert("Lỗi khi lưu checklist.");
+      })
+      .finally(() => setActionLoading(false));
+  };
+
   useEffect(() => {
     api.get("/api/student/dashboard")
       .then(r => setData(r.data))
@@ -154,6 +271,147 @@ export default function StudentDashboard() {
         ))}
       </div>
 
+      {/* Card Đăng ký nguyện vọng (nếu APPROVED) */}
+      {currentApp && currentApp.status === "APPROVED" && (
+        <div style={{
+          background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)",
+          borderRadius: "18px", padding: "24px 28px",
+          border: "1px solid #FFEDD5",
+          boxShadow: "0 10px 25px -5px rgba(253,186,116,0.2)",
+          position: "relative", overflow: "hidden",
+          animation: "slide-down 0.4s ease"
+        }}>
+          <div style={{ position: "absolute", right: "-20px", top: "-20px", width: "180px", height: "180px", background: "rgba(255,107,53,0.06)", borderRadius: "50%" }} />
+          <h3 style={{ margin: "0 0 12px", color: "#C2410C", fontWeight: "800", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
+            <span>🎉</span> Chúc mừng bạn đã Đủ Điều Kiện xét tuyển sơ bộ!
+          </h3>
+          <p style={{ margin: "0 0 16px", color: "#7C2D12", fontSize: "14px", lineHeight: "1.6" }}>
+            Hồ sơ của bạn đã vượt qua vòng thẩm định học bạ. Để hoàn tất quy trình tuyển sinh theo đúng quy chế của Bộ GD&ĐT, bạn vui lòng đăng ký nguyện vọng Đại học FPT trên cổng thông tin tuyển sinh của Bộ:
+          </p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #FED7AA", marginBottom: "20px" }}>
+            <div>
+              <span style={{ fontSize: "12px", color: "#9A3412", fontWeight: "600" }}>Mã trường:</span>
+              <div style={{ fontSize: "18px", fontWeight: "800", color: "#C2410C", marginTop: "2px" }}>FPT</div>
+            </div>
+            <div>
+              <span style={{ fontSize: "12px", color: "#9A3412", fontWeight: "600" }}>Mã ngành xét tuyển:</span>
+              <div style={{ fontSize: "18px", fontWeight: "800", color: "#C2410C", marginTop: "2px" }}>
+                {currentApp.majorCode || "7480101"}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#FFEDD5", padding: "10px 14px", borderRadius: "10px", borderLeft: "4px solid #FF6B35", fontSize: "13px", color: "#9A3412", fontWeight: "600", marginBottom: "20px" }}>
+            <span>💡</span> Khuyến nghị: Vui lòng đặt nguyện vọng này ở vị trí <strong>Nguyện vọng 1</strong> để đảm bảo khả năng trúng tuyển cao nhất! Hạn chót Bộ GDĐT khóa cổng là 30/07/2026.
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <button
+              onClick={() => {
+                setConfirmMajorName(currentApp.majorName);
+                setConfirmMajorCode(currentApp.majorCode || "7480101");
+                setShowConfirmModal(true);
+              }}
+              style={{
+                alignSelf: "flex-start",
+                padding: "10px 24px",
+                background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+                color: "white",
+                border: "none",
+                borderRadius: "10px",
+                fontWeight: "700",
+                fontSize: "14px",
+                cursor: "pointer",
+                boxShadow: "0 4px 12px rgba(255,107,53,0.3)",
+                transition: "all 0.2s"
+              }}
+            >
+              Tôi đã đăng ký nguyện vọng
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Checklist Nhập học (nếu ACCEPTED_MOET hoặc ENROLLED) */}
+      {currentApp && (currentApp.status === "ACCEPTED_MOET" || currentApp.status === "ENROLLED") && (
+        <div className="student-card" style={{ padding: "24px 28px", border: "1px solid #E8ECF1", background: "white" }}>
+          <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800", color: "#1E293B" }}>
+            🎉 Chúc mừng! Bạn đã trúng tuyển chính thức.
+          </h3>
+          <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#64748B" }}>
+            Chào mừng bạn đến với Đại học FPT! Vui lòng hoàn tất danh sách thủ tục dưới đây để chuẩn bị nhập học.
+          </p>
+
+          {/* Progress bar */}
+          <div style={{ marginBottom: "20px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: "700", color: "#FF6B35", marginBottom: "6px" }}>
+              <span>Tiến trình hoàn thành</span>
+              <span>{checklistProgress}%</span>
+            </div>
+            <div style={{ width: "100%", height: "8px", background: "#F1F5F9", borderRadius: "99px", overflow: "hidden" }}>
+              <div style={{ width: `${checklistProgress}%`, height: "100%", background: "linear-gradient(90deg, #FF6B35, #E85A2A)", borderRadius: "99px", transition: "width 0.4s ease" }} />
+            </div>
+          </div>
+
+          {/* Checklist items */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
+            {[
+              { key: "chkConfirmEnrollment", label: "Xác nhận nhập học trực tuyến trên hệ thống Bộ GDĐT", desc: "Xác nhận nguyện vọng nhập học chính thức vào Đại học FPT." },
+              { key: "chkPayFee", label: "Nộp học phí kỳ đầu tiên (21.000.000 VNĐ)", desc: "Hoàn tất nộp phí giữ chỗ/học phí để nhận mã số sinh viên chính thức." },
+              { key: "chkDeclareInfo", label: "Khai báo lý lịch thông tin cá nhân", desc: "Cập nhật hồ sơ học viên trực tuyến." },
+              { key: "chkUploadCccd", label: "Tải lên bản sao công chứng CCCD/CMND", desc: "Cung cấp giấy tờ tùy thân hợp lệ." },
+              { key: "chkUploadPhoto", label: "Tải lên ảnh chân dung 3x4 làm thẻ sinh viên", desc: "Ảnh nền trắng rõ mặt, chụp trong vòng 6 tháng." },
+              { key: "chkRegisterDorm", label: "Đăng ký dịch vụ Ký túc xá (KTX) - Tùy chọn", desc: "Nếu bạn có nhu cầu đăng ký chỗ ở nội trú tại khu đô thị Đại học FPT." },
+              { key: "chkPrintLetter", label: "In giấy báo trúng tuyển & nhập học", desc: "Lưu trữ bản giấy làm thủ tục nhập học thực tế ngày hội quân." }
+            ].map(item => {
+              const checked = checklistState[item.key] || false;
+              return (
+                <label key={item.key} style={{
+                  display: "flex", alignItems: "flex-start", gap: "12px",
+                  padding: "12px 14px", borderRadius: "10px",
+                  border: checked ? "1px solid #FFEDD5" : "1px solid #F1F5F9",
+                  background: checked ? "#FFFDFB" : "#FAFAFA",
+                  cursor: "pointer", transition: "all 0.2s"
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => handleChecklistChange(item.key, e.target.checked)}
+                    disabled={actionLoading}
+                    style={{ width: "18px", height: "18px", accentColor: "#FF6B35", marginTop: "2px", cursor: "pointer" }}
+                  />
+                  <div>
+                    <div style={{ fontSize: "14px", fontWeight: "700", color: checked ? "#C2410C" : "#334155" }}>
+                      {item.label}
+                    </div>
+                    <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px" }}>
+                      {item.desc}
+                    </div>
+                  </div>
+                </label>
+              );
+            })}
+          </div>
+
+          <button
+            onClick={handleSaveChecklist}
+            disabled={actionLoading}
+            style={{
+              padding: "10px 20px",
+              background: "linear-gradient(135deg, #1E293B, #0F172A)",
+              color: "white",
+              border: "none",
+              borderRadius: "10px",
+              fontWeight: "700",
+              fontSize: "13px",
+              cursor: "pointer",
+              boxShadow: "0 4px 12px rgba(15,23,42,0.15)",
+              transition: "all 0.2s"
+            }}
+          >
+            {actionLoading ? "Đang lưu..." : "Lưu tiến độ làm thủ tục"}
+          </button>
+        </div>
+      )}
+
       {/* Main Sections Grid */}
       <div className="student-grid-3">
         {/* Application Progress */}
@@ -168,24 +426,28 @@ export default function StudentDashboard() {
             <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
               {currentApp ? (
                 <div>
-                  <div className="student-step-container">
-                    <div className="student-step-line"></div>
-                    {STEPS.map((step, idx) => {
-                      const isDone = idx <= currentStepIdx;
-                      const isCurrent = idx === currentStepIdx;
-                      const sConfig = STATUS_CONFIG[step];
+                  <div className="student-step-container" style={{ display: "flex", justifyContent: "space-between", position: "relative", marginBottom: "24px", padding: "0 8px" }}>
+                    <div className="student-step-line" style={{ position: "absolute", top: "15px", left: "24px", right: "24px", height: "3px", backgroundColor: "#E2E8F0", zIndex: 0 }}>
+                      <div style={{ width: getVisualStepIdx(currentApp.status) >= 0 ? `${(getVisualStepIdx(currentApp.status) / (VISUAL_STEPS.length - 1)) * 100}%` : "0%", height: "100%", background: "linear-gradient(90deg, #FF6B35, #E85A2A)", transition: "width 0.5s ease" }} />
+                    </div>
+                    {VISUAL_STEPS.map((step, idx) => {
+                      const isDone = idx <= getVisualStepIdx(currentApp.status);
+                      const isCurrent = idx === getVisualStepIdx(currentApp.status);
                       return (
-                        <div key={step} className="student-step-node">
+                        <div key={step} className="student-step-node" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", position: "relative", zIndex: 1, flex: 1 }}>
                           <div className="student-step-circle" style={{
+                            width: "32px", height: "32px", borderRadius: "50%",
+                            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "800",
                             background: isDone ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "white",
                             color: isDone ? "white" : "#94A3B8",
                             border: isDone ? "none" : "2px solid #E2E8F0",
-                            boxShadow: isDone ? "0 4px 12px rgba(255,107,53,0.25)" : "none"
+                            boxShadow: isDone ? "0 4px 12px rgba(255,107,53,0.25)" : "none",
+                            transition: "all 0.3s ease"
                           }}>
                             {isDone && !isCurrent ? "✓" : idx + 1}
                           </div>
-                          <span style={{ fontSize: "11px", fontWeight: "600", color: isDone ? "#E85A2A" : "#94A3B8" }}>
-                            {sConfig?.label}
+                          <span style={{ fontSize: "10px", fontWeight: "700", color: isCurrent ? "#E85A2A" : isDone ? "#FF6B35" : "#94A3B8", textAlign: "center", maxWidth: "80px" }}>
+                            {VISUAL_STEP_LABELS[step]}
                           </span>
                         </div>
                       );
@@ -317,6 +579,128 @@ export default function StudentDashboard() {
           </div>
         </div>
       </Link>
+
+      {/* Dialog Xác nhận Đăng ký nguyện vọng */}
+      {showConfirmModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "white", borderRadius: 16, width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", boxShadow: "0 20px 50px rgba(0,0,0,0.2)", overflow: "hidden" }}>
+            {/* Modal Header */}
+            <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ color: "white", fontWeight: 800, fontSize: 16 }}>Xác nhận nguyện vọng tuyển sinh</div>
+              <button onClick={() => setShowConfirmModal(false)} style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}>
+                <X size={18} />
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>NGÀY ĐĂNG KÝ</label>
+                <input
+                  type="date"
+                  value={confirmDate}
+                  onChange={e => setConfirmDate(e.target.value)}
+                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>THỨ TỰ NGUYỆN VỌNG</label>
+                <select
+                  value={preferenceOrder}
+                  onChange={e => setPreferenceOrder(e.target.value)}
+                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13, background: "white" }}
+                >
+                  <option value="1">Nguyện vọng 1 (Khuyến nghị)</option>
+                  <option value="2">Nguyện vọng 2</option>
+                  <option value="3">Nguyện vọng 3</option>
+                  <option value="4">Nguyện vọng 4</option>
+                  <option value="5">Nguyện vọng 5</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>NGÀNH ĐÃ ĐĂNG KÝ</label>
+                <input
+                  type="text"
+                  value={confirmMajorName}
+                  onChange={e => setConfirmMajorName(e.target.value)}
+                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>MÃ NGÀNH</label>
+                <input
+                  type="text"
+                  value={confirmMajorCode}
+                  onChange={e => setConfirmMajorCode(e.target.value)}
+                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>UPLOAD ẢNH MINH CHỨNG (KHÔNG BẮT BUỘC)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setEvidenceImage(reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ fontSize: 12 }}
+                />
+                {evidenceImage && (
+                  <div style={{ marginTop: 6, border: "1px solid #E2E8F0", borderRadius: 6, overflow: "hidden", maxWidth: 120 }}>
+                    <img src={evidenceImage} alt="Minh chứng" style={{ width: "100%", height: "auto" }} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>GHI CHÚ</label>
+                <textarea
+                  value={confirmNote}
+                  onChange={e => setConfirmNote(e.target.value)}
+                  rows={2}
+                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13, resize: "none" }}
+                  placeholder="Ghi chú thêm nếu có..."
+                />
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer", marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={commitCheckbox}
+                  onChange={e => setCommitCheckbox(e.target.checked)}
+                  style={{ accentColor: "#FF6B35" }}
+                />
+                Tôi cam kết các thông tin trên là đúng.
+              </label>
+            </div>
+            {/* Modal Footer */}
+            <div style={{ padding: "12px 20px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button onClick={() => setShowConfirmModal(false)} style={{ padding: "8px 16px", background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12, cursor: "pointer", fontWeight: 600, color: "#64748B" }}>Hủy</button>
+              <button
+                disabled={!commitCheckbox || actionLoading}
+                onClick={handleConfirmModalSubmit}
+                style={{
+                  padding: "8px 18px",
+                  background: commitCheckbox ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "#CBD5E1",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  cursor: commitCheckbox ? "pointer" : "not-allowed",
+                  boxShadow: commitCheckbox ? "0 2px 6px rgba(255,107,53,0.2)" : "none"
+                }}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

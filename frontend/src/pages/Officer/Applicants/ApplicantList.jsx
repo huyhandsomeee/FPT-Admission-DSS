@@ -6,23 +6,27 @@ import {
   ArrowUpRight, ArrowDownRight, Sparkles, ChevronLeft,
   ChevronRight, BarChart3, Target, Trash2, CheckCircle,
   XCircle, AlertTriangle, AlertCircle, FileQuestion, RefreshCw,
-  ShieldAlert, ListFilter
+  ShieldAlert, ListFilter, Award
 } from "lucide-react";
 import PendingRequestAlert from "./components/PendingRequestAlert";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 const STATUS_LABELS = {
   DRAFT: "Bản nháp", SUBMITTED: "Đã nộp", UNDER_REVIEW: "Đang xét",
-  APPROVED: "Đã duyệt", REJECTED: "Từ chối", ENROLLED: "Nhập học"
+  APPROVED: "Đủ điều kiện", REGISTERED_MOET: "Sinh viên đã xác nhận đăng ký NV", WAITING_MOET: "Chờ đồng bộ Bộ",
+  ACCEPTED_MOET: "Trúng tuyển chính thức", REJECTED: "Không trúng tuyển", ENROLLED: "Đã nhập học"
 };
 
 const STATUS_COLORS = {
-  SUBMITTED:    { bg: "#DBEAFE", color: "#1D4ED8" },
-  UNDER_REVIEW: { bg: "#FEF3C7", color: "#92400E" },
-  APPROVED:     { bg: "#D1FAE5", color: "#065F46" },
-  REJECTED:     { bg: "#FEE2E2", color: "#991B1B" },
-  ENROLLED:     { bg: "#EDE9FE", color: "#5B21B6" },
-  DRAFT:        { bg: "#F3F4F6", color: "#4B5563" },
+  SUBMITTED:       { bg: "#DBEAFE", color: "#1D4ED8" },
+  UNDER_REVIEW:    { bg: "#FEF3C7", color: "#92400E" },
+  APPROVED:        { bg: "#D1FAE5", color: "#065F46" },
+  REGISTERED_MOET: { bg: "#F3E8FF", color: "#7C3AED" },
+  WAITING_MOET:    { bg: "#FEF3C7", color: "#D97706" },
+  ACCEPTED_MOET:   { bg: "#D1FAE5", color: "#059669" },
+  REJECTED:        { bg: "#FEE2E2", color: "#991B1B" },
+  ENROLLED:        { bg: "#EDE9FE", color: "#5B21B6" },
+  DRAFT:           { bg: "#F3F4F6", color: "#4B5563" },
 };
 
 const AVATAR_COLORS = [
@@ -39,6 +43,15 @@ function getInitials(name) {
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+
+const getPreferenceStatusLabel = (status) => {
+  if (status === "APPROVED") return { icon: "🔴", text: "Chưa xác nhận" };
+  if (status === "REGISTERED_MOET") return { icon: "🟡", text: "Sinh viên đã xác nhận" };
+  if (status === "WAITING_MOET") return { icon: "🟢", text: "Đã đồng bộ Bộ" };
+  if (status === "ACCEPTED_MOET" || status === "ENROLLED") return { icon: "🔵", text: "Trúng tuyển" };
+  if (status === "REJECTED") return { icon: "⚫", text: "Không trúng tuyển" };
+  return { icon: "", text: "—" };
+};
 
 const isWaitingTooLong = (app) => {
   if (!app.submittedAt) return false;
@@ -68,8 +81,12 @@ export default function ApplicantList() {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedRisk, setSelectedRisk] = useState("all");
   
-  // Active Pipeline Tab
   const [activePipelineTab, setActivePipelineTab] = useState("all");
+  
+  const handleTabChange = (tab) => {
+    setActivePipelineTab(tab);
+    setSelectedStatus("all");
+  };
 
   // Pagination inside the queue
   const [currentPage, setCurrentPage] = useState(0);
@@ -157,6 +174,8 @@ export default function ApplicantList() {
       result = result.filter(app => app.validationStatus === "WARNING");
     } else if (activePipelineTab === "manual_review") {
       result = result.filter(app => app.validationStatus === "ERROR" || app.riskLevel === "High");
+    } else if (activePipelineTab === "approved") {
+      result = result.filter(app => ["APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED"].includes(app.status));
     }
 
     // 2. Search query filter
@@ -176,7 +195,9 @@ export default function ApplicantList() {
     }
 
     if (selectedStatus === "all") {
-      result = result.filter(app => app.status === "SUBMITTED" || app.status === "UNDER_REVIEW");
+      if (activePipelineTab !== "approved") {
+        result = result.filter(app => app.status === "SUBMITTED" || app.status === "UNDER_REVIEW");
+      }
     } else {
       result = result.filter(app => app.status === selectedStatus);
     }
@@ -424,10 +445,11 @@ export default function ApplicantList() {
   const countComplete = rawQueue.filter(a => a.validationStatus === "COMPLETE").length;
   const countMissing = rawQueue.filter(a => a.validationStatus === "WARNING").length;
   const countManual = rawQueue.filter(a => a.validationStatus === "ERROR" || a.riskLevel === "High").length;
+  const countApproved = rawQueue.filter(a => ["APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED"].includes(a.status)).length;
 
   const selectableApps = paginatedApps.filter(app => 
     !(app.validationStatus === "ERROR" || app.riskLevel === "High") && 
-    app.status !== "APPROVED" && app.status !== "REJECTED" && app.status !== "ENROLLED"
+    !["APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED", "REJECTED"].includes(app.status)
   );
 
   return (
@@ -465,17 +487,25 @@ export default function ApplicantList() {
           }}>
             <Download size={15} /> Xuất CSV
           </button>
+          <button onClick={() => navigate("/officer/moet-results")} style={{
+            padding: "10px 18px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 700, color: "white",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+            boxShadow: "0 4px 12px rgba(255,107,53,0.2)"
+          }}>
+            <RefreshCw size={15} /> Đồng bộ Bộ GDĐT
+          </button>
         </div>
       </div>
 
       {/* Pipeline Navigation Steps / Tabs */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8,
+        display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 8,
         background: "#F8FAFC", padding: 6, borderRadius: 12, border: "1px solid #E2E8F0"
       }}>
         {/* Tab 1: All */}
         <button 
-          onClick={() => setActivePipelineTab("all")}
+          onClick={() => handleTabChange("all")}
           style={{
             border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -494,7 +524,7 @@ export default function ApplicantList() {
 
         {/* Tab 2: Complete */}
         <button 
-          onClick={() => setActivePipelineTab("complete")}
+          onClick={() => handleTabChange("complete")}
           style={{
             border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -513,7 +543,7 @@ export default function ApplicantList() {
 
         {/* Tab 3: Missing docs */}
         <button 
-          onClick={() => setActivePipelineTab("missing_docs")}
+          onClick={() => handleTabChange("missing_docs")}
           style={{
             border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -532,7 +562,7 @@ export default function ApplicantList() {
 
         {/* Tab 4: Manual verification exceptions */}
         <button 
-          onClick={() => setActivePipelineTab("manual_review")}
+          onClick={() => handleTabChange("manual_review")}
           style={{
             border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
             display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
@@ -546,6 +576,25 @@ export default function ApplicantList() {
           <span style={{ fontSize: 11, textAlign: "center" }}>3. Cần xác minh</span>
           <span style={{ fontSize: 10, background: activePipelineTab === "manual_review" ? "#FF6B35" : "#FEE2E2", color: activePipelineTab === "manual_review" ? "white" : "#EF4444", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
             {countManual}
+          </span>
+        </button>
+
+        {/* Tab 5: Approved/Finalized */}
+        <button 
+          onClick={() => handleTabChange("approved")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "approved" ? "white" : "transparent",
+            color: activePipelineTab === "approved" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "approved" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "approved" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <Award size={16} color={activePipelineTab === "approved" ? "#FF6B35" : "#3B82F6"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>4. Đã duyệt</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "approved" ? "#FF6B35" : "#DBEAFE", color: activePipelineTab === "approved" ? "white" : "#3B82F6", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countApproved}
           </span>
         </button>
       </div>
@@ -609,12 +658,28 @@ export default function ApplicantList() {
               fontFamily: "inherit"
             }}
           >
-            <option value="all">Trạng thái: Đang chờ</option>
-            <option value="SUBMITTED">Đã nộp</option>
-            <option value="UNDER_REVIEW">Đang xét</option>
-            <option value="APPROVED">Đã duyệt</option>
-            <option value="REJECTED">Từ chối</option>
-            <option value="ENROLLED">Nhập học</option>
+            {activePipelineTab === "approved" ? (
+              <>
+                <option value="all">Trạng thái: Tất cả đã duyệt</option>
+                <option value="APPROVED">Đủ điều kiện</option>
+                <option value="REGISTERED_MOET">Đã đăng ký NV Bộ</option>
+                <option value="WAITING_MOET">Chờ kết quả Bộ</option>
+                <option value="ACCEPTED_MOET">Trúng tuyển chính thức</option>
+                <option value="ENROLLED">Nhập học</option>
+              </>
+            ) : (
+              <>
+                <option value="all">Trạng thái: Đang chờ duyệt</option>
+                <option value="SUBMITTED">Đã nộp</option>
+                <option value="UNDER_REVIEW">Đang xét</option>
+                <option value="APPROVED">Đủ điều kiện</option>
+                <option value="REGISTERED_MOET">Đã đăng ký NV Bộ</option>
+                <option value="WAITING_MOET">Chờ kết quả Bộ</option>
+                <option value="ACCEPTED_MOET">Trúng tuyển chính thức</option>
+                <option value="REJECTED">Từ chối</option>
+                <option value="ENROLLED">Nhập học</option>
+              </>
+            )}
           </select>
         </div>
 
@@ -649,7 +714,7 @@ export default function ApplicantList() {
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH", "ĐIỂM ƯU TIÊN", "AI ĐỀ XUẤT / RỦI RO", "TRẠNG THÁI", "THAO TÁC DUYỆT NHANH"].map(h => (
+                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH", "ĐIỂM ƯU TIÊN", "AI ĐỀ XUẤT / RỦI RO", "TRẠNG THÁI", "TÌNH TRẠNG NV", "THAO TÁC DUYỆT NHANH"].map(h => (
                   <th key={h} style={{
                     textAlign: "left", padding: "14px 16px", fontSize: 10,
                     fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8",
@@ -780,6 +845,20 @@ export default function ApplicantList() {
                         )}
                       </td>
 
+                      {/* Preference Registration Status */}
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        {(() => {
+                          const pref = getPreferenceStatusLabel(app.status);
+                          if (!pref.icon) return <span style={{ color: "#94A3B8", fontSize: 13 }}>—</span>;
+                          return (
+                            <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 500, color: "#334155" }}>
+                              <span style={{ fontSize: 14 }}>{pref.icon}</span>
+                              <span>{pref.text}</span>
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       {/* Direct Inline Review Actions */}
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -787,7 +866,7 @@ export default function ApplicantList() {
                             <span style={{ fontSize: 11, color: "#64748B" }}>Đang xử lý...</span>
                           ) : (
                             <>
-                              {app.status === "APPROVED" || app.status === "REJECTED" || app.status === "ENROLLED" ? (
+                              {["APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED", "REJECTED"].includes(app.status) ? (
                                 <button
                                   onClick={() => navigate(`/officer/applicants/${app.id}`)}
                                   style={{
@@ -849,7 +928,7 @@ export default function ApplicantList() {
                                 </>
                               )}
 
-                              {app.status !== "APPROVED" && app.status !== "REJECTED" && app.status !== "ENROLLED" && (
+                              {!["APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED", "REJECTED"].includes(app.status) && (
                                 <button
                                   onClick={(e) => handleRecalculate(app.id, e)}
                                   title="Tính toán lại"

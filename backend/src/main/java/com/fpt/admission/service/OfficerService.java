@@ -6,6 +6,7 @@ import com.fpt.admission.repository.ApplicationRepository;
 import com.fpt.admission.repository.AdmissionYearRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -20,6 +21,7 @@ public class OfficerService {
 
     private final ApplicationRepository applicationRepository;
     private final AdmissionYearRepository admissionYearRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     public Map<String, Object> getDashboardStats() {
         var activeYear = admissionYearRepository.findByStatus("ACTIVE")
@@ -56,6 +58,35 @@ public class OfficerService {
         data.put("quota", quota);
         data.put("approvalRate", approvalRate);
         data.put("enrollmentRate", enrollmentRate);
+
+        // Compute funnel data
+        long errorCount = 0;
+        try {
+            errorCount = jdbcTemplate.queryForObject("SELECT COUNT(*) FROM validation_results WHERE status = 'ERROR'", Long.class);
+        } catch (Exception e) {}
+        long funnelValid = total - errorCount;
+
+        long approvedCount = approved;
+        long registeredCount = applicationRepository.countByStatus(ApplicationStatus.REGISTERED_MOET);
+        long waitingCount = applicationRepository.countByStatus(ApplicationStatus.WAITING_MOET);
+        long acceptedCount = applicationRepository.countByStatus(ApplicationStatus.ACCEPTED_MOET);
+        long enrolledCount = enrolled;
+
+        long funnelEligible = approvedCount + registeredCount + waitingCount + acceptedCount + enrolledCount;
+        long funnelRegistered = registeredCount + waitingCount + acceptedCount + enrolledCount;
+        long funnelWaiting = waitingCount + acceptedCount + enrolledCount;
+        long funnelAccepted = acceptedCount + enrolledCount;
+
+        Map<String, Object> funnel = new LinkedHashMap<>();
+        funnel.put("total", total);
+        funnel.put("valid", funnelValid);
+        funnel.put("eligible", funnelEligible);
+        funnel.put("registered", funnelRegistered);
+        funnel.put("waiting", funnelWaiting);
+        funnel.put("accepted", funnelAccepted);
+        funnel.put("enrolled", enrolledCount);
+        data.put("funnel", funnel);
+
         return data;
     }
 
@@ -351,6 +382,63 @@ public class OfficerService {
     public List<Map<String, Object>> getSmartSuggestions() {
         List<Map<String, Object>> suggestions = new ArrayList<>();
 
+        // New Suggestion 1: Eligible but not confirmed MOET
+        long eligibleButNoMoet = applicationRepository.countByStatus(ApplicationStatus.APPROVED);
+        if (eligibleButNoMoet > 0) {
+            suggestions.add(buildSuggestion(
+                "warning",
+                "Có " + eligibleButNoMoet + " sinh viên đủ điều kiện nhưng chưa xác nhận đăng ký nguyện vọng",
+                "Cần đôn đốc thí sinh hoàn tất xác nhận đăng ký nguyện vọng trên Portal tuyển sinh FPT.",
+                "Gửi Email nhắc nhở",
+                "/officer/communication",
+                "Nhiều thí sinh đã đạt điểm học bạ/chứng chỉ đủ điều kiện trúng tuyển nhưng chưa thực hiện thao tác xác nhận đã đăng ký nguyện vọng 1/2/3 trên Portal.",
+                "Tác động: Đảm bảo tỷ lệ chuyển đổi từ trúng tuyển tạm thời sang chính thức đạt tối đa.",
+                List.of(
+                    "Gửi Email nhắc nhở tự động kèm hướng dẫn thao tác.",
+                    "Gửi tin nhắn SMS tự động nhắc nhở thời hạn hoàn thành.",
+                    "Gọi điện trực tiếp tư vấn/hỗ trợ đối với nhóm thí sinh tiềm năng cao."
+                )
+            ));
+        }
+
+        // New Suggestion 2: Confirmed MOET but not synced yet
+        long moetConfirmedButNoSync = applicationRepository.countByStatus(ApplicationStatus.REGISTERED_MOET);
+        if (moetConfirmedButNoSync > 0) {
+            suggestions.add(buildSuggestion(
+                "opportunity",
+                "Có " + moetConfirmedButNoSync + " sinh viên đã xác nhận nhưng chưa được đồng bộ từ Bộ",
+                "Tiến hành đồng bộ kết quả tuyển sinh từ Hệ thống Bộ GD&ĐT để công bố trúng tuyển chính thức.",
+                "Đồng bộ Bộ GDĐT",
+                "/officer/moet-results",
+                "Hệ thống ghi nhận thí sinh đã chủ động xác nhận đăng ký nguyện vọng trên Portal, tuy nhiên dữ liệu tuyển sinh chính thức từ Bộ GD&ĐT chưa được đồng bộ vào hệ thống trường.",
+                "Tác động: Chuyển đổi trạng thái hồ sơ sang Trúng tuyển chính thức.",
+                List.of(
+                    "Đồng bộ kết quả tự động qua API kết nối với Bộ GD&ĐT.",
+                    "Import danh sách trúng tuyển từ file Excel kết quả lọc ảo của Bộ GD&ĐT.",
+                    "Gửi email thông báo chờ kết quả cho nhóm thí sinh đã xác nhận."
+                )
+            ));
+        }
+
+        // New Suggestion 3: Admitted but not enrolled
+        long admittedButNoEnroll = applicationRepository.countByStatus(ApplicationStatus.ACCEPTED_MOET);
+        if (admittedButNoEnroll > 0) {
+            suggestions.add(buildSuggestion(
+                "action",
+                "Có " + admittedButNoEnroll + " sinh viên đã trúng tuyển nhưng chưa xác nhận nhập học",
+                "Hướng dẫn thí sinh thực hiện checklist nhập học trực tuyến và hoàn tất nghĩa vụ học phí.",
+                "Gửi thông báo nhập học",
+                "/officer/communication",
+                "Thí sinh đã trúng tuyển chính thức sau lọc ảo nhưng chưa hoàn thành việc xác nhận nhập học trực tuyến hoặc nộp học phí.",
+                "Tác động: Hoàn tất thủ tục hồ sơ nhập học, ổn định danh sách lớp.",
+                List.of(
+                    "Gửi Email thông báo trúng tuyển kèm giấy báo nhập học bản mềm.",
+                    "Gửi SMS nhắc nhở hoàn thành nộp học phí trước hạn.",
+                    "Gọi điện hướng dẫn quy trình xác nhận nhập học trực tuyến."
+                )
+            ));
+        }
+
         var activeYear = admissionYearRepository.findByStatus("ACTIVE")
                 .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElse(null));
         int quota = activeYear != null && activeYear.getQuotaTotal() != null ? activeYear.getQuotaTotal() : 18000;
@@ -503,6 +591,49 @@ public class OfficerService {
                     "Tiếp tục quy trình xét duyệt hồ sơ theo đúng tiến độ đề ra.",
                     "Duy trì kênh trực tuyến hỗ trợ giải đáp thắc mắc cho thí sinh 24/7.",
                     "Cập nhật định kỳ số liệu thống kê vào cuối mỗi tuần."
+                )
+            ));
+        }
+
+        // New Suggestion 1: Thí sinh chưa đăng ký nguyện vọng Bộ
+        long eligibleNotRegistered = applicationRepository.countByStatus(ApplicationStatus.APPROVED);
+        if (eligibleNotRegistered > 0) {
+            suggestions.add(buildSuggestion(
+                "opportunity",
+                "📢 Thí sinh chưa đăng ký nguyện vọng Bộ",
+                String.format("Có %d thí sinh đủ điều kiện nhưng chưa xác nhận đăng ký nguyện vọng trên cổng của Bộ GD&ĐT.", eligibleNotRegistered),
+                "Gửi Email nhắc nhở",
+                "/officer/communication?action=remind_moet",
+                "Hệ thống ghi nhận số lượng lớn thí sinh đã được Đại học FPT phê duyệt đủ điều kiện trúng tuyển sơ bộ nhưng chưa thực hiện thao tác xác nhận đã đăng ký nguyện vọng trên cổng thông tin tuyển sinh của Bộ GD&ĐT.",
+                "Tác động: Thúc đẩy thí sinh hoàn thành đúng thời hạn quy định, tránh việc thí sinh bị loại đáng tiếc do quên đăng ký nguyện vọng.",
+                List.of(
+                    "Gửi Email/SMS nhắc nhở tự động kèm hướng dẫn chi tiết các bước đăng ký nguyện vọng 1 mã trường FPT.",
+                    "Tập trung nhân sự tư vấn viên liên hệ trực tiếp qua điện thoại để hỗ trợ thí sinh thao tác nhanh chóng.",
+                    "Đăng tải thông tin lưu ý quan trọng về thời hạn đăng ký trên các kênh truyền thông chính thức."
+                )
+            ));
+        }
+
+        // New Suggestion 2: Thí sinh trúng tuyển nguyện vọng phụ nhưng điểm cực cao
+        long highGpaMoetN2 = 0;
+        try {
+            highGpaMoetN2 = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM moet_results WHERE choice > 1 AND result = 'PASS'", Long.class);
+        } catch (Exception ignored) {}
+
+        if (highGpaMoetN2 > 0) {
+            suggestions.add(buildSuggestion(
+                "opportunity",
+                "💡 Tối ưu hóa nguyện vọng trúng tuyển",
+                String.format("Có %d thí sinh đủ điểm xét tuyển NV1 nhưng đang đặt FPT ở Nguyện vọng 2 hoặc thấp hơn.", highGpaMoetN2),
+                "Liên hệ tư vấn",
+                "/officer/communication",
+                "Có một nhóm thí sinh có kết quả học tập xuất sắc (đủ điều kiện trúng tuyển các ngành hot) nhưng hiện tại đang đặt Đại học FPT ở thứ tự ưu tiên sau (Nguyện vọng 2 trở đi) trên cổng của Bộ GD&ĐT.",
+                "Tác động: Tư vấn kịp thời có thể giúp thí sinh hiểu rõ cơ hội nghề nghiệp để chuyển đổi sang Nguyện vọng 1 trước ngày khóa cổng Bộ.",
+                List.of(
+                    "Phân công tư vấn viên gọi điện hỏi thăm và tìm hiểu nguyện vọng thực tế của thí sinh.",
+                    "Tư vấn về các chính sách học bổng, ưu đãi nhập học sớm nếu thí sinh đặt nguyện vọng 1 vào FPT.",
+                    "Gửi tài liệu giới thiệu môi trường học tập và cơ hội việc làm sau tốt nghiệp cho phụ huynh."
                 )
             ));
         }

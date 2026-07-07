@@ -19,19 +19,62 @@ export default function EvaluationPanel({
 
       {/* Score */}
       <div style={{ marginBottom: 16 }}>
-        <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>Tổng điểm GPA (Lớp 10 + 11 + 12) *</label>
-        <input value={score} onChange={e => setScore(e.target.value)} type="text"
-          placeholder="Tự động tính từ GPA..."
-          style={{ width: "100%", padding: "10px 14px", border: "1px solid #CBD5E1", borderRadius: 10, fontSize: 13, color: "#0F172A", outline: "none", boxSizing: "border-box" }}
-          onFocus={e => e.target.style.borderColor = "#FF6B35"}
-          onBlur={e => e.target.style.borderColor = "#CBD5E1"} />
-        {app.academicBackground && (
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B" }}>
-            GPA 10: <strong>{app.academicBackground.gpa10 ?? "—"}</strong> &nbsp;|
-            GPA 11: <strong>{app.academicBackground.gpa11 ?? "—"}</strong> &nbsp;|
-            GPA 12: <strong>{app.academicBackground.gpa12 ?? "—"}</strong>
-          </p>
-        )}
+        {(() => {
+          const isHocBa = app.methodName?.toLowerCase().includes("học bạ");
+          if (isHocBa) {
+            return (
+              <>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                  Tổng điểm GPA (Lớp 10 + 11 + 12) *
+                </label>
+                <input value={score} onChange={e => setScore(e.target.value)} type="text"
+                  placeholder="Tự động tính từ GPA..."
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #CBD5E1", borderRadius: 10, fontSize: 13, color: "#0F172A", outline: "none", boxSizing: "border-box" }}
+                  onFocus={e => e.target.style.borderColor = "#FF6B35"}
+                  onBlur={e => e.target.style.borderColor = "#CBD5E1"} />
+                {app.academicBackground && (
+                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B" }}>
+                    GPA 10: <strong>{app.academicBackground.gpa10 ?? "—"}</strong> &nbsp;|
+                    GPA 11: <strong>{app.academicBackground.gpa11 ?? "—"}</strong> &nbsp;|
+                    GPA 12: <strong>{app.academicBackground.gpa12 ?? "—"}</strong>
+                  </p>
+                )}
+              </>
+            );
+          } else {
+            return (
+              <>
+                <label style={{ display: "block", fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6 }}>
+                  Điểm chứng chỉ xét tuyển (IELTS / SAT) *
+                </label>
+                <input value={score} onChange={e => setScore(e.target.value)} type="text"
+                  placeholder="Nhập điểm chứng chỉ đối soát..."
+                  style={{ width: "100%", padding: "10px 14px", border: "1px solid #CBD5E1", borderRadius: 10, fontSize: 13, color: "#0F172A", outline: "none", boxSizing: "border-box" }}
+                  onFocus={e => e.target.style.borderColor = "#FF6B35"}
+                  onBlur={e => e.target.style.borderColor = "#CBD5E1"} />
+                {app.academicBackground && (
+                  <p style={{ margin: "4px 0 0", fontSize: 11, color: "#64748B" }}>
+                    {app.academicBackground.ieltsScore != null && (
+                      <span>IELTS: <strong>{app.academicBackground.ieltsScore}</strong> &nbsp;|&nbsp; </span>
+                    )}
+                    {app.academicBackground.satScore != null && (
+                      <span>SAT: <strong>{app.academicBackground.satScore}</strong> &nbsp;|&nbsp; </span>
+                    )}
+                    {app.academicBackground.englishScore != null && (
+                      <span>Anh văn: <strong>{app.academicBackground.englishScore}</strong> &nbsp;|&nbsp; </span>
+                    )}
+                    {app.academicBackground.mathScore != null && (
+                      <span>Toán: <strong>{app.academicBackground.mathScore}</strong> &nbsp;|&nbsp; </span>
+                    )}
+                    {app.academicBackground.literatureScore != null && (
+                      <span>Văn: <strong>{app.academicBackground.literatureScore}</strong></span>
+                    )}
+                  </p>
+                )}
+              </>
+            );
+          }
+        })()}
       </div>
 
       {/* Decision Dropdown */}

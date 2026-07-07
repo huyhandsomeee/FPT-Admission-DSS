@@ -318,6 +318,17 @@ export default function OfficerDashboard() {
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={() => navigate("/officer/moet-results")} style={{
+            padding: "10px 18px", background: "white", border: "1px solid #E2E8F0",
+            borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569",
+            cursor: "pointer", display: "flex", alignItems: "center", gap: 7,
+            transition: "all 0.15s"
+          }}
+            onMouseEnter={e => e.currentTarget.style.borderColor = "#FF6B35"}
+            onMouseLeave={e => e.currentTarget.style.borderColor = "#E2E8F0"}
+          >
+            <RefreshCw size={15} /> Đồng bộ Bộ GDĐT
+          </button>
           <button onClick={handleExportCSV} style={{
             padding: "10px 18px", background: "white", border: "1px solid #E2E8F0",
             borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569",
@@ -480,6 +491,69 @@ export default function OfficerDashboard() {
         }}>
           Xem chi tiết
         </button>
+      </div>
+
+      {/* admissions funnel chart widget */}
+      <div style={{
+        background: "white", borderRadius: 14, padding: 24,
+        border: "1px solid #F1F5F9", boxShadow: "0 2px 8px rgba(0,0,0,0.04)"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+          <div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: "#1E293B" }}>📊 Phễu tiến trình tuyển sinh</div>
+            <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Tỷ lệ chuyển đổi qua các giai đoạn chính thức</div>
+          </div>
+        </div>
+        {stats.funnel ? (() => {
+          const f = stats.funnel;
+          const totalVal = f.total || 0;
+          const steps = [
+            { label: "1. Tổng số hồ sơ nộp", val: f.total ?? 0, color: "#FF6B35" },
+            { label: "2. Hồ sơ hợp lệ (qua OCR)", val: f.valid ?? 0, color: "#FF8E62" },
+            { label: "3. Đủ điều kiện", val: f.eligible ?? 0, color: "#FFA984" },
+            { label: "4. Sinh viên đã xác nhận đăng ký NV", val: f.registered ?? 0, color: "#FFC2A8" },
+            { label: "5. Chờ đồng bộ Bộ", val: f.waiting ?? 0, color: "#93C5FD" },
+            { label: "6. Trúng tuyển chính thức", val: f.accepted ?? 0, color: "#8B5CF6" },
+            { label: "7. Đã nhập học", val: f.enrolled ?? 0, color: "#10B981" }
+          ];
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {steps.map((step, idx) => {
+                const rate = totalVal > 0 ? Math.round((step.val / totalVal) * 100) : 0;
+                const widthPercent = totalVal > 0 ? Math.max((step.val / totalVal) * 100, 20) : 20;
+                return (
+                  <div key={idx} style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                    <div style={{ width: 220, fontSize: 13, fontWeight: 700, color: "#475569" }}>
+                      {step.label}
+                    </div>
+                    <div style={{ flex: 1, display: "flex", alignItems: "center" }}>
+                      <div style={{
+                        width: `${widthPercent}%`,
+                        background: step.color,
+                        height: 32,
+                        borderRadius: 8,
+                        display: "flex",
+                        alignItems: "center",
+                        padding: "0 14px",
+                        justifyContent: "space-between",
+                        color: "white",
+                        fontWeight: 800,
+                        fontSize: 13,
+                        boxShadow: "0 2px 4px rgba(0,0,0,0.05)",
+                        transition: "width 0.8s ease-in-out"
+                      }}>
+                        <span>{(step.val).toLocaleString()}</span>
+                        <span>{rate}%</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        })() : (
+          <div style={{ color: "#94A3B8", fontSize: 13, textAlign: "center", padding: 20 }}>Không có dữ liệu phễu tuyển sinh.</div>
+        )}
       </div>
 
       {/* Analytics Center */}

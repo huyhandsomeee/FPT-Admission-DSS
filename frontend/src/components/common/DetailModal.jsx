@@ -84,6 +84,42 @@ export default function DetailModal({ show, onClose, appDetail, loading }) {
                 </div>
               </Section>
 
+              {/* Lịch sử tiến trình hồ sơ */}
+              <Section icon={Calendar} title="Lịch sử tiến trình hồ sơ" color="#FF6B35">
+                <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "relative", paddingLeft: 12 }}>
+                  <div style={{ position: "absolute", left: 16, top: 12, bottom: 12, width: 2, background: "#E2E8F0", zIndex: 0 }} />
+                  {[
+                    { label: "Ngày nộp hồ sơ", val: appDetail.submittedAt, desc: "Thí sinh gửi hồ sơ xét tuyển lên hệ thống." },
+                    { label: "Ngày được duyệt sơ bộ", val: appDetail.reviewedAt, desc: "Cán bộ tuyển sinh phê duyệt học bạ đủ điều kiện trúng tuyển." },
+                    { label: "Ngày xác nhận đăng ký nguyện vọng Bộ", val: appDetail.moetRegisteredAt, desc: "Xác nhận đã đặt Đại học FPT làm nguyện vọng trên cổng Bộ GD&ĐT." },
+                    { label: "Ngày Bộ công bố kết quả lọc ảo", val: appDetail.moetReleasedAt, desc: "Dữ liệu lọc ảo của Bộ xác nhận trúng tuyển chính thức." },
+                    { label: "Ngày xác nhận nhập học", val: appDetail.enrolledAt, desc: "Thí sinh thực hiện cam kết nhập học trực tuyến." },
+                    { label: "Ngày nộp học phí", val: appDetail.feePaidAt, desc: "Cổng thanh toán ghi nhận giao dịch nộp học phí thành công." }
+                  ].map((step, idx) => {
+                    const hasDate = !!step.val;
+                    const dateStr = hasDate ? new Date(step.val).toLocaleString("vi-VN") : "Chưa hoàn thành";
+                    return (
+                      <div key={idx} style={{ display: "flex", gap: 16, alignItems: "flex-start", position: "relative", zIndex: 1 }}>
+                        <div style={{
+                          width: 10, height: 10, borderRadius: "50%",
+                          background: hasDate ? "#FF6B35" : "#CBD5E1",
+                          border: "3px solid white",
+                          boxShadow: "0 0 0 3px " + (hasDate ? "rgba(255,107,53,0.15)" : "transparent"),
+                          marginTop: 4, flexShrink: 0
+                        }} />
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontSize: 13, fontWeight: 700, color: hasDate ? "#1E293B" : "#94A3B8" }}>{step.label}</div>
+                          <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>{step.desc}</div>
+                          <div style={{ fontSize: 11, fontWeight: 600, color: hasDate ? "#FF6B35" : "#94A3B8", marginTop: 4 }}>
+                            {hasDate ? `⏱️ ${dateStr}` : "—"}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Section>
+
               {/* Kết quả học tập */}
               {bg && (
                 <Section icon={BookOpen} title="Kết quả học tập" color="#2563EB">
@@ -125,6 +161,31 @@ export default function DetailModal({ show, onClose, appDetail, loading }) {
                       )}
                     </div>
                   )}
+                </Section>
+              )}
+
+              {/* Thông tin xác nhận đăng ký nguyện vọng */}
+              {appDetail.preferenceConfirmation && (
+                <Section icon={Award} title="Thông tin xác nhận đăng ký nguyện vọng" color="#3B82F6">
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "14px 24px" }}>
+                    <Field label="Ngày xác nhận" value={new Date(appDetail.preferenceConfirmation.confirmationDate).toLocaleString("vi-VN")} />
+                    <Field label="Thứ tự nguyện vọng" value={`Nguyện vọng ${appDetail.preferenceConfirmation.preferenceOrder}`} />
+                    <Field label="Ngành đã đăng ký" value={appDetail.preferenceConfirmation.majorName} />
+                    <Field label="Mã ngành" value={appDetail.preferenceConfirmation.majorCode} />
+                    {appDetail.preferenceConfirmation.note && (
+                      <div style={{ gridColumn: "1/-1" }}>
+                        <Field label="Ghi chú của sinh viên" value={appDetail.preferenceConfirmation.note} />
+                      </div>
+                    )}
+                    {appDetail.preferenceConfirmation.evidenceImage && (
+                      <div style={{ gridColumn: "1/-1", display: "flex", flexDirection: "column", gap: 6 }}>
+                        <span style={{ fontSize: 11, color: "#94A3B8", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.04em" }}>Minh chứng đăng ký</span>
+                        <div style={{ border: "1px solid #E2E8F0", borderRadius: 10, overflow: "hidden", maxWidth: 300 }}>
+                          <img src={appDetail.preferenceConfirmation.evidenceImage} alt="Minh chứng nguyện vọng" style={{ width: "100%", height: "auto", display: "block" }} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </Section>
               )}
 

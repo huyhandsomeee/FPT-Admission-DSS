@@ -12,6 +12,7 @@ import java.util.List;
 
 public interface ApplicationRepository extends JpaRepository<Application, Long> {
     List<Application> findByStudentProfileId(Long studentProfileId);
+    java.util.Optional<Application> findByApplicationCode(String applicationCode);
     Page<Application> findByStatus(ApplicationStatus status, Pageable pageable);
     long countByStatus(ApplicationStatus status);
     long countByStatusAndReviewedAtBetween(ApplicationStatus status, LocalDateTime start, LocalDateTime end);

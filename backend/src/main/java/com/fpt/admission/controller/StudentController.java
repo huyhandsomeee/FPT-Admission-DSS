@@ -38,6 +38,7 @@ public class StudentController {
     private final AcademicBackgroundRepository academicBackgroundRepository;
     private final HighSchoolRepository highSchoolRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final com.fpt.admission.repository.AdmissionPreferenceConfirmationRepository admissionPreferenceConfirmationRepository;
 
     private Long getUserId(String authHeader) {
         String token = authHeader.replace("Bearer ", "");
@@ -51,8 +52,13 @@ public class StudentController {
     private String generateApplicationCode(String majorCode, int year) {
         String cohort = String.valueOf(year).substring(2);
         long count = applicationRepository.countByMajorCodeAndYear(majorCode, year);
-        String sequence = String.format("%04d", count + 1);
-        return majorCode + cohort + sequence;
+        int seqNum = (int) count + 1;
+        String code = majorCode + cohort + String.format("%04d", seqNum);
+        while (applicationRepository.findByApplicationCode(code).isPresent()) {
+            seqNum++;
+            code = majorCode + cohort + String.format("%04d", seqNum);
+        }
+        return code;
     }
 
     @GetMapping("/dashboard")
@@ -64,13 +70,27 @@ public class StudentController {
         if (profile != null) {
             var apps = applicationRepository.findByStudentProfileId(profile.getId());
             data.put("totalApplications", apps.size());
-            data.put("applications", apps.stream().map(a -> Map.of(
-                "id", a.getId(),
-                "code", a.getApplicationCode() != null ? a.getApplicationCode() : "",
-                "status", a.getStatus().name(),
-                "majorName", a.getMajor().getName(),
-                "campusName", a.getCampus().getName()
-            )).toList());
+            data.put("applications", apps.stream().map(a -> {
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", a.getId());
+                m.put("code", a.getApplicationCode() != null ? a.getApplicationCode() : "");
+                m.put("status", a.getStatus().name());
+                m.put("majorName", a.getMajor().getName());
+                m.put("majorCode", a.getMajor().getCode());
+                m.put("campusName", a.getCampus().getName());
+                m.put("chkConfirmEnrollment", a.getChkConfirmEnrollment());
+                m.put("chkPayFee", a.getChkPayFee());
+                m.put("chkDeclareInfo", a.getChkDeclareInfo());
+                m.put("chkUploadCccd", a.getChkUploadCccd());
+                m.put("chkUploadPhoto", a.getChkUploadPhoto());
+                m.put("chkRegisterDorm", a.getChkRegisterDorm());
+                m.put("chkPrintLetter", a.getChkPrintLetter());
+                m.put("moetRegisteredAt", a.getMoetRegisteredAt());
+                m.put("moetReleasedAt", a.getMoetReleasedAt());
+                m.put("enrolledAt", a.getEnrolledAt());
+                m.put("feePaidAt", a.getFeePaidAt());
+                return m;
+            }).toList());
             data.put("hasProfile", true);
             data.put("allowNewApplication", profile.getAllowNewApplication() != null ? profile.getAllowNewApplication() : false);
             data.put("newApplicationRequest", profile.getNewApplicationRequest() != null ? profile.getNewApplicationRequest() : "NONE");
@@ -96,17 +116,24 @@ public class StudentController {
         if (profile == null) return ResponseEntity.ok(List.of());
 
         var apps = applicationRepository.findByStudentProfileId(profile.getId());
-        var result = apps.stream().map(a -> Map.of(
-            "id", a.getId(),
-            "applicationCode", a.getApplicationCode() != null ? a.getApplicationCode() : "",
-            "status", a.getStatus().name(),
-            "majorName", a.getMajor().getName(),
-            "campusName", a.getCampus().getName(),
-            "methodName", a.getAdmissionMethod().getName(),
-            "totalScore", a.getTotalScore() != null ? a.getTotalScore() : "",
-            "submittedAt", a.getSubmittedAt() != null ? a.getSubmittedAt().toString() : "",
-            "createdAt", a.getCreatedAt().toString()
-        )).toList();
+        var result = apps.stream().map(a -> {
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("id", a.getId());
+            m.put("applicationCode", a.getApplicationCode() != null ? a.getApplicationCode() : "");
+            m.put("status", a.getStatus().name());
+            m.put("majorName", a.getMajor().getName());
+            m.put("campusName", a.getCampus().getName());
+            m.put("methodName", a.getAdmissionMethod().getName());
+            m.put("totalScore", a.getTotalScore() != null ? a.getTotalScore() : "");
+            m.put("submittedAt", a.getSubmittedAt() != null ? a.getSubmittedAt().toString() : "");
+            m.put("reviewedAt", a.getReviewedAt() != null ? a.getReviewedAt().toString() : "");
+            m.put("moetRegisteredAt", a.getMoetRegisteredAt() != null ? a.getMoetRegisteredAt().toString() : "");
+            m.put("moetReleasedAt", a.getMoetReleasedAt() != null ? a.getMoetReleasedAt().toString() : "");
+            m.put("enrolledAt", a.getEnrolledAt() != null ? a.getEnrolledAt().toString() : "");
+            m.put("feePaidAt", a.getFeePaidAt() != null ? a.getFeePaidAt().toString() : "");
+            m.put("createdAt", a.getCreatedAt().toString());
+            return m;
+        }).toList();
         return ResponseEntity.ok(result);
     }
 
@@ -408,12 +435,25 @@ public class StudentController {
             m.put("applicationCode", a.getApplicationCode());
             m.put("status", a.getStatus().name());
             m.put("majorName", a.getMajor().getName());
+            m.put("majorCode", a.getMajor().getCode());
             m.put("campusName", a.getCampus().getName());
             m.put("methodName", a.getAdmissionMethod().getName());
             m.put("totalScore", a.getTotalScore());
             m.put("rejectionReason", a.getRejectionReason());
             m.put("officerNotes", a.getOfficerNotes());
             m.put("submittedAt", a.getSubmittedAt());
+            m.put("reviewedAt", a.getReviewedAt());
+            m.put("moetRegisteredAt", a.getMoetRegisteredAt());
+            m.put("moetReleasedAt", a.getMoetReleasedAt());
+            m.put("enrolledAt", a.getEnrolledAt());
+            m.put("feePaidAt", a.getFeePaidAt());
+            m.put("chkConfirmEnrollment", a.getChkConfirmEnrollment());
+            m.put("chkPayFee", a.getChkPayFee());
+            m.put("chkDeclareInfo", a.getChkDeclareInfo());
+            m.put("chkUploadCccd", a.getChkUploadCccd());
+            m.put("chkUploadPhoto", a.getChkUploadPhoto());
+            m.put("chkRegisterDorm", a.getChkRegisterDorm());
+            m.put("chkPrintLetter", a.getChkPrintLetter());
             m.put("createdAt", a.getCreatedAt());
             m.put("fullName", profile.getUser().getFullName());
             m.put("dob", profile.getDob() != null ? profile.getDob().toString() : "");
@@ -442,6 +482,23 @@ public class StudentController {
                 }
             } catch (Exception e) {
                 m.put("academicBackground", null);
+            }
+
+            // Fetch admission preference confirmation
+            try {
+                List<Map<String, Object>> confList = jdbcTemplate.queryForList(
+                    "SELECT confirmation_date as confirmationDate, preference_order as preferenceOrder, " +
+                    "major_code as majorCode, major_name as majorName, evidence_image as evidenceImage, note " +
+                    "FROM admission_preference_confirmations WHERE application_id = ?",
+                    a.getId()
+                );
+                if (!confList.isEmpty()) {
+                    m.put("preferenceConfirmation", confList.get(0));
+                } else {
+                    m.put("preferenceConfirmation", null);
+                }
+            } catch (Exception e) {
+                m.put("preferenceConfirmation", null);
             }
 
             // Fetch documents
@@ -631,5 +688,171 @@ public class StudentController {
         Long userId = getUserId(authHeader);
         notificationRepository.markAllAsRead(userId);
         return ResponseEntity.ok(Map.of("message", "Đã đọc tất cả thông báo"));
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    @PostMapping("/applications/{id}/confirm-moet")
+    public ResponseEntity<?> confirmMoet(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> body,
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        return applicationRepository.findById(id).map(app -> {
+            if (!app.getStudentProfile().getUser().getId().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("message", "Bạn không có quyền thao tác trên hồ sơ này"));
+            }
+            if (app.getStatus() != ApplicationStatus.APPROVED) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Hồ sơ phải ở trạng thái Đủ điều kiện mới có thể xác nhận nguyện vọng"));
+            }
+            app.setStatus(ApplicationStatus.REGISTERED_MOET);
+            app.setMoetRegisteredAt(java.time.LocalDateTime.now());
+            applicationRepository.save(app);
+
+            // Save preference confirmation details
+            int preferenceOrder = body.get("preferenceOrder") != null ? Integer.parseInt(body.get("preferenceOrder").toString()) : 1;
+            String majorCode = body.get("majorCode") != null ? body.get("majorCode").toString() : app.getMajor().getCode();
+            String majorName = body.get("majorName") != null ? body.get("majorName").toString() : app.getMajor().getName();
+            String evidenceImage = body.get("evidenceImage") != null ? body.get("evidenceImage").toString() : null;
+            String note = body.get("note") != null ? body.get("note").toString() : "";
+
+            var conf = admissionPreferenceConfirmationRepository.findByApplicationId(app.getId())
+                    .orElse(new com.fpt.admission.entity.AdmissionPreferenceConfirmation());
+            conf.setApplication(app);
+            conf.setStudentId(app.getStudentProfile().getUser().getId());
+            conf.setConfirmationDate(java.time.LocalDateTime.now());
+            conf.setPreferenceOrder(preferenceOrder);
+            conf.setMajorCode(majorCode);
+            conf.setMajorName(majorName);
+            conf.setEvidenceImage(evidenceImage);
+            conf.setNote(note);
+            conf.setStatus("CONFIRMED");
+            admissionPreferenceConfirmationRepository.save(conf);
+
+            // Create notification
+            Notification studentNotif = Notification.builder()
+                .user(app.getStudentProfile().getUser())
+                .title("Đăng ký nguyện vọng thành công")
+                .message("Hệ thống ghi nhận bạn đã đăng ký nguyện vọng Đại học FPT trên cổng Bộ GD&ĐT (Nguyện vọng " + preferenceOrder + ", Ngành " + majorName + "). Vui lòng chờ kết quả lọc ảo chính thức.")
+                .type(com.fpt.admission.entity.enums.NotificationType.RESULT)
+                .relatedEntityType("APPLICATION")
+                .relatedEntityId(app.getId())
+                .isRead(false)
+                .createdAt(java.time.LocalDateTime.now())
+                .build();
+            notificationRepository.save(studentNotif);
+
+            // Mock automatic alerts:
+            System.out.println("LOG [EMAIL ALERT]: Sent email to " + app.getStudentProfile().getUser().getEmail() + " confirming MOET registration.");
+            System.out.println("LOG [SMS ALERT]: Sent SMS to " + app.getStudentProfile().getUser().getPhone() + " confirming registration.");
+
+            return ResponseEntity.ok(Map.of("message", "Xác nhận đăng ký nguyện vọng Bộ thành công", "status", app.getStatus().name()));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    @PutMapping("/applications/{id}/checklist")
+    public ResponseEntity<?> updateChecklist(
+            @PathVariable Long id,
+            @RequestBody Map<String, Boolean> body,
+            @RequestHeader("Authorization") String authHeader) {
+        Long userId = getUserId(authHeader);
+        return applicationRepository.findById(id).map(app -> {
+            if (!app.getStudentProfile().getUser().getId().equals(userId)) {
+                return ResponseEntity.status(403).body(Map.of("message", "Bạn không có quyền thao tác trên hồ sơ này"));
+            }
+
+            boolean prevConfirm = Boolean.TRUE.equals(app.getChkConfirmEnrollment());
+            boolean prevPay = Boolean.TRUE.equals(app.getChkPayFee());
+
+            if (body.containsKey("chkConfirmEnrollment")) app.setChkConfirmEnrollment(body.get("chkConfirmEnrollment"));
+            if (body.containsKey("chkPayFee")) app.setChkPayFee(body.get("chkPayFee"));
+            if (body.containsKey("chkDeclareInfo")) app.setChkDeclareInfo(body.get("chkDeclareInfo"));
+            if (body.containsKey("chkUploadCccd")) app.setChkUploadCccd(body.get("chkUploadCccd"));
+            if (body.containsKey("chkUploadPhoto")) app.setChkUploadPhoto(body.get("chkUploadPhoto"));
+            if (body.containsKey("chkRegisterDorm")) app.setChkRegisterDorm(body.get("chkRegisterDorm"));
+            if (body.containsKey("chkPrintLetter")) app.setChkPrintLetter(body.get("chkPrintLetter"));
+
+            // Check triggers
+            if (Boolean.TRUE.equals(app.getChkConfirmEnrollment()) && !prevConfirm) {
+                app.setEnrolledAt(java.time.LocalDateTime.now());
+                if (app.getStatus() == ApplicationStatus.ACCEPTED_MOET) {
+                    app.setStatus(ApplicationStatus.ENROLLED);
+                    
+                    // Create notification
+                    Notification studentNotif = Notification.builder()
+                        .user(app.getStudentProfile().getUser())
+                        .title("Xác nhận nhập học thành công")
+                        .message("Bạn đã hoàn tất xác nhận nhập học trực tuyến vào Đại học FPT. Vui lòng hoàn thành các thủ tục học phí còn lại để chính thức trở thành sinh viên.")
+                        .type(com.fpt.admission.entity.enums.NotificationType.RESULT)
+                        .relatedEntityType("APPLICATION")
+                        .relatedEntityId(app.getId())
+                        .isRead(false)
+                        .createdAt(java.time.LocalDateTime.now())
+                        .build();
+                    notificationRepository.save(studentNotif);
+
+                    // Mock SMS
+                    System.out.println("LOG [SMS ALERT]: Sent SMS to " + app.getStudentProfile().getUser().getPhone() + " for admitting application.");
+                }
+            }
+
+            if (Boolean.TRUE.equals(app.getChkPayFee()) && !prevPay) {
+                app.setFeePaidAt(java.time.LocalDateTime.now());
+                // Create notification
+                Notification studentNotif = Notification.builder()
+                    .user(app.getStudentProfile().getUser())
+                    .title("Học phí đã được xác nhận")
+                    .message("Chúc mừng! Đại học FPT đã xác nhận nhận đủ học phí nhập học của bạn. Bạn đã chính thức trở thành tân sinh viên Đại học FPT.")
+                    .type(com.fpt.admission.entity.enums.NotificationType.RESULT)
+                    .relatedEntityType("APPLICATION")
+                    .relatedEntityId(app.getId())
+                    .isRead(false)
+                    .createdAt(java.time.LocalDateTime.now())
+                    .build();
+                notificationRepository.save(studentNotif);
+
+                // Mock SMS & Email
+                System.out.println("LOG [EMAIL ALERT]: Sent email to " + app.getStudentProfile().getUser().getEmail() + " for successful fee payment.");
+                System.out.println("LOG [SMS ALERT]: Sent SMS to " + app.getStudentProfile().getUser().getPhone() + " for successful fee payment.");
+            }
+
+            applicationRepository.save(app);
+
+            // Compute progress
+            int checkedCount = 0;
+            if (Boolean.TRUE.equals(app.getChkConfirmEnrollment())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkPayFee())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkDeclareInfo())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkUploadCccd())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkUploadPhoto())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkRegisterDorm())) checkedCount++;
+            if (Boolean.TRUE.equals(app.getChkPrintLetter())) checkedCount++;
+            int progress = (int) Math.round((double) checkedCount / 7 * 100);
+
+            return ResponseEntity.ok(Map.of(
+                "message", "Cập nhật tiến trình thủ tục nhập học thành công", 
+                "progress", progress,
+                "status", app.getStatus().name(),
+                "application", toDetailMap(app)
+            ));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    private Map<String, Object> toDetailMap(Application app) {
+        Map<String, Object> m = new HashMap<>();
+        m.put("id", app.getId());
+        m.put("status", app.getStatus().name());
+        m.put("chkConfirmEnrollment", app.getChkConfirmEnrollment());
+        m.put("chkPayFee", app.getChkPayFee());
+        m.put("chkDeclareInfo", app.getChkDeclareInfo());
+        m.put("chkUploadCccd", app.getChkUploadCccd());
+        m.put("chkUploadPhoto", app.getChkUploadPhoto());
+        m.put("chkRegisterDorm", app.getChkRegisterDorm());
+        m.put("chkPrintLetter", app.getChkPrintLetter());
+        m.put("moetRegisteredAt", app.getMoetRegisteredAt());
+        m.put("moetReleasedAt", app.getMoetReleasedAt());
+        m.put("enrolledAt", app.getEnrolledAt());
+        m.put("feePaidAt", app.getFeePaidAt());
+        return m;
     }
 }

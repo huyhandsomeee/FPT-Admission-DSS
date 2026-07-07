@@ -7,7 +7,7 @@ export default function ProgressTracker({ steps, currentStep, currentStatus, sta
   return (
     <div className="relative mb-6">
       <div className="flex items-center justify-between text-xs text-gray-400 mb-2" style={{ padding: "0 4px" }}>
-        {steps.slice(0, 5).map((s, i) => (
+        {steps.map((s, i) => (
           <span key={s} className={i <= stepIdx ? "text-orange-600 font-semibold" : ""}>
             {statusLabels[s] || s}
           </span>

@@ -468,11 +468,7 @@ public class PipelineServiceImpl implements PipelineService {
     public List<Map<String, Object>> getSmartReviewQueue() {
         // Query applications that are SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, or ENROLLED
         List<Application> apps = applicationRepository.findAll().stream()
-                .filter(a -> a.getStatus() == ApplicationStatus.SUBMITTED 
-                          || a.getStatus() == ApplicationStatus.UNDER_REVIEW
-                          || a.getStatus() == ApplicationStatus.APPROVED
-                          || a.getStatus() == ApplicationStatus.REJECTED
-                          || a.getStatus() == ApplicationStatus.ENROLLED)
+                .filter(a -> a.getStatus() != ApplicationStatus.DRAFT)
                 .toList();
 
         // Pass 1: Pre-calculate missing pipeline data in parallel

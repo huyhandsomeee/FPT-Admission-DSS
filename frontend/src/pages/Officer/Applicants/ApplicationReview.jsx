@@ -73,15 +73,25 @@ export default function ApplicationReview() {
         if (r.data) {
           const data = r.data;
           setApp(data);
-          const documentList = data.documents?.length > 0 ? data.documents : MOCK_DOCS;
+          const isHocBa = data.methodName?.toLowerCase().includes("học bạ");
+          let documentList = data.documents?.length > 0 ? data.documents : MOCK_DOCS;
+          if (!isHocBa) {
+            setActiveTab("document");
+            const excludeDescs = ["học bạ thpt", "bằng/giấy cntn", "ảnh 3x4", "giấy khai sinh"];
+            documentList = documentList.filter(d => {
+              const descLower = (d.desc || "").toLowerCase();
+              return !excludeDescs.some(exclude => descLower.includes(exclude));
+            });
+          }
           setDocs(documentList);
-          
+
           if (selectedDoc) {
             const updatedSelected = documentList.find(d => d.filePath === selectedDoc.filePath);
             if (updatedSelected) setSelectedDoc(updatedSelected);
           } else {
-            const firstValid = documentList.find(d => d.filePath);
-            if (firstValid) setSelectedDoc(firstValid);
+            const certDoc = documentList.find(d => d.filePath && (d.name?.toLowerCase().includes("chứng chỉ") || d.desc?.toLowerCase().includes("chứng chỉ"))) 
+              || documentList.find(d => d.filePath);
+            if (certDoc) setSelectedDoc(certDoc);
           }
           
           if (data.officerNotes) setNotes(data.officerNotes);
@@ -89,8 +99,14 @@ export default function ApplicationReview() {
           // Auto calculate from GPA
           const bg = data.academicBackground;
           if (bg) {
-            const gpaTotal = ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2);
-            setScore(gpaTotal);
+            const isHocBa = data.methodName?.toLowerCase().includes("học bạ");
+            if (isHocBa) {
+              const gpaTotal = ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2);
+              setScore(gpaTotal);
+            } else {
+              const certScore = bg.ieltsScore || bg.satScore || bg.totalScore || data.totalScore || "";
+              setScore(certScore);
+            }
           } else if (data.totalScore !== null && data.totalScore !== undefined) {
             setScore(data.totalScore);
           }

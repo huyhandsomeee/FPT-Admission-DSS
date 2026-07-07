@@ -5,6 +5,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import com.fpt.admission.service.PipelineService;
 
 @SpringBootApplication
 @EnableAsync
@@ -29,8 +30,16 @@ public class FptAdmissionApplication {
     @org.springframework.context.annotation.Bean
     public org.springframework.boot.CommandLineRunner databaseCleanup(
             org.springframework.jdbc.core.JdbcTemplate jdbcTemplate,
-            com.fpt.admission.service.PipelineService pipelineService) {
+            PipelineService pipelineService) {
         return args -> {
+            // Alter applications table status column enum to support the new state statuses
+            try {
+                jdbcTemplate.update("ALTER TABLE applications MODIFY COLUMN status ENUM('DRAFT','SUBMITTED','UNDER_REVIEW','APPROVED','REGISTERED_MOET','WAITING_MOET','ACCEPTED_MOET','REJECTED','ENROLLED') DEFAULT 'DRAFT'");
+                System.out.println("[DB-MIGRATION] Successfully modified applications status column enum.");
+            } catch (Exception e) {
+                System.err.println("[DB-MIGRATION] Failed to alter applications status column: " + e.getMessage());
+            }
+
             try {
                 jdbcTemplate.update("UPDATE applications SET admission_method_id = 2 WHERE admission_method_id = 5");
                 System.out.println("[DB-MIGRATION] Database clean-up query executed successfully.");

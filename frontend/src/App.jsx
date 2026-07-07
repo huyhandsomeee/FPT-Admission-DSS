@@ -30,6 +30,7 @@ const ApplicantList = lazy(() => import("./pages/Officer/Applicants/ApplicantLis
 const ApplicationReview = lazy(() => import("./pages/Officer/Applicants/ApplicationReview"));
 const OfficerCommunication = lazy(() => import("./pages/Officer/Communication"));
 const OfficerSettings = lazy(() => import("./pages/Officer/Settings"));
+const MoetResults = lazy(() => import("./pages/Officer/MoetResults"));
 
 // Manager pages
 const ManagerDashboard = lazy(() => import("./pages/Manager/Dashboard"));
@@ -119,6 +120,7 @@ function App() {
           <Route path="applicants/:id" element={<ApplicationReview />} />
           <Route path="communication" element={<OfficerCommunication />} />
           <Route path="settings" element={<OfficerSettings />} />
+          <Route path="moet-results" element={<MoetResults />} />
         </Route>
 
         {/* ========================

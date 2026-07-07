@@ -288,6 +288,23 @@ public class OfficerController {
             m.put("academicBackground", null);
         }
 
+        // Fetch admission preference confirmation
+        try {
+            List<Map<String, Object>> confList = jdbcTemplate.queryForList(
+                "SELECT confirmation_date as confirmationDate, preference_order as preferenceOrder, " +
+                "major_code as majorCode, major_name as majorName, evidence_image as evidenceImage, note " +
+                "FROM admission_preference_confirmations WHERE application_id = ?",
+                a.getId()
+            );
+            if (!confList.isEmpty()) {
+                m.put("preferenceConfirmation", confList.get(0));
+            } else {
+                m.put("preferenceConfirmation", null);
+            }
+        } catch (Exception e) {
+            m.put("preferenceConfirmation", null);
+        }
+
         // Fetch documents
         try {
             List<Map<String, Object>> docs = jdbcTemplate.queryForList(
