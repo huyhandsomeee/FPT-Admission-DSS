@@ -6,7 +6,7 @@ import {
   ArrowUpRight, ArrowDownRight, Sparkles, ChevronLeft,
   ChevronRight, BarChart3, Target, Trash2, CheckCircle,
   XCircle, AlertTriangle, AlertCircle, FileQuestion, RefreshCw,
-  Clock, Flame, ShieldAlert, ListFilter
+  ShieldAlert, ListFilter
 } from "lucide-react";
 import PendingRequestAlert from "./components/PendingRequestAlert";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -151,11 +151,7 @@ export default function ApplicantList() {
     let result = [...rawQueue];
 
     // 1. Filter by Active Pipeline Tab
-    if (activePipelineTab === "high_priority") {
-      result = result.filter(app => app.priorityScore >= 80);
-    } else if (activePipelineTab === "waiting_long") {
-      result = result.filter(app => isWaitingTooLong(app));
-    } else if (activePipelineTab === "complete") {
+    if (activePipelineTab === "complete") {
       result = result.filter(app => app.validationStatus === "COMPLETE");
     } else if (activePipelineTab === "missing_docs") {
       result = result.filter(app => app.validationStatus === "WARNING");
@@ -179,7 +175,9 @@ export default function ApplicantList() {
       result = result.filter(app => app.majorName === selectedMajor);
     }
 
-    if (selectedStatus !== "all") {
+    if (selectedStatus === "all") {
+      result = result.filter(app => app.status === "SUBMITTED" || app.status === "UNDER_REVIEW");
+    } else {
       result = result.filter(app => app.status === selectedStatus);
     }
 
@@ -427,7 +425,10 @@ export default function ApplicantList() {
   const countMissing = rawQueue.filter(a => a.validationStatus === "WARNING").length;
   const countManual = rawQueue.filter(a => a.validationStatus === "ERROR" || a.riskLevel === "High").length;
 
-  const selectableApps = paginatedApps.filter(app => !(app.validationStatus === "ERROR" || app.riskLevel === "High"));
+  const selectableApps = paginatedApps.filter(app => 
+    !(app.validationStatus === "ERROR" || app.riskLevel === "High") && 
+    app.status !== "APPROVED" && app.status !== "REJECTED" && app.status !== "ENROLLED"
+  );
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -469,7 +470,7 @@ export default function ApplicantList() {
 
       {/* Pipeline Navigation Steps / Tabs */}
       <div style={{
-        display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8,
+        display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8,
         background: "#F8FAFC", padding: 6, borderRadius: 12, border: "1px solid #E2E8F0"
       }}>
         {/* Tab 1: All */}
@@ -491,45 +492,7 @@ export default function ApplicantList() {
           </span>
         </button>
 
-        {/* Tab 2: High Priority */}
-        <button 
-          onClick={() => setActivePipelineTab("high_priority")}
-          style={{
-            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-            background: activePipelineTab === "high_priority" ? "white" : "transparent",
-            color: activePipelineTab === "high_priority" ? "#FF6B35" : "#64748B",
-            boxShadow: activePipelineTab === "high_priority" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-            fontWeight: activePipelineTab === "high_priority" ? 700 : 500, transition: "all 0.15s"
-          }}
-        >
-          <Flame size={16} color={activePipelineTab === "high_priority" ? "#FF6B35" : "#EF4444"} />
-          <span style={{ fontSize: 11, textAlign: "center" }}>1. Ưu tiên cao</span>
-          <span style={{ fontSize: 10, background: activePipelineTab === "high_priority" ? "#FF6B35" : "#FEE2E2", color: activePipelineTab === "high_priority" ? "white" : "#EF4444", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
-            {countHigh}
-          </span>
-        </button>
-
-        {/* Tab 3: Waiting long */}
-        <button 
-          onClick={() => setActivePipelineTab("waiting_long")}
-          style={{
-            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
-            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
-            background: activePipelineTab === "waiting_long" ? "white" : "transparent",
-            color: activePipelineTab === "waiting_long" ? "#FF6B35" : "#64748B",
-            boxShadow: activePipelineTab === "waiting_long" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
-            fontWeight: activePipelineTab === "waiting_long" ? 700 : 500, transition: "all 0.15s"
-          }}
-        >
-          <Clock size={16} color={activePipelineTab === "waiting_long" ? "#FF6B35" : "#D97706"} />
-          <span style={{ fontSize: 11, textAlign: "center" }}>2. Chờ quá lâu</span>
-          <span style={{ fontSize: 10, background: activePipelineTab === "waiting_long" ? "#FF6B35" : "#FEF3C7", color: activePipelineTab === "waiting_long" ? "white" : "#D97706", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
-            {countWaiting}
-          </span>
-        </button>
-
-        {/* Tab 4: Complete */}
+        {/* Tab 2: Complete */}
         <button 
           onClick={() => setActivePipelineTab("complete")}
           style={{
@@ -542,13 +505,13 @@ export default function ApplicantList() {
           }}
         >
           <CheckCircle size={16} color={activePipelineTab === "complete" ? "#FF6B35" : "#10B981"} />
-          <span style={{ fontSize: 11, textAlign: "center" }}>3. Đủ tài liệu</span>
+          <span style={{ fontSize: 11, textAlign: "center" }}>1. Đủ tài liệu</span>
           <span style={{ fontSize: 10, background: activePipelineTab === "complete" ? "#FF6B35" : "#D1FAE5", color: activePipelineTab === "complete" ? "white" : "#10B981", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
             {countComplete}
           </span>
         </button>
 
-        {/* Tab 5: Missing docs */}
+        {/* Tab 3: Missing docs */}
         <button 
           onClick={() => setActivePipelineTab("missing_docs")}
           style={{
@@ -561,13 +524,13 @@ export default function ApplicantList() {
           }}
         >
           <FileQuestion size={16} color={activePipelineTab === "missing_docs" ? "#FF6B35" : "#F59E0B"} />
-          <span style={{ fontSize: 11, textAlign: "center" }}>4. Thiếu tài liệu</span>
+          <span style={{ fontSize: 11, textAlign: "center" }}>2. Thiếu tài liệu</span>
           <span style={{ fontSize: 10, background: activePipelineTab === "missing_docs" ? "#FF6B35" : "#FEF3C7", color: activePipelineTab === "missing_docs" ? "white" : "#F59E0B", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
             {countMissing}
           </span>
         </button>
 
-        {/* Tab 6: Manual verification exceptions */}
+        {/* Tab 4: Manual verification exceptions */}
         <button 
           onClick={() => setActivePipelineTab("manual_review")}
           style={{
@@ -580,7 +543,7 @@ export default function ApplicantList() {
           }}
         >
           <ShieldAlert size={16} color={activePipelineTab === "manual_review" ? "#FF6B35" : "#EF4444"} />
-          <span style={{ fontSize: 11, textAlign: "center" }}>5. Cần xác minh</span>
+          <span style={{ fontSize: 11, textAlign: "center" }}>3. Cần xác minh</span>
           <span style={{ fontSize: 10, background: activePipelineTab === "manual_review" ? "#FF6B35" : "#FEE2E2", color: activePipelineTab === "manual_review" ? "white" : "#EF4444", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
             {countManual}
           </span>
@@ -649,6 +612,9 @@ export default function ApplicantList() {
             <option value="all">Trạng thái: Đang chờ</option>
             <option value="SUBMITTED">Đã nộp</option>
             <option value="UNDER_REVIEW">Đang xét</option>
+            <option value="APPROVED">Đã duyệt</option>
+            <option value="REJECTED">Từ chối</option>
+            <option value="ENROLLED">Nhập học</option>
           </select>
         </div>
 
@@ -683,7 +649,7 @@ export default function ApplicantList() {
                     style={{ cursor: "pointer" }}
                   />
                 </th>
-                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH", "ĐIỂM ƯU TIÊN", "AI ĐỀ XUẤT / RỦI RO", "THAO TÁC DUYỆT NHANH"].map(h => (
+                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH", "ĐIỂM ƯU TIÊN", "AI ĐỀ XUẤT / RỦI RO", "TRẠNG THÁI", "THAO TÁC DUYỆT NHANH"].map(h => (
                   <th key={h} style={{
                     textAlign: "left", padding: "14px 16px", fontSize: 10,
                     fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8",
@@ -694,20 +660,21 @@ export default function ApplicantList() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
+                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
                     Đang tải dữ liệu quy trình duyệt hồ sơ...
                   </div>
                 </td></tr>
               ) : filteredQueue.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Không tìm thấy hồ sơ nào trong bước quy trình này</td></tr>
+                <tr><td colSpan={8} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Không tìm thấy hồ sơ nào trong bước quy trình này</td></tr>
               ) : (
                 paginatedApps.map((app, idx) => {
                   const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
                   
                   // Exceptions require detail page manually
                   const hasException = app.validationStatus === "ERROR" || app.riskLevel === "High";
+                  const isSelectable = !hasException && app.status !== "APPROVED" && app.status !== "REJECTED" && app.status !== "ENROLLED";
 
                   return (
                     <tr key={app.id} 
@@ -724,7 +691,7 @@ export default function ApplicantList() {
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC", width: 46 }} onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
-                          disabled={hasException}
+                          disabled={!isSelectable}
                           checked={selectedIds.includes(app.id)}
                           onChange={(e) => {
                             if (e.target.checked) {
@@ -733,8 +700,8 @@ export default function ApplicantList() {
                               setSelectedIds(prev => prev.filter(selectedId => selectedId !== app.id));
                             }
                           }}
-                          style={{ cursor: hasException ? "not-allowed" : "pointer" }}
-                          title={hasException ? "Hồ sơ lỗi/rủi ro bắt buộc duyệt thủ công" : ""}
+                          style={{ cursor: isSelectable ? "pointer" : "not-allowed" }}
+                          title={hasException ? "Hồ sơ lỗi/rủi ro bắt buộc duyệt thủ công" : !isSelectable ? "Hồ sơ đã hoàn tất quy trình duyệt" : ""}
                         />
                       </td>
                       {/* Code */}
@@ -796,6 +763,23 @@ export default function ApplicantList() {
                         </div>
                       </td>
 
+                      {/* Status Badge */}
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        {app.status && (
+                          <span style={{
+                            display: "inline-block",
+                            padding: "4px 8px",
+                            borderRadius: 6,
+                            fontSize: 12,
+                            fontWeight: 600,
+                            backgroundColor: STATUS_COLORS[app.status]?.bg || "#F3F4F6",
+                            color: STATUS_COLORS[app.status]?.color || "#4B5563"
+                          }}>
+                            {STATUS_LABELS[app.status] || app.status}
+                          </span>
+                        )}
+                      </td>
+
                       {/* Direct Inline Review Actions */}
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }} onClick={e => e.stopPropagation()}>
                         <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
@@ -803,7 +787,18 @@ export default function ApplicantList() {
                             <span style={{ fontSize: 11, color: "#64748B" }}>Đang xử lý...</span>
                           ) : (
                             <>
-                              {hasException ? (
+                              {app.status === "APPROVED" || app.status === "REJECTED" || app.status === "ENROLLED" ? (
+                                <button
+                                  onClick={() => navigate(`/officer/applicants/${app.id}`)}
+                                  style={{
+                                    padding: "6px 12px", background: "#3B82F6", color: "white",
+                                    border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                    cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                                  }}
+                                >
+                                  <Eye size={12} /> Xem chi tiết
+                                </button>
+                              ) : hasException ? (
                                 <button
                                   onClick={() => navigate(`/officer/applicants/${app.id}`)}
                                   style={{
@@ -854,16 +849,18 @@ export default function ApplicantList() {
                                 </>
                               )}
 
-                              <button
-                                onClick={(e) => handleRecalculate(app.id, e)}
-                                title="Tính toán lại"
-                                style={{
-                                  padding: "6px", background: "#F3F4F6", color: "#4B5563",
-                                  border: "1px solid #E5E7EB", borderRadius: 6, cursor: "pointer"
-                                }}
-                              >
-                                <RefreshCw size={12} />
-                              </button>
+                              {app.status !== "APPROVED" && app.status !== "REJECTED" && app.status !== "ENROLLED" && (
+                                <button
+                                  onClick={(e) => handleRecalculate(app.id, e)}
+                                  title="Tính toán lại"
+                                  style={{
+                                    padding: "6px", background: "#F3F4F6", color: "#4B5563",
+                                    border: "1px solid #E5E7EB", borderRadius: 6, cursor: "pointer"
+                                  }}
+                                >
+                                  <RefreshCw size={12} />
+                                </button>
+                              )}
                             </>
                           )}
                         </div>

@@ -154,6 +154,8 @@ export default function ApplicationReview() {
       APPROVED: { bg: "#ECFDF5", color: "#059669" },
       REJECTED: { bg: "#FEF2F2", color: "#DC2626" },
       UNDER_REVIEW: { bg: "#FFFBEB", color: "#D97706" },
+      ENROLLED: { bg: "#EDE9FE", color: "#5B21B6" },
+      SUBMITTED: { bg: "#EFF6FF", color: "#2563EB" },
       default: { bg: "#EFF6FF", color: "#2563EB" }
     };
     return styles[status] || styles.default;
@@ -162,7 +164,8 @@ export default function ApplicationReview() {
   const getStatusLabel = (status) => {
     const labels = {
       APPROVED: "Đã duyệt", REJECTED: "Từ chối",
-      UNDER_REVIEW: "Yêu cầu bổ sung", SUBMITTED: "Chờ xét duyệt"
+      UNDER_REVIEW: "Yêu cầu bổ sung", SUBMITTED: "Chờ xét duyệt",
+      ENROLLED: "Nhập học"
     };
     return labels[status] || status;
   };
@@ -333,11 +336,61 @@ export default function ApplicationReview() {
             )}
           </div>
 
-          <EvaluationPanel
-            score={score} setScore={setScore} notes={notes} setNotes={setNotes}
-            rejectionReason={rejectionReason} setRejectionReason={setRejectionReason}
-            decision={decision} setDecision={setDecision} onSave={handleSave} loading={loading} app={app} />
-          <QuickActions onAction={handleQuickAction} />
+          {app.status === "APPROVED" || app.status === "REJECTED" || app.status === "ENROLLED" ? (
+            <div style={{
+              background: "white", borderRadius: 16, padding: 24,
+              border: "1px solid #E2E8F0", boxShadow: "0 4px 12px rgba(0,0,0,0.03)"
+            }}>
+              <h3 style={{ margin: "0 0 18px", fontWeight: 800, fontSize: 16, color: "#0F172A" }}>Thông Tin Đánh Giá</h3>
+              <div style={{ marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Kết quả xét duyệt:</span>
+                <span style={{
+                  display: "inline-block",
+                  padding: "6px 14px",
+                  borderRadius: 999,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  backgroundColor: getStatusStyle(app.status).bg,
+                  color: getStatusStyle(app.status).color
+                }}>
+                  {getStatusLabel(app.status)}
+                </span>
+              </div>
+              
+              <div style={{ marginBottom: 16 }}>
+                <span style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Tổng điểm GPA đã duyệt:</span>
+                <span style={{ fontSize: 16, fontWeight: 800, color: "#0F172A" }}>
+                  {app.totalScore != null ? `${app.totalScore}/100` : "Chưa chấm"}
+                </span>
+              </div>
+
+              {app.officerNotes && (
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Ghi chú / Nhận xét:</span>
+                  <div style={{ padding: "10px 14px", border: "1px solid #E2E8F0", borderRadius: 10, fontSize: 13, color: "#334155", background: "#F8FAFC", whiteSpace: "pre-wrap" }}>
+                    {app.officerNotes}
+                  </div>
+                </div>
+              )}
+
+              {app.rejectionReason && (
+                <div style={{ marginBottom: 16 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#374151", display: "block", marginBottom: 6 }}>Lý do từ chối:</span>
+                  <div style={{ padding: "10px 14px", border: "1px solid #FEE2E2", borderRadius: 10, fontSize: 13, color: "#991B1B", background: "#FEF2F2", whiteSpace: "pre-wrap" }}>
+                    {app.rejectionReason}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <>
+              <EvaluationPanel
+                score={score} setScore={setScore} notes={notes} setNotes={setNotes}
+                rejectionReason={rejectionReason} setRejectionReason={setRejectionReason}
+                decision={decision} setDecision={setDecision} onSave={handleSave} loading={loading} app={app} />
+              <QuickActions onAction={handleQuickAction} />
+            </>
+          )}
         </div>
       </div>
     </div>
