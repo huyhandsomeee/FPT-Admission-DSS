@@ -61,6 +61,9 @@ public class AcademicBackground {
     @Column(name = "toefl_score")
     private Integer toeflScore;
 
+    @Column(name = "cert_issue_date")
+    private java.time.LocalDate certIssueDate;
+
     @Column(name = "academic_achievement", columnDefinition = "TEXT")
     private String academicAchievement;
 

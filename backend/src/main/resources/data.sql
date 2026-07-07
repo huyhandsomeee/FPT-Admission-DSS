@@ -93,6 +93,7 @@
         sat_score INT,
         ielts_score DECIMAL(3,1),
         toefl_score INT,
+        cert_issue_date DATE,
         academic_achievement TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (student_profile_id) REFERENCES student_profiles(id) ON DELETE CASCADE,
@@ -414,45 +415,45 @@
     (25, 'ly.vanq@gmail.com',       '$2a$10$.TAbLB9/FzvwP/hmD.rnPuWJoyX/i1FXDYMyJ6t/QRAg6kFY7V5nq', 'Lý Văn Q',               '0911001017', 'STUDENT',           true);
 
     -- 9. Student Profiles
-    INSERT IGNORE INTO student_profiles (id, user_id, student_code, dob, gender, permanent_address, province_id, cccd_number, parent_name, parent_phone) VALUES
-    (1,  9,  'SE260001', '2007-03-15', 'MALE',   '12 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội',     1, '001207001001', 'Nguyễn Văn Toàn', '0912000001'),
-    (2,  10, 'SE260002', '2007-07-22', 'FEMALE', '45 Nguyễn Huệ, Q1, TP. HCM',               2, '079207002002', 'Trần Văn Minh',   '0912000002'),
-    (3,  11, 'SE260003', '2007-11-08', 'MALE',   '88 Trần Phú, Hải Châu, Đà Nẵng',           3, '048207003003', 'Lê Văn Hùng',     '0912000003'),
-    (4,  12, 'SE260004', '2007-05-30', 'FEMALE', '22 Nguyễn Trãi, Ninh Kiều, Cần Thơ',       4, '092207004004', 'Phạm Văn Thành',  '0912000004'),
-    (5,  13, 'AI260001', '2007-09-14', 'MALE',   '5 Lê Lợi, TP. Quy Nhơn, Bình Định',        5, '052207005005', 'Hoàng Văn Bình',  '0912000005'),
-    (6,  14, 'SE260005', '2007-01-25', 'FEMALE', '77 Trần Hưng Đạo, Ngô Quyền, Hải Phòng',  6, '031207006006', 'Nguyễn Văn Lực',  '0912000006'),
-    (7,  15, 'SE260006', '2007-06-18', 'MALE',   '33 Bà Triệu, Hai Bà Trưng, Hà Nội',        1, '001207007007', 'Đỗ Văn Sáng',     '0912000007'),
-    (8,  16, 'SE260007', '2007-12-03', 'FEMALE', '99 Nguyễn Đình Chiểu, Bình Thạnh, HCM',   2, '079207008008', 'Bùi Văn Chính',   '0912000008'),
-    (9,  17, 'SE260008', '2007-04-10', 'MALE',   '15 Điện Biên Phủ, Thanh Khê, Đà Nẵng',    3, '048207009009', 'Dương Văn Hải',   '0912000009'),
-    (10, 18, 'SE260009', '2007-08-27', 'FEMALE', '44 Cách Mạng Tháng 8, Ninh Kiều, Cần Thơ',4, '092207010010', 'Phan Văn Khoa',   '0912000010'),
-    (11, 19, 'SE260010', '2007-02-14', 'MALE',   '60 Lê Duẩn, Đống Đa, Hà Nội',              1, '001207011011', 'Võ Văn Quý',      '0912000011'),
-    (12, 20, 'BA260001', '2007-10-19', 'FEMALE', '18 Phan Xích Long, Phú Nhuận, TP. HCM',    2, '079207012012', 'Ngô Văn Tốt',     '0912000012'),
-    (13, 21, 'HT260001', '2007-07-07', 'MALE',   '7 Hùng Vương, Hải Châu, Đà Nẵng',          3, '048207013013', 'Trịnh Văn Nam',   '0912000013'),
-    (14, 22, 'BA260002', '2007-03-28', 'FEMALE', '30 Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ',    4, '092207014014', 'Cao Văn Lợi',     '0912000014'),
-    (15, 23, 'SE260011', '2007-11-11', 'MALE',   '55 Trần Quang Khải, Hà Nội',               1, '001207015015', 'Đinh Văn Phú',    '0912000015'),
-    (16, 24, 'GD260001', '2007-06-06', 'FEMALE', '123 Nguyễn Thị Thập, Q7, TP. HCM',        2, '079207016016', 'Vũ Văn Tài',      '0912000016'),
-    (17, 25, 'AI260002', '2007-09-09', 'MALE',   '9 Quang Trung, TP. Quy Nhơn, Bình Định',   5, '052207017017', 'Lý Văn Ân',       '0912000017');
+    INSERT IGNORE INTO student_profiles (id, user_id, student_code, dob, gender, permanent_address, province_id, cccd_number, parent_name, parent_phone, ethnicity, cccd_issue_date, cccd_issue_place, parent_email) VALUES
+    (1,  9,  'SE260001', '2007-03-15', 'MALE',   '12 Lý Thường Kiệt, Hoàn Kiếm, Hà Nội',     1, '001207001001', 'Nguyễn Văn Toàn', '0912000001', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent01@gmail.com'),
+    (2,  10, 'SE260002', '2007-07-22', 'FEMALE', '45 Nguyễn Huệ, Q1, TP. HCM',               2, '079207002002', 'Trần Văn Minh',   '0912000002', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent02@gmail.com'),
+    (3,  11, 'SE260003', '2007-11-08', 'MALE',   '88 Trần Phú, Hải Châu, Đà Nẵng',           3, '048207003003', 'Lê Văn Hùng',     '0912000003', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent03@gmail.com'),
+    (4,  12, 'SE260004', '2007-05-30', 'FEMALE', '22 Nguyễn Trãi, Ninh Kiều, Cần Thơ',       4, '092207004004', 'Phạm Văn Thành',  '0912000004', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent04@gmail.com'),
+    (5,  13, 'AI260001', '2007-09-14', 'MALE',   '5 Lê Lợi, TP. Quy Nhơn, Bình Định',        5, '052207005005', 'Hoàng Văn Bình',  '0912000005', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent05@gmail.com'),
+    (6,  14, 'SE260005', '2007-01-25', 'FEMALE', '77 Trần Hưng Đạo, Ngô Quyền, Hải Phòng',  6, '031207006006', 'Nguyễn Văn Lực',  '0912000006', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent06@gmail.com'),
+    (7,  15, 'SE260006', '2007-06-18', 'MALE',   '33 Bà Triệu, Hai Bà Trưng, Hà Nội',        1, '001207007007', 'Đỗ Văn Sáng',     '0912000007', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent07@gmail.com'),
+    (8,  16, 'SE260007', '2007-12-03', 'FEMALE', '99 Nguyễn Đình Chiểu, Bình Thạnh, HCM',   2, '079207008008', 'Bùi Văn Chính',   '0912000008', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent08@gmail.com'),
+    (9,  17, 'SE260008', '2007-04-10', 'MALE',   '15 Điện Biên Phủ, Thanh Khê, Đà Nẵng',    3, '048207009009', 'Dương Văn Hải',   '0912000009', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent09@gmail.com'),
+    (10, 18, 'SE260009', '2007-08-27', 'FEMALE', '44 Cách Mạng Tháng 8, Ninh Kiều, Cần Thơ',4, '092207010010', 'Phan Văn Khoa',   '0912000010', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent10@gmail.com'),
+    (11, 19, 'SE260010', '2007-02-14', 'MALE',   '60 Lê Duẩn, Đống Đa, Hà Nội',              1, '001207011011', 'Võ Văn Quý',      '0912000011', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent11@gmail.com'),
+    (12, 20, 'BA260001', '2007-10-19', 'FEMALE', '18 Phan Xích Long, Phú Nhuận, TP. HCM',    2, '079207012012', 'Ngô Văn Tốt',     '0912000012', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent12@gmail.com'),
+    (13, 21, 'HT260001', '2007-07-07', 'MALE',   '7 Hùng Vương, Hải Châu, Đà Nẵng',          3, '048207013013', 'Trịnh Văn Nam',   '0912000013', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent13@gmail.com'),
+    (14, 22, 'BA260002', '2007-03-28', 'FEMALE', '30 Nguyễn Văn Cừ, Ninh Kiều, Cần Thơ',    4, '092207014014', 'Cao Văn Lợi',     '0912000014', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent14@gmail.com'),
+    (15, 23, 'SE260011', '2007-11-11', 'MALE',   '55 Trần Quang Khải, Hà Nội',               1, '001207015015', 'Đinh Văn Phú',    '0912000015', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent15@gmail.com'),
+    (16, 24, 'GD260001', '2007-06-06', 'FEMALE', '123 Nguyễn Thị Thập, Q7, TP. HCM',        2, '079207016016', 'Vũ Văn Tài',      '0912000016', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent16@gmail.com'),
+    (17, 25, 'AI260002', '2007-09-09', 'MALE',   '9 Quang Trung, TP. Quy Nhơn, Bình Định',   5, '052207017017', 'Lý Văn Ân',       '0912000017', 'Kinh', '2023-05-15', 'Cục Cảnh sát QLHC về TTXH', 'parent17@gmail.com');
 
     -- 10. Academic Backgrounds (đầy đủ GPA lớp 10, 11, 12 cho tất cả hồ sơ)
     -- potential_score = gpa_10 + gpa_11 + gpa_12 (tổng 3 năm, tối đa 30.0)
-    INSERT IGNORE INTO academic_backgrounds (id, student_profile_id, school_name, school_province_id, graduation_year, gpa_10, gpa_11, gpa_12, math_score, literature_score, english_score, total_score, ielts_score) VALUES
-    (1,  1,  'THPT Chu Văn An',             1, 2026, 8.70, 8.80, 8.90, 8.5, 7.5, 9.0, 26.40, 7.0),
-    (2,  2,  'THPT Lê Hồng Phong',         2, 2026, 7.90, 8.00, 8.20, 7.5, 8.0, 7.0, 24.10, NULL),
-    (3,  3,  'THPT Trần Phú',              3, 2026, 8.20, 8.30, 8.50, 8.0, 7.0, 8.5, 25.00, NULL),
-    (4,  4,  'THPT Châu Văn Liêm',         4, 2026, 7.80, 7.90, 8.00, 7.0, 7.5, 7.0, 23.70, NULL),
-    (5,  5,  'THPT Quốc Học Quy Nhơn',     5, 2026, 9.00, 9.10, 9.30, 9.0, 8.5, 9.5, 27.40, 8.0),
-    (6,  6,  'THPT Thái Phiên',            6, 2026, 8.40, 8.50, 8.60, 8.5, 7.8, 8.0, 25.50, NULL),
-    (7,  7,  'THPT Việt Đức',              1, 2026, 7.50, 7.60, 7.80, 7.5, 7.0, 7.5, 22.90, NULL),
-    (8,  8,  'THPT Marie Curie',           2, 2026, 8.80, 9.00, 9.10, 8.5, 8.8, 9.0, 26.90, 7.5),
-    (9,  9,  'THPT Phan Châu Trinh',       3, 2026, 7.20, 7.30, 7.50, 7.0, 7.5, 6.5, 22.00, NULL),
-    (10, 10, 'THPT Thủ Khoa Nghĩa',        4, 2026, 8.50, 8.60, 8.80, 8.0, 8.5, 8.0, 25.90, NULL),
-    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 8.00, 8.10, 8.30, 8.0, 7.5, 8.0, 24.40, NULL),
-    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.20, 9.30, 9.50, 9.5, 9.0, 9.5, 28.00, 8.5),
-    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.60, 7.70, 7.90, 7.0, 7.8, 7.0, 23.20, NULL),
-    (14, 14, 'THPT Châu Thành',            4, 2026, 8.10, 8.20, 8.40, 7.5, 8.0, 7.5, 24.70, NULL),
-    (15, 15, 'THPT Kim Liên',              1, 2026, 8.70, 8.80, 9.00, 8.5, 8.0, 8.5, 26.50, NULL),
-    (16, 16, 'THPT Gia Định',              2, 2026, 7.50, 7.60, 7.80, 7.0, 7.5, 7.0, 22.90, NULL),
-    (17, 17, 'THPT Quang Trung',           5, 2026, 8.40, 8.50, 8.70, 8.5, 8.0, 8.5, 25.60, NULL);
+    INSERT IGNORE INTO academic_backgrounds (id, student_profile_id, school_name, school_province_id, graduation_year, gpa_10, gpa_11, gpa_12, math_score, literature_score, english_score, total_score, ielts_score, cert_issue_date) VALUES
+    (1,  1,  'THPT Chu Văn An',             1, 2026, 8.70, 8.80, 8.90, 8.5, 7.5, 9.0, 26.40, 7.0, '2025-05-15'),
+    (2,  2,  'THPT Lê Hồng Phong',         2, 2026, 7.90, 8.00, 8.20, 7.5, 8.0, 7.0, 24.10, NULL, NULL),
+    (3,  3,  'THPT Trần Phú',              3, 2026, 8.20, 8.30, 8.50, 8.0, 7.0, 8.5, 25.00, NULL, NULL),
+    (4,  4,  'THPT Châu Văn Liêm',         4, 2026, 7.80, 7.90, 8.00, 7.0, 7.5, 7.0, 23.70, NULL, NULL),
+    (5,  5,  'THPT Quốc Học Quy Nhơn',     5, 2026, 9.00, 9.10, 9.30, 9.0, 8.5, 9.5, 27.40, 8.0, '2025-06-20'),
+    (6,  6,  'THPT Thái Phiên',            6, 2026, 8.40, 8.50, 8.60, 8.5, 7.8, 8.0, 25.50, NULL, NULL),
+    (7,  7,  'THPT Việt Đức',              1, 2026, 7.50, 7.60, 7.80, 7.5, 7.0, 7.5, 22.90, NULL, NULL),
+    (8,  8,  'THPT Marie Curie',           2, 2026, 8.80, 9.00, 9.10, 8.5, 8.8, 9.0, 26.90, 7.5, '2025-03-10'),
+    (9,  9,  'THPT Phan Châu Trinh',       3, 2026, 7.20, 7.30, 7.50, 7.0, 7.5, 6.5, 22.00, NULL, NULL),
+    (10, 10, 'THPT Thủ Khoa Nghĩa',        4, 2026, 8.50, 8.60, 8.80, 8.0, 8.5, 8.0, 25.90, NULL, NULL),
+    (11, 11, 'THPT Nguyễn Trãi',           1, 2026, 8.00, 8.10, 8.30, 8.0, 7.5, 8.0, 24.40, NULL, NULL),
+    (12, 12, 'THPT Nguyễn Thị Minh Khai',  2, 2026, 9.20, 9.30, 9.50, 9.5, 9.0, 9.5, 28.00, 8.5, '2025-02-25'),
+    (13, 13, 'THPT Hoàng Hoa Thám',        3, 2026, 7.60, 7.70, 7.90, 7.0, 7.8, 7.0, 23.20, NULL, NULL),
+    (14, 14, 'THPT Châu Thành',            4, 2026, 8.10, 8.20, 8.40, 7.5, 8.0, 7.5, 24.70, NULL, NULL),
+    (15, 15, 'THPT Kim Liên',              1, 2026, 8.70, 8.80, 9.00, 8.5, 8.0, 8.5, 26.50, NULL, NULL),
+    (16, 16, 'THPT Gia Định',              2, 2026, 7.50, 7.60, 7.80, 7.0, 7.5, 7.0, 22.90, NULL, NULL),
+    (17, 17, 'THPT Quang Trung',           5, 2026, 8.40, 8.50, 8.70, 8.5, 8.0, 8.5, 25.60, NULL, NULL);
 
     -- 11. Applications (Tạo 1000+ mã hồ sơ chia đều các ngành)
     -- Công nghệ thông tin (SE, AI, IS): 450 hồ sơ
@@ -511,26 +512,113 @@
     (29, 16, 'UNDER_REVIEW', 'REJECTED',     8,  'Thiếu học bạ năm lớp 10');
 
     -- 13. Application Documents
-    INSERT IGNORE INTO application_documents (id, application_id, document_type_id, file_name, status, verified_by) VALUES
-    (1,  1, 1, 'cccd_nguyen_van_a.pdf',     'VERIFIED', 6),
-    (2,  1, 2, 'hoc_ba_nguyen_van_a.pdf',   'VERIFIED', 6),
-    (3,  1, 3, 'bang_tn_nva.pdf',           'VERIFIED', 6),
-    (4,  1, 5, 'anh_the_nva.jpg',           'VERIFIED', 6),
-    (5,  2, 1, 'cccd_tran_thi_b.pdf',       'VERIFIED', 7),
-    (6,  2, 2, 'hoc_ba_tran_thi_b.pdf',     'PENDING',  NULL),
-    (7,  2, 5, 'anh_the_ttb.jpg',           'PENDING',  NULL),
-    (8,  5, 1, 'cccd_hoang_van_e.pdf',      'VERIFIED', 6),
-    (9,  5, 2, 'hoc_ba_hve.pdf',            'VERIFIED', 6),
-    (10, 5, 3, 'bang_tn_hve.pdf',           'VERIFIED', 6),
-    (11, 5, 4, 'ielts_hve.pdf',             'VERIFIED', 6),
-    (12, 5, 5, 'anh_the_hve.jpg',           'VERIFIED', 6),
-    (13, 8, 1, 'cccd_bui_thi_h.pdf',        'VERIFIED', 7),
-    (14, 8, 2, 'hoc_ba_bth.pdf',            'VERIFIED', 7),
-    (15, 8, 4, 'ielts_bth.pdf',             'VERIFIED', 7),
-    (16, 8, 5, 'anh_the_bth.jpg',           'VERIFIED', 7),
-    (17, 16,1, 'cccd_vu_thi_p.pdf',         'VERIFIED', 8),
-    (18, 16,2, 'hoc_ba_vtp_partial.pdf',    'REJECTED', 8),
-    (19, 16,5, 'anh_the_vtp.jpg',           'VERIFIED', 8);
+    INSERT IGNORE INTO application_documents (application_id, document_type_id, file_name, status, verified_by) VALUES
+    -- App 1
+    (1, 1, 'cccd_nguyen_van_a.pdf',     'VERIFIED', 6),
+    (1, 2, 'hoc_ba_nguyen_van_a.pdf',   'VERIFIED', 6),
+    (1, 3, 'bang_tn_nva.pdf',           'VERIFIED', 6),
+    (1, 4, 'ielts_nva.pdf',             'VERIFIED', 6),
+    (1, 5, 'anh_the_nva.jpg',           'VERIFIED', 6),
+    (1, 6, 'gks_nva.pdf',               'VERIFIED', 6),
+    -- App 2
+    (2, 1, 'cccd_tran_thi_b.pdf',       'VERIFIED', 7),
+    (2, 2, 'hoc_ba_tran_thi_b.pdf',     'VERIFIED', 7),
+    (2, 3, 'bang_tn_ttb.pdf',           'VERIFIED', 7),
+    (2, 5, 'anh_the_ttb.jpg',           'VERIFIED', 7),
+    (2, 6, 'gks_ttb.pdf',               'VERIFIED', 7),
+    -- App 3
+    (3, 1, 'cccd_app_3.pdf',            'VERIFIED', 6),
+    (3, 2, 'hoc_ba_app_3.pdf',          'VERIFIED', 6),
+    (3, 3, 'bang_tn_app_3.pdf',         'VERIFIED', 6),
+    (3, 5, 'anh_the_app_3.jpg',         'VERIFIED', 6),
+    (3, 6, 'gks_app_3.pdf',             'VERIFIED', 6),
+    -- App 4
+    (4, 1, 'cccd_app_4.pdf',            'VERIFIED', 7),
+    (4, 2, 'hoc_ba_app_4.pdf',          'VERIFIED', 7),
+    (4, 3, 'bang_tn_app_4.pdf',         'VERIFIED', 7),
+    (4, 5, 'anh_the_app_4.jpg',         'VERIFIED', 7),
+    (4, 6, 'gks_app_4.pdf',             'VERIFIED', 7),
+    -- App 5
+    (5, 1, 'cccd_hoang_van_e.pdf',      'VERIFIED', 6),
+    (5, 2, 'hoc_ba_hve.pdf',            'VERIFIED', 6),
+    (5, 3, 'bang_tn_hve.pdf',           'VERIFIED', 6),
+    (5, 4, 'ielts_hve.pdf',             'VERIFIED', 6),
+    (5, 5, 'anh_the_hve.jpg',           'VERIFIED', 6),
+    (5, 6, 'gks_hve.pdf',               'VERIFIED', 6),
+    -- App 6
+    (6, 1, 'cccd_app_6.pdf',            'VERIFIED', 6),
+    (6, 2, 'hoc_ba_app_6.pdf',          'VERIFIED', 6),
+    (6, 3, 'bang_tn_app_6.pdf',         'VERIFIED', 6),
+    (6, 5, 'anh_the_app_6.jpg',         'VERIFIED', 6),
+    (6, 6, 'gks_app_6.pdf',             'VERIFIED', 6),
+    -- App 7
+    (7, 1, 'cccd_app_7.pdf',            'VERIFIED', 6),
+    (7, 2, 'hoc_ba_app_7.pdf',          'VERIFIED', 6),
+    (7, 3, 'bang_tn_app_7.pdf',         'VERIFIED', 6),
+    (7, 5, 'anh_the_app_7.jpg',         'VERIFIED', 6),
+    (7, 6, 'gks_app_7.pdf',             'VERIFIED', 6),
+    -- App 8
+    (8, 1, 'cccd_bui_thi_h.pdf',        'VERIFIED', 7),
+    (8, 2, 'hoc_ba_bth.pdf',            'VERIFIED', 7),
+    (8, 3, 'bang_tn_bth.pdf',           'VERIFIED', 7),
+    (8, 4, 'ielts_bth.pdf',             'VERIFIED', 7),
+    (8, 5, 'anh_the_bth.jpg',           'VERIFIED', 7),
+    (8, 6, 'gks_bth.pdf',               'VERIFIED', 7),
+    -- App 9
+    (9, 1, 'cccd_app_9.pdf',            'VERIFIED', 6),
+    (9, 2, 'hoc_ba_app_9.pdf',          'VERIFIED', 6),
+    (9, 3, 'bang_tn_app_9.pdf',         'VERIFIED', 6),
+    (9, 5, 'anh_the_app_9.jpg',         'VERIFIED', 6),
+    (9, 6, 'gks_app_9.pdf',             'VERIFIED', 6),
+    -- App 10
+    (10, 1, 'cccd_app_10.pdf',          'VERIFIED', 6),
+    (10, 2, 'hoc_ba_app_10.pdf',        'VERIFIED', 6),
+    (10, 3, 'bang_tn_app_10.pdf',        'VERIFIED', 6),
+    (10, 5, 'anh_the_app_10.jpg',        'VERIFIED', 6),
+    (10, 6, 'gks_app_10.pdf',            'VERIFIED', 6),
+    -- App 11
+    (11, 1, 'cccd_app_11.pdf',          'VERIFIED', 6),
+    (11, 2, 'hoc_ba_app_11.pdf',        'VERIFIED', 6),
+    (11, 3, 'bang_tn_app_11.pdf',        'VERIFIED', 6),
+    (11, 5, 'anh_the_app_11.jpg',        'VERIFIED', 6),
+    (11, 6, 'gks_app_11.pdf',            'VERIFIED', 6),
+    -- App 12
+    (12, 1, 'cccd_app_12.pdf',          'VERIFIED', 7),
+    (12, 2, 'hoc_ba_app_12.pdf',        'VERIFIED', 7),
+    (12, 3, 'bang_tn_app_12.pdf',        'VERIFIED', 7),
+    (12, 4, 'ielts_app_12.pdf',          'VERIFIED', 7),
+    (12, 5, 'anh_the_app_12.jpg',        'VERIFIED', 7),
+    (12, 6, 'gks_app_12.pdf',            'VERIFIED', 7),
+    -- App 13
+    (13, 1, 'cccd_app_13.pdf',          'VERIFIED', 6),
+    (13, 2, 'hoc_ba_app_13.pdf',        'VERIFIED', 6),
+    (13, 3, 'bang_tn_app_13.pdf',        'VERIFIED', 6),
+    (13, 5, 'anh_the_app_13.jpg',        'VERIFIED', 6),
+    (13, 6, 'gks_app_13.pdf',            'VERIFIED', 6),
+    -- App 14
+    (14, 1, 'cccd_app_14.pdf',          'VERIFIED', 6),
+    (14, 2, 'hoc_ba_app_14.pdf',        'VERIFIED', 6),
+    (14, 3, 'bang_tn_app_14.pdf',        'VERIFIED', 6),
+    (14, 5, 'anh_the_app_14.jpg',        'VERIFIED', 6),
+    (14, 6, 'gks_app_14.pdf',            'VERIFIED', 6),
+    -- App 15
+    (15, 1, 'cccd_app_15.pdf',          'VERIFIED', 6),
+    (15, 2, 'hoc_ba_app_15.pdf',        'VERIFIED', 6),
+    (15, 3, 'bang_tn_app_15.pdf',        'VERIFIED', 6),
+    (15, 5, 'anh_the_app_15.jpg',        'VERIFIED', 6),
+    (15, 6, 'gks_app_15.pdf',            'VERIFIED', 6),
+    -- App 16
+    (16, 1, 'cccd_vu_thi_p.pdf',        'VERIFIED', 8),
+    (16, 2, 'hoc_ba_vtp.pdf',           'VERIFIED', 8),
+    (16, 3, 'bang_tn_vtp.pdf',          'VERIFIED', 8),
+    (16, 5, 'anh_the_vtp.jpg',          'VERIFIED', 8),
+    (16, 6, 'gks_vtp.pdf',              'VERIFIED', 8),
+    -- App 17
+    (17, 1, 'cccd_app_17.pdf',          'VERIFIED', 6),
+    (17, 2, 'hoc_ba_app_17.pdf',        'VERIFIED', 6),
+    (17, 3, 'bang_tn_app_17.pdf',        'VERIFIED', 6),
+    (17, 5, 'anh_the_app_17.jpg',        'VERIFIED', 6),
+    (17, 6, 'gks_app_17.pdf',            'VERIFIED', 6);
 
     -- 14. Notifications
     INSERT IGNORE INTO notifications (id, user_id, title, message, type, is_read, related_entity_type, related_entity_id) VALUES

@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { 
+  ArrowLeft, CheckCircle, XCircle, AlertTriangle, 
+  Sparkles, RefreshCw, ShieldAlert, Star, AlertCircle
+} from "lucide-react";
 import api from "../../../config/axiosConfig";
 import LoadingSpinner from "../../../components/common/LoadingSpinner";
 import DocumentViewer from "./components/DocumentViewer";
@@ -35,6 +38,35 @@ export default function ApplicationReview() {
   const [activeTab, setActiveTab] = useState("transcript");
   const [selectedDoc, setSelectedDoc] = useState(null);
 
+  // Pipeline state
+  const [pipelineData, setPipelineData] = useState(null);
+  const [loadingPipeline, setLoadingPipeline] = useState(false);
+
+  const fetchPipelineInfo = () => {
+    setLoadingPipeline(true);
+    api.get("/api/officer/pipeline")
+      .then(res => {
+        const queue = res.data?.data || [];
+        const matched = queue.find(item => item.id === parseInt(id));
+        if (matched) {
+          setPipelineData(matched);
+        }
+      })
+      .catch(err => console.error("Error loading pipeline data:", err))
+      .finally(() => setLoadingPipeline(false));
+  };
+
+  const recalculatePipeline = () => {
+    setLoadingPipeline(true);
+    api.post(`/api/officer/pipeline/recalculate/${id}`)
+      .then(() => {
+        fetchPipelineInfo();
+        fetchData();
+      })
+      .catch(err => alert("Lỗi khi tính toán lại: " + err.message))
+      .finally(() => setLoadingPipeline(false));
+  };
+
   const fetchData = () => {
     api.get(`/api/officer/applications/${id}`)
       .then(r => {
@@ -54,7 +86,7 @@ export default function ApplicationReview() {
           
           if (data.officerNotes) setNotes(data.officerNotes);
           if (data.rejectionReason) setRejectionReason(data.rejectionReason);
-          // Tính điểm tự động từ GPA 10+11+12
+          // Auto calculate from GPA
           const bg = data.academicBackground;
           if (bg) {
             const gpaTotal = ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2);
@@ -72,6 +104,7 @@ export default function ApplicationReview() {
   useEffect(() => {
     setLoadingApp(true);
     fetchData();
+    fetchPipelineInfo();
   }, [id]);
 
   const handleSave = async () => {
@@ -97,6 +130,8 @@ export default function ApplicationReview() {
 
     try {
       await api.patch(`/api/officer/applications/${id}/status`, payload);
+      // Recalculate pipeline for this application as it was edited
+      await api.post(`/api/officer/pipeline/recalculate/${id}`);
       navigate("/officer/applicants");
     } catch (err) {
       alert(err.response?.data?.message || "Không thể lưu đánh giá.");
@@ -132,9 +167,17 @@ export default function ApplicationReview() {
     return labels[status] || status;
   };
 
+  const getRecommendationStyle = (rec) => {
+    if (rec === "READY_FOR_APPROVAL") return { bg: "#D1FAE5", color: "#065F46", text: "Khuyên Duyệt" };
+    if (rec === "NEED_MORE_DOCUMENT") return { bg: "#FEF3C7", color: "#92400E", text: "Yêu Cầu Bổ Sung" };
+    if (rec === "REJECT_RECOMMENDED") return { bg: "#FEE2E2", color: "#991B1B", text: "Khuyên Từ Chối" };
+    return { bg: "#E0F2FE", color: "#0369A1", text: "Cần Thẩm Định" };
+  };
+
   if (loadingApp || !app) return <LoadingSpinner message="Đang tải dữ liệu hồ sơ thí sinh..." />;
 
   const statusStyle = getStatusStyle(app.status);
+  const recStyle = pipelineData ? getRecommendationStyle(pipelineData.aiRecommendation) : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24, maxWidth: "1280px", margin: "0 auto", padding: "12px 16px" }}>
@@ -149,12 +192,23 @@ export default function ApplicationReview() {
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#64748B" }}>Cập nhật điểm số và duyệt trạng thái hồ sơ</p>
           </div>
         </div>
-        <div style={{ padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: statusStyle.bg, color: statusStyle.color }}>
-          Trạng thái hiện tại: {getStatusLabel(app.status)}
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          {pipelineData && (
+            <span style={{ 
+              background: pipelineData.riskLevel === "High" ? "#FEE2E2" : pipelineData.riskLevel === "Medium" ? "#FEF3C7" : "#DCFCE7",
+              color: pipelineData.riskLevel === "High" ? "#B91C1C" : pipelineData.riskLevel === "Medium" ? "#A16207" : "#15803D",
+              padding: "6px 14px", borderRadius: 999, fontSize: 12, fontWeight: 700
+            }}>
+              Mức độ rủi ro: {pipelineData.riskLevel === "High" ? "Cao ⚠" : pipelineData.riskLevel === "Medium" ? "Trung bình ⚠" : "Thấp ✓"}
+            </span>
+          )}
+          <div style={{ padding: "6px 14px", borderRadius: 999, fontSize: 13, fontWeight: 700, background: statusStyle.bg, color: statusStyle.color }}>
+            Trạng thái hiện tại: {getStatusLabel(app.status)}
+          </div>
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: 24, alignItems: "flex-start" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 360px", gap: 24, alignItems: "flex-start" }}>
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           <DocumentViewer app={app} activeTab={activeTab} setActiveTab={setActiveTab}
             selectedDoc={selectedDoc} setSelectedDoc={setSelectedDoc} docs={docs} />
@@ -163,6 +217,122 @@ export default function ApplicationReview() {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          
+          {/* Smart Review Pipeline Assistant Widget */}
+          <div style={{
+            background: "white", borderRadius: 16, border: "1px solid #E2E8F0",
+            boxShadow: "0 4px 15px rgba(0,0,0,0.05)", overflow: "hidden", display: "flex",
+            flexDirection: "column"
+          }}>
+            {/* Header */}
+            <div style={{
+              background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)",
+              padding: "16px 20px", borderBottom: "1px solid #FFEDD5",
+              display: "flex", alignItems: "center", justifyContent: "space-between"
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <Sparkles size={18} color="#FF6B35" />
+                <span style={{ fontWeight: 800, fontSize: 14, color: "#7C2D12" }}>TRỢ LÝ REVIEW THÔNG MINH</span>
+              </div>
+              <button 
+                onClick={recalculatePipeline}
+                disabled={loadingPipeline}
+                style={{
+                  background: "white", border: "1px solid #FFE0B2", borderRadius: 6,
+                  padding: "4px 8px", cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                }}
+              >
+                <RefreshCw size={12} className={loadingPipeline ? "animate-spin" : ""} color="#FF6B35" />
+              </button>
+            </div>
+
+            {/* Content */}
+            {pipelineData ? (
+              <div style={{ padding: 20, display: "flex", flexDirection: "column", gap: 16 }}>
+                
+                {/* AI Recommendation Box */}
+                <div style={{
+                  background: recStyle.bg, color: recStyle.color,
+                  padding: 14, borderRadius: 12, border: `1px solid ${recStyle.color}20`
+                }}>
+                  <div style={{ fontSize: 11, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.5px" }}>Đề xuất từ Rule Engine</div>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: 4 }}>
+                    <span style={{ fontWeight: 800, fontSize: 18 }}>{recStyle.text}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, background: "rgba(255,255,255,0.6)", padding: "2px 8px", borderRadius: 99 }}>
+                      Tin cậy: {pipelineData.aiConfidence}%
+                    </span>
+                  </div>
+                </div>
+
+                {/* Priority Score Component */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Điểm số ưu tiên</span>
+                    <span style={{ fontSize: 15, fontWeight: 800, color: "#FF6B35" }}>
+                      {pipelineData.priorityScore}/100
+                    </span>
+                  </div>
+                  <div style={{ height: 6, background: "#F1F5F9", borderRadius: 99, overflow: "hidden" }}>
+                    <div style={{ width: `${pipelineData.priorityScore}%`, height: "100%", background: "#FF6B35", borderRadius: 99 }} />
+                  </div>
+                </div>
+
+                {/* Validation Checklist */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#64748B" }}>KẾT QUẢ THẨM ĐỊNH TỰ ĐỘNG</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13 }}>
+                    
+                    {/* Checklist bullets */}
+                    {pipelineData.aiSummaryText.split("\n").map((line, idx) => {
+                      const isOk = line.startsWith("✔");
+                      const isWarn = line.startsWith("⚠");
+                      const isErr = line.startsWith("✖");
+
+                      let icon = <CheckCircle size={14} color="#10B981" />;
+                      if (isWarn) icon = <AlertTriangle size={14} color="#F59E0B" />;
+                      if (isErr) icon = <XCircle size={14} color="#EF4444" />;
+
+                      // Strip prefix char
+                      const cleanText = line.substring(1).trim();
+
+                      return (
+                        <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 8 }}>
+                          <div style={{ marginTop: 2, flexShrink: 0 }}>{icon}</div>
+                          <span style={{ 
+                            color: isErr ? "#EF4444" : isWarn ? "#D97706" : "#1E293B",
+                            fontWeight: isErr || isWarn ? 600 : 500
+                          }}>
+                            {cleanText}
+                          </span>
+                        </div>
+                      );
+                    })}
+
+                  </div>
+                </div>
+
+                {/* Quick decision tip */}
+                {pipelineData.riskLevel === "High" && (
+                  <div style={{ 
+                    background: "#FEF2F2", color: "#991B1B", padding: "10px 12px", 
+                    borderRadius: 8, fontSize: 12, border: "1px solid #FEE2E2",
+                    display: "flex", gap: 6, alignItems: "flex-start"
+                  }}>
+                    <ShieldAlert size={16} style={{ flexShrink: 0, marginTop: 1 }} />
+                    <div>
+                      <strong>Cảnh báo:</strong> Phát hiện hồ sơ trùng lặp thông tin hoặc lỗi định dạng. Bắt buộc kiểm tra chi tiết học bạ/CCCD trước khi phê duyệt.
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            ) : (
+              <div style={{ padding: 20, textAlign: "center", color: "#94A3B8", fontSize: 13 }}>
+                Đang nạp phân tích thông minh...
+              </div>
+            )}
+          </div>
+
           <EvaluationPanel
             score={score} setScore={setScore} notes={notes} setNotes={setNotes}
             rejectionReason={rejectionReason} setRejectionReason={setRejectionReason}

@@ -4,7 +4,9 @@ import {
   FileText, Users, Download, PlusCircle, TrendingUp,
   ChevronDown, Calendar, Filter, Eye, MoreVertical,
   ArrowUpRight, ArrowDownRight, Sparkles, ChevronLeft,
-  ChevronRight, BarChart3, Target, Trash2
+  ChevronRight, BarChart3, Target, Trash2, CheckCircle,
+  XCircle, AlertTriangle, AlertCircle, FileQuestion, RefreshCw,
+  Clock, Flame, ShieldAlert, ListFilter
 } from "lucide-react";
 import PendingRequestAlert from "./components/PendingRequestAlert";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -38,21 +40,50 @@ function getInitials(name) {
   return (parts[parts.length - 2][0] + parts[parts.length - 1][0]).toUpperCase();
 }
 
+const isWaitingTooLong = (app) => {
+  if (!app.submittedAt) return false;
+  const submittedDate = new Date(app.submittedAt);
+  const now = new Date();
+  const diffTime = Math.abs(now - submittedDate);
+  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays > 7; // Waiting too long if submitted more than 7 days ago
+};
+
 export default function ApplicantList() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [requests, setRequests] = useState([]);
-  const [apps, setApps] = useState([]);
+  
+  // Pipeline review queue states
+  const [rawQueue, setRawQueue] = useState([]);
+  const [filteredQueue, setFilteredQueue] = useState([]);
   const [majors, setMajors] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null); // stores app ID during action
+  const [selectedIds, setSelectedIds] = useState([]);
+  
+  // Filters state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedMajor, setSelectedMajor] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedRisk, setSelectedRisk] = useState("all");
+  
+  // Active Pipeline Tab
+  const [activePipelineTab, setActivePipelineTab] = useState("all");
+
+  // Pagination inside the queue
   const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalElements, setTotalElements] = useState(0);
+  const pageSize = 10;
+
+  // Modals state
+  const [rejectAppId, setRejectAppId] = useState(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [requestDocsAppId, setRequestDocsAppId] = useState(null);
+  const [requestNotes, setRequestNotes] = useState("");
+
   const [statusCounts, setStatusCounts] = useState({
     "": 0, SUBMITTED: 0, UNDER_REVIEW: 0, APPROVED: 0, APPROVED_TODAY: 0, REJECTED: 0, ENROLLED: 0
   });
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
-  const [deleting, setDeleting] = useState(false);
 
   const loadRequests = () => {
     api.get("/api/officer/applications/new-requests")
@@ -70,8 +101,26 @@ export default function ApplicantList() {
     }
   };
 
+  const fetchQueue = (showSpinner = true) => {
+    if (showSpinner) setLoading(true);
+    api.get("/api/officer/pipeline")
+      .then(res => {
+        const data = res.data?.data || [];
+        setRawQueue(data);
+      })
+      .catch(err => {
+        console.error("Error fetching review queue:", err);
+        setRawQueue([]);
+      })
+      .finally(() => {
+        if (showSpinner) setLoading(false);
+      });
+  };
+
   useEffect(() => {
     loadRequests();
+    fetchQueue();
+
     api.get("/api/officer/dashboard").then(r => {
       if (r.data) {
         const d = r.data;
@@ -87,7 +136,6 @@ export default function ApplicantList() {
       }
     }).catch(err => console.error("Error fetching stats:", err));
 
-    // Load available majors dynamically
     api.get("/api/student/config/majors")
       .then(res => {
         if (Array.isArray(res.data)) {
@@ -98,73 +146,174 @@ export default function ApplicantList() {
       .catch(err => console.error("Error loading majors:", err));
   }, []);
 
-  const searchVal = searchParams.get("search") || "";
-  const statusVal = searchParams.get("status") || "";
-
+  // Handle client-side filtering and searching of the queue
   useEffect(() => {
-    setLoading(true);
-    let url = `/api/officer/applications?page=${currentPage}&size=10`;
-    if (searchVal) url += `&search=${encodeURIComponent(searchVal)}`;
-    if (statusVal) url += `&status=${statusVal}`;
+    let result = [...rawQueue];
 
-    api.get(url)
-      .then(r => {
-        setApps(Array.isArray(r.data?.content) ? r.data.content : []);
-        setTotalPages(r.data?.totalPages || 1);
-        setTotalElements(r.data?.totalElements || 0);
-      })
-      .catch(() => setApps([]))
-      .finally(() => setLoading(false));
-  }, [searchVal, statusVal, currentPage]);
+    // 1. Filter by Active Pipeline Tab
+    if (activePipelineTab === "high_priority") {
+      result = result.filter(app => app.priorityScore >= 80);
+    } else if (activePipelineTab === "waiting_long") {
+      result = result.filter(app => isWaitingTooLong(app));
+    } else if (activePipelineTab === "complete") {
+      result = result.filter(app => app.validationStatus === "COMPLETE");
+    } else if (activePipelineTab === "missing_docs") {
+      result = result.filter(app => app.validationStatus === "WARNING");
+    } else if (activePipelineTab === "manual_review") {
+      result = result.filter(app => app.validationStatus === "ERROR" || app.riskLevel === "High");
+    }
+
+    // 2. Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(app => 
+        app.applicationCode?.toLowerCase().includes(q) ||
+        app.studentName?.toLowerCase().includes(q) ||
+        app.studentEmail?.toLowerCase().includes(q) ||
+        app.majorName?.toLowerCase().includes(q)
+      );
+    }
+
+    // 3. Dropdown filters
+    if (selectedMajor !== "all") {
+      result = result.filter(app => app.majorName === selectedMajor);
+    }
+
+    if (selectedStatus !== "all") {
+      result = result.filter(app => app.status === selectedStatus);
+    }
+
+    if (selectedRisk !== "all") {
+      result = result.filter(app => app.riskLevel?.toLowerCase() === selectedRisk.toLowerCase());
+    }
+
+    setFilteredQueue(result);
+    setCurrentPage(0);
+  }, [rawQueue, searchQuery, selectedMajor, selectedStatus, selectedRisk, activePipelineTab]);
+
+  const handleRecalculate = async (id, e) => {
+    e.stopPropagation();
+    setActionLoading(id);
+    try {
+      await api.post(`/api/officer/pipeline/recalculate/${id}`);
+      fetchQueue(false); // Silent sync in background
+    } catch (err) {
+      alert("Lỗi khi tính toán lại: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleApprove = async (id, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Bạn có chắc chắn muốn PHÊ DUYỆT nhanh hồ sơ này?")) return;
+    setActionLoading(id);
+    try {
+      await api.post(`/api/officer/pipeline/approve/${id}`);
+      // Remove approved item from state instantly!
+      setRawQueue(prev => prev.filter(app => app.id !== id));
+      fetchQueue(false); // Silent sync in background
+    } catch (err) {
+      alert("Lỗi phê duyệt hồ sơ: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleBatchApprove = async () => {
+    if (selectedIds.length === 0) return;
+    if (!window.confirm(`Bạn có chắc chắn muốn PHÊ DUYỆT đồng thời ${selectedIds.length} hồ sơ đã chọn?`)) return;
+    setLoading(true);
+    try {
+      await api.post("/api/officer/pipeline/approve-batch", selectedIds);
+      alert(`Đã phê duyệt hàng loạt thành công ${selectedIds.length} hồ sơ!`);
+      const approvedSet = new Set(selectedIds);
+      setRawQueue(prev => prev.filter(app => !approvedSet.has(app.id)));
+      setSelectedIds([]);
+      fetchQueue(false);
+    } catch (err) {
+      alert("Lỗi phê duyệt hàng loạt: " + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const triggerReject = (id, e) => {
+    e.stopPropagation();
+    setRejectAppId(id);
+    setRejectReason("");
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectReason.trim()) {
+      alert("Vui lòng điền lý do từ chối");
+      return;
+    }
+    const id = rejectAppId;
+    setActionLoading(id);
+    try {
+      await api.post(`/api/officer/pipeline/reject/${id}`, { reason: rejectReason });
+      // Remove rejected item from state instantly!
+      setRawQueue(prev => prev.filter(app => app.id !== id));
+      setRejectAppId(null);
+      fetchQueue(false); // Silent sync in background
+    } catch (err) {
+      alert("Lỗi từ chối hồ sơ: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const triggerRequestDocs = (id, e) => {
+    e.stopPropagation();
+    setRequestDocsAppId(id);
+    setRequestNotes("");
+  };
+
+  const handleRequestDocsSubmit = async () => {
+    if (!requestNotes.trim()) {
+      alert("Vui lòng nhập chi tiết tài liệu cần bổ sung");
+      return;
+    }
+    const id = requestDocsAppId;
+    setActionLoading(id);
+    try {
+      await api.post(`/api/officer/pipeline/request-docs/${id}`, { notes: requestNotes });
+      // Remove item from active queue list locally since status changes to requesting documents
+      setRawQueue(prev => prev.filter(app => app.id !== id));
+      setRequestDocsAppId(null);
+      fetchQueue(false); // Silent sync in background
+    } catch (err) {
+      alert("Lỗi gửi yêu cầu bổ sung: " + (err.response?.data?.message || err.message));
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   const handleExportCSV = () => {
-    if (apps.length === 0) { alert("Không có hồ sơ nào để xuất"); return; }
-    const headers = ["Mã hồ sơ", "Họ tên", "Email", "Ngành học", "Điểm", "Ngày nộp", "Trạng thái"];
-    const rows = apps.map(app => [
+    if (filteredQueue.length === 0) { alert("Không có hồ sơ nào để xuất"); return; }
+    const headers = ["Mã hồ sơ", "Họ tên", "Email", "Ngành học", "Thẩm định", "Điểm ưu tiên", "Đề xuất AI", "Rủi ro", "Ngày nộp"];
+    const rows = filteredQueue.map(app => [
       app.applicationCode || "", app.studentName || "", app.studentEmail || "",
-      app.majorName || "", app.totalScore || "",
-      app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp",
-      STATUS_LABELS[app.status] || ""
+      app.majorName || "", app.validationStatus || "", app.priorityScore || 0,
+      app.aiRecommendation || "", app.riskLevel || "",
+      app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "Chưa nộp"
     ]);
     const csvContent = "\uFEFF" + [headers.join(","), ...rows.map(e => e.map(val => `"${val.toString().replace(/"/g, '""')}"`).join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
-    link.setAttribute("download", `Danh_sach_ho_so_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `Hang_cho_xet_duyet_Smart_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  const approvalRate = statusCounts[""] > 0
-    ? ((statusCounts.APPROVED / statusCounts[""]) * 100).toFixed(1)
-    : "0";
+  // Pagination calculation
+  const totalPages = Math.ceil(filteredQueue.length / pageSize) || 1;
+  const paginatedApps = filteredQueue.slice(currentPage * pageSize, (currentPage + 1) * pageSize);
 
-  const kpis = [
-    { label: "Tổng số hồ sơ", value: statusCounts[""] || 0, badge: "+12%", badgePositive: true, borderColor: "#FF6B35" },
-    { label: "Đang chờ duyệt", value: (statusCounts.UNDER_REVIEW || 0) + (statusCounts.SUBMITTED || 0), badge: "Quan trọng", badgeType: "warning", borderColor: "#F59E0B" },
-    { label: "Đã duyệt hôm nay", value: statusCounts.APPROVED_TODAY || 0, badge: "Đạt mục tiêu", badgeType: "success", borderColor: "#10B981" },
-    { label: "Hồ sơ bị từ chối", value: statusCounts.REJECTED || 0, badge: "-2%", badgePositive: false, borderColor: "#EF4444" },
-  ];
-
-  const handleDelete = async (id) => {
-    if (!window.confirm("Bạn có chắc muốn xóa hồ sơ này? Hành động không thể hoàn tác.")) return;
-    setDeleting(true);
-    try {
-      await api.delete(`/api/officer/applications/${id}`);
-      setApps(apps.filter(a => a.id !== id));
-      setTotalElements(prev => prev - 1);
-      alert("Đã xóa hồ sơ thành công!");
-    } catch (err) {
-      alert("Lỗi xóa hồ sơ: " + (err.response?.data?.message || err.message));
-    } finally {
-      setDeleting(false);
-      setDeleteConfirm(null);
-    }
-  };
-
-  // Pagination logic
   const renderPaginationButtons = () => {
     const buttons = [];
     const maxVisible = 3;
@@ -176,29 +325,138 @@ export default function ApplicantList() {
     return buttons;
   };
 
-  // Mock bar chart data for bottom section
-  const weekDays = ["THỨ 2", "THỨ 3", "THỨ 4", "THỨ 5", "THỨ 6", "THỨ 7", "CN"];
-  const weekValues = [45, 52, 38, 85, 120, 65, 30];
+  const getValidationBadge = (status, missingDocs) => {
+    if (status === "COMPLETE") {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#16A34A", fontWeight: 700, fontSize: 12 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#16A34A" }} /> 🟢 Hợp lệ
+        </span>
+      );
+    } else if (status === "WARNING") {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#D97706", fontWeight: 700, fontSize: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D97706" }} /> 🟡 Thiếu tài liệu
+          </span>
+          {missingDocs && missingDocs.length > 0 && (
+            <div style={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+              {missingDocs.slice(0, 2).map(code => (
+                <span key={code} style={{ background: "#FEF3C7", color: "#92400E", padding: "1px 5px", borderRadius: 4, fontSize: 9, fontWeight: 700 }}>
+                  {code}
+                </span>
+              ))}
+              {missingDocs.length > 2 && <span style={{ fontSize: 9, color: "#94A3B8" }}>+{missingDocs.length - 2}</span>}
+            </div>
+          )}
+        </div>
+      );
+    } else {
+      return (
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "#DC2626", fontWeight: 700, fontSize: 12 }}>
+          <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#DC2626" }} /> 🔴 Lỗi / Trùng lặp
+        </span>
+      );
+    }
+  };
+
+  const getAIRecommendationBadge = (rec, confidence) => {
+    let text = "Cần Thẩm Định";
+    let bg = "#F3F4F6";
+    let color = "#4B5563";
+
+    if (rec === "READY_FOR_APPROVAL") {
+      text = "Khuyên Duyệt";
+      bg = "#D1FAE5";
+      color = "#065F46";
+    } else if (rec === "NEED_MORE_DOCUMENT") {
+      text = "Yêu Cầu Bổ Sung";
+      bg = "#FEF3C7";
+      color = "#92400E";
+    } else if (rec === "REJECT_RECOMMENDED") {
+      text = "Khuyên Từ Chối";
+      bg = "#FEE2E2";
+      color = "#991B1B";
+    } else if (rec === "MANUAL_REVIEW") {
+      text = "Cần Xét Duyệt";
+      bg = "#E0F2FE";
+      color = "#0369A1";
+    }
+
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ background: bg, color: color, padding: "4px 8px", borderRadius: 6, fontSize: 11, fontWeight: 700, display: "inline-block", textAlign: "center" }}>
+          {text}
+        </span>
+        <span style={{ fontSize: 10, color: "#64748B", fontWeight: 500 }}>Độ tin cậy: {confidence}%</span>
+      </div>
+    );
+  };
+
+  const getRiskBadge = (level) => {
+    let bg = "#DCFCE7";
+    let color = "#15803D";
+    let icon = <CheckCircle size={10} />;
+
+    if (level === "High") {
+      bg = "#FEE2E2";
+      color = "#B91C1C";
+      icon = <AlertCircle size={10} />;
+    } else if (level === "Medium") {
+      bg = "#FEF3C7";
+      color = "#A16207";
+      icon = <AlertTriangle size={10} />;
+    }
+
+    return (
+      <span style={{ display: "inline-flex", alignItems: "center", gap: 3, background: bg, color: color, padding: "2px 6px", borderRadius: 999, fontSize: 10, fontWeight: 700 }}>
+        {icon} {level === "High" ? "Rủi ro cao" : level === "Medium" ? "Rủi ro trung bình" : "Rủi ro thấp"}
+      </span>
+    );
+  };
+
+  const getStars = (score) => {
+    const stars = Math.round((score / 100.0) * 5);
+    return "★".repeat(stars) + "☆".repeat(5 - stars);
+  };
+
+  // Pipeline categorization count calculations
+  const countAll = rawQueue.length;
+  const countHigh = rawQueue.filter(a => a.priorityScore >= 80).length;
+  const countWaiting = rawQueue.filter(a => isWaitingTooLong(a)).length;
+  const countComplete = rawQueue.filter(a => a.validationStatus === "COMPLETE").length;
+  const countMissing = rawQueue.filter(a => a.validationStatus === "WARNING").length;
+  const countManual = rawQueue.filter(a => a.validationStatus === "ERROR" || a.riskLevel === "High").length;
+
+  const selectableApps = paginatedApps.filter(app => !(app.validationStatus === "ERROR" || app.riskLevel === "High"));
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-
       {/* Breadcrumb */}
       <div style={{ fontSize: 12, color: "#94A3B8" }}>
         <span style={{ cursor: "pointer" }} onClick={() => navigate("/officer/dashboard")}>Cổng Tuyển Sinh</span>
         <span style={{ margin: "0 6px" }}>›</span>
-        <span style={{ color: "#FF6B35", fontWeight: 600 }}>Danh sách hồ sơ</span>
+        <span style={{ color: "#FF6B35", fontWeight: 600 }}>Smart Pipeline review</span>
       </div>
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
         <div>
-          <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>Danh sách hồ sơ tổng hợp</h1>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 24, color: "#0F172A" }}>Quy Trình Duyệt Hồ Sơ Thông Minh</h1>
+            <span style={{ background: "linear-gradient(135deg, #FF6B35, #FF8E53)", color: "white", padding: "3px 10px", borderRadius: 99, fontSize: 10, fontWeight: 800, textTransform: "uppercase" }}>Pipeline active</span>
+          </div>
           <p style={{ margin: "6px 0 0", fontSize: 14, color: "#64748B" }}>
-            Quản lý và theo dõi tất cả hồ sơ nhập học của sinh viên theo thời gian thực.
+            Hệ thống tự động chấm điểm, xác minh tài liệu, và phân luồng hồ sơ theo các bước thẩm định tối ưu.
           </p>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          <button onClick={fetchQueue} style={{
+            padding: "10px 14px", background: "white", border: "1px solid #E2E8F0",
+            borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
+            display: "flex", alignItems: "center", gap: 6
+          }}>
+            <RefreshCw size={15} /> Tải lại dữ liệu
+          </button>
           <button onClick={handleExportCSV} style={{
             padding: "10px 18px", background: "white", border: "1px solid #E2E8F0",
             borderRadius: 10, fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer",
@@ -206,116 +464,152 @@ export default function ApplicantList() {
           }}>
             <Download size={15} /> Xuất CSV
           </button>
-          <button style={{
-            padding: "10px 18px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
-            border: "none", borderRadius: 10, fontSize: 13, fontWeight: 600, color: "white",
-            cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
-            boxShadow: "0 4px 12px rgba(255,107,53,0.3)"
-          }}>
-            <PlusCircle size={15} /> Hồ sơ mới
-          </button>
         </div>
       </div>
 
-      {/* Phân tích tổng quan banner */}
+      {/* Pipeline Navigation Steps / Tabs */}
       <div style={{
-        background: "linear-gradient(135deg, #2D3748 0%, #1A202C 100%)",
-        borderRadius: 16, padding: "18px 24px", color: "white"
+        display: "grid", gridTemplateColumns: "repeat(6, 1fr)", gap: 8,
+        background: "#F8FAFC", padding: 6, borderRadius: 12, border: "1px solid #E2E8F0"
       }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 14 }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "rgba(255,107,53,0.2)", display: "flex", alignItems: "center", justifyContent: "center"
-          }}>
-            <BarChart3 size={18} color="#FF6B35" />
-          </div>
-          <div>
-            <div style={{ fontSize: 14, fontWeight: 700 }}>Phân tích Tổng quan</div>
-            <div style={{ fontSize: 12, color: "rgba(255,255,255,0.6)" }}>
-              Phân bố vùng miền: 65% Miền Bắc, 20% Miền Trung, 15% Miền Nam
-            </div>
-          </div>
-        </div>
-        <div style={{ display: "flex", gap: 32, fontSize: 12 }}>
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>CHẤT LƯỢNG HỒ SƠ</div>
-            <span style={{
-              background: "#16A34A", color: "white", padding: "3px 10px",
-              borderRadius: 999, fontWeight: 700, fontSize: 12
-            }}>Cao (+15%)</span>
-          </div>
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>NGÀNH HOT NHẤT</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>Kỹ thuật phần mềm</div>
-          </div>
-          <div>
-            <div style={{ color: "rgba(255,255,255,0.5)", marginBottom: 4, fontSize: 10, fontWeight: 600, letterSpacing: "0.5px" }}>TỶ LỆ DUYỆT</div>
-            <div style={{ fontWeight: 700, fontSize: 16 }}>{approvalRate}%</div>
-          </div>
-        </div>
-      </div>
+        {/* Tab 1: All */}
+        <button 
+          onClick={() => setActivePipelineTab("all")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "all" ? "white" : "transparent",
+            color: activePipelineTab === "all" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "all" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "all" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <ListFilter size={16} />
+          <span style={{ fontSize: 12 }}>Tất cả</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "all" ? "#FF6B35" : "#E2E8F0", color: activePipelineTab === "all" ? "white" : "#475569", padding: "1px 6px", borderRadius: 99 }}>
+            {countAll}
+          </span>
+        </button>
 
-      {/* KPI Cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14 }}>
-        {kpis.map((kpi, i) => (
-          <div key={i} style={{
-            background: "white", borderRadius: 14, padding: "18px 20px",
-            border: "1px solid #F1F5F9", boxShadow: "0 2px 6px rgba(0,0,0,0.04)",
-            borderLeft: `4px solid ${kpi.borderColor}`
-          }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
-              <div style={{ fontSize: 12, color: "#64748B", fontWeight: 500 }}>{kpi.label}</div>
-              {kpi.badgePositive === true && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#16A34A", background: "#DCFCE7", padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 2 }}>
-                  <ArrowUpRight size={10} />{kpi.badge}
-                </span>
-              )}
-              {kpi.badgePositive === false && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626", background: "#FEE2E2", padding: "2px 7px", borderRadius: 99, display: "flex", alignItems: "center", gap: 2 }}>
-                  <ArrowDownRight size={10} />{kpi.badge}
-                </span>
-              )}
-              {kpi.badgeType === "warning" && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#92400E", background: "#FEF3C7", padding: "2px 7px", borderRadius: 99 }}>
-                  {kpi.badge}
-                </span>
-              )}
-              {kpi.badgeType === "success" && (
-                <span style={{ fontSize: 10, fontWeight: 700, color: "#065F46", background: "#D1FAE5", padding: "2px 7px", borderRadius: 99 }}>
-                  {kpi.badge}
-                </span>
-              )}
-            </div>
-            <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A" }}>
-              {(kpi.value || 0).toLocaleString()}
-            </div>
-          </div>
-        ))}
+        {/* Tab 2: High Priority */}
+        <button 
+          onClick={() => setActivePipelineTab("high_priority")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "high_priority" ? "white" : "transparent",
+            color: activePipelineTab === "high_priority" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "high_priority" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "high_priority" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <Flame size={16} color={activePipelineTab === "high_priority" ? "#FF6B35" : "#EF4444"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>1. Ưu tiên cao</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "high_priority" ? "#FF6B35" : "#FEE2E2", color: activePipelineTab === "high_priority" ? "white" : "#EF4444", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countHigh}
+          </span>
+        </button>
+
+        {/* Tab 3: Waiting long */}
+        <button 
+          onClick={() => setActivePipelineTab("waiting_long")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "waiting_long" ? "white" : "transparent",
+            color: activePipelineTab === "waiting_long" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "waiting_long" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "waiting_long" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <Clock size={16} color={activePipelineTab === "waiting_long" ? "#FF6B35" : "#D97706"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>2. Chờ quá lâu</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "waiting_long" ? "#FF6B35" : "#FEF3C7", color: activePipelineTab === "waiting_long" ? "white" : "#D97706", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countWaiting}
+          </span>
+        </button>
+
+        {/* Tab 4: Complete */}
+        <button 
+          onClick={() => setActivePipelineTab("complete")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "complete" ? "white" : "transparent",
+            color: activePipelineTab === "complete" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "complete" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "complete" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <CheckCircle size={16} color={activePipelineTab === "complete" ? "#FF6B35" : "#10B981"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>3. Đủ tài liệu</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "complete" ? "#FF6B35" : "#D1FAE5", color: activePipelineTab === "complete" ? "white" : "#10B981", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countComplete}
+          </span>
+        </button>
+
+        {/* Tab 5: Missing docs */}
+        <button 
+          onClick={() => setActivePipelineTab("missing_docs")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "missing_docs" ? "white" : "transparent",
+            color: activePipelineTab === "missing_docs" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "missing_docs" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "missing_docs" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <FileQuestion size={16} color={activePipelineTab === "missing_docs" ? "#FF6B35" : "#F59E0B"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>4. Thiếu tài liệu</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "missing_docs" ? "#FF6B35" : "#FEF3C7", color: activePipelineTab === "missing_docs" ? "white" : "#F59E0B", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countMissing}
+          </span>
+        </button>
+
+        {/* Tab 6: Manual verification exceptions */}
+        <button 
+          onClick={() => setActivePipelineTab("manual_review")}
+          style={{
+            border: "none", borderRadius: 8, padding: "10px 8px", cursor: "pointer",
+            display: "flex", flexDirection: "column", alignItems: "center", gap: 4,
+            background: activePipelineTab === "manual_review" ? "white" : "transparent",
+            color: activePipelineTab === "manual_review" ? "#FF6B35" : "#64748B",
+            boxShadow: activePipelineTab === "manual_review" ? "0 2px 4px rgba(0,0,0,0.05)" : "none",
+            fontWeight: activePipelineTab === "manual_review" ? 700 : 500, transition: "all 0.15s"
+          }}
+        >
+          <ShieldAlert size={16} color={activePipelineTab === "manual_review" ? "#FF6B35" : "#EF4444"} />
+          <span style={{ fontSize: 11, textAlign: "center" }}>5. Cần xác minh</span>
+          <span style={{ fontSize: 10, background: activePipelineTab === "manual_review" ? "#FF6B35" : "#FEE2E2", color: activePipelineTab === "manual_review" ? "white" : "#EF4444", padding: "1px 6px", borderRadius: 99, fontWeight: 700 }}>
+            {countManual}
+          </span>
+        </button>
       </div>
 
       <PendingRequestAlert requests={requests} onAllowRequest={handleAllowRequest} />
 
-      {/* Filters Row */}
+      {/* Search & Dynamic Filters */}
       <div style={{
-        background: "white", borderRadius: 14, padding: "14px 20px",
-        border: "1px solid #F1F5F9", display: "flex", alignItems: "center",
-        justifyContent: "space-between", boxShadow: "0 1px 4px rgba(0,0,0,0.03)"
+        background: "white", borderRadius: 14, padding: "16px 20px",
+        border: "1px solid #F1F5F9", display: "flex", flexWrap: "wrap", gap: 12,
+        alignItems: "center", justifyContent: "space-between", boxShadow: "0 2px 8px rgba(0,0,0,0.02)"
       }}>
-        <div style={{ display: "flex", gap: 10 }}>
-          <select
-            value={searchParams.get("search") || "all"}
-            onChange={e => {
-              const val = e.target.value;
-              const params = new URLSearchParams(searchParams);
-              if (val === "all") {
-                params.delete("search");
-              } else {
-                params.set("search", val);
-              }
-              params.set("page", "0");
-              setSearchParams(params);
-              setCurrentPage(0);
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", flex: 1 }}>
+          <input
+            type="text"
+            placeholder="Tìm theo mã hồ sơ, tên thí sinh..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            style={{
+              padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
+              fontSize: 13, color: "#475569", width: 260, fontFamily: "inherit"
             }}
+          />
+
+          <select
+            value={selectedMajor}
+            onChange={e => setSelectedMajor(e.target.value)}
             style={{
               padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
               fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
@@ -329,49 +623,42 @@ export default function ApplicantList() {
           </select>
 
           <select
-            value={searchParams.get("status") || ""}
-            onChange={e => {
-              const val = e.target.value;
-              const params = new URLSearchParams(searchParams);
-              if (!val) {
-                params.delete("status");
-              } else {
-                params.set("status", val);
-              }
-              params.set("page", "0");
-              setSearchParams(params);
-              setCurrentPage(0);
-            }}
+            value={selectedRisk}
+            onChange={e => setSelectedRisk(e.target.value)}
             style={{
               padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
               fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
               fontFamily: "inherit"
             }}
           >
-            <option value="">Trạng thái: Tất cả</option>
-            <option value="SUBMITTED">Đã nộp</option>
-            <option value="UNDER_REVIEW">Đang xét</option>
-            <option value="APPROVED">Đã duyệt</option>
-            <option value="REJECTED">Từ chối</option>
-            <option value="ENROLLED">Nhập học</option>
+            <option value="all">Mức độ rủi ro: Tất cả</option>
+            <option value="Low">Rủi ro thấp</option>
+            <option value="Medium">Rủi ro trung bình</option>
+            <option value="High">Rủi ro cao</option>
           </select>
 
-          <button style={{
-            padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
-            fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
-            display: "flex", alignItems: "center", gap: 6, fontFamily: "inherit"
-          }}>
-            <Calendar size={14} /> Khoảng thời gian
-          </button>
+          <select
+            value={selectedStatus}
+            onChange={e => setSelectedStatus(e.target.value)}
+            style={{
+              padding: "8px 14px", border: "1px solid #E2E8F0", borderRadius: 8,
+              fontSize: 13, color: "#475569", background: "white", cursor: "pointer",
+              fontFamily: "inherit"
+            }}
+          >
+            <option value="all">Trạng thái: Đang chờ</option>
+            <option value="SUBMITTED">Đã nộp</option>
+            <option value="UNDER_REVIEW">Đang xét</option>
+          </select>
         </div>
 
         <div style={{ fontSize: 12, color: "#94A3B8" }}>
-          Hiển thị <strong style={{ color: "#1E293B" }}>1-{Math.min(10, totalElements)}</strong> trong tổng số{" "}
-          <strong style={{ color: "#FF6B35" }}>{totalElements.toLocaleString()}</strong> hồ sơ
+          Hiển thị <strong style={{ color: "#1E293B" }}>{filteredQueue.length > 0 ? currentPage * pageSize + 1 : 0}-{Math.min((currentPage + 1) * pageSize, filteredQueue.length)}</strong> trong{" "}
+          <strong style={{ color: "#FF6B35" }}>{filteredQueue.length}</strong> hồ sơ lọc
         </div>
       </div>
 
-      {/* Table */}
+      {/* Smart Review Table */}
       <div style={{
         background: "white", borderRadius: 16, border: "1px solid #F1F5F9",
         boxShadow: "0 2px 8px rgba(0,0,0,0.04)", overflow: "hidden"
@@ -380,9 +667,25 @@ export default function ApplicantList() {
           <table style={{ width: "100%", borderCollapse: "collapse" }}>
             <thead>
               <tr>
-                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH HỌC", "ĐÁNH GIÁ TIỀM NĂNG", "TRẠNG THÁI", "NGÀY NỘP", "THAO TÁC"].map(h => (
+                <th style={{ padding: "14px 16px", background: "#FAFBFC", borderBottom: "1px solid #F1F5F9", width: 46 }}>
+                  <input
+                    type="checkbox"
+                    checked={selectableApps.length > 0 && selectableApps.every(app => selectedIds.includes(app.id))}
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        const newSelections = [...new Set([...selectedIds, ...selectableApps.map(app => app.id)])];
+                        setSelectedIds(newSelections);
+                      } else {
+                        const idsToRemove = selectableApps.map(app => app.id);
+                        setSelectedIds(prev => prev.filter(id => !idsToRemove.includes(id)));
+                      }
+                    }}
+                    style={{ cursor: "pointer" }}
+                  />
+                </th>
+                {["MÃ HỒ SƠ", "HỌ VÀ TÊN", "NGÀNH", "ĐIỂM ƯU TIÊN", "AI ĐỀ XUẤT / RỦI RO", "THAO TÁC DUYỆT NHANH"].map(h => (
                   <th key={h} style={{
-                    textAlign: "left", padding: "12px 16px", fontSize: 10,
+                    textAlign: "left", padding: "14px 16px", fontSize: 10,
                     fontWeight: 700, letterSpacing: "0.06em", color: "#94A3B8",
                     background: "#FAFBFC", borderBottom: "1px solid #F1F5F9"
                   }}>{h}</th>
@@ -391,25 +694,64 @@ export default function ApplicantList() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Đang tải dữ liệu...</td></tr>
-              ) : apps.length === 0 ? (
-                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Không tìm thấy hồ sơ nào</td></tr>
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>
+                  <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-orange-500"></div>
+                    Đang tải dữ liệu quy trình duyệt hồ sơ...
+                  </div>
+                </td></tr>
+              ) : filteredQueue.length === 0 ? (
+                <tr><td colSpan={7} style={{ padding: 40, textAlign: "center", color: "#94A3B8", fontSize: 14 }}>Không tìm thấy hồ sơ nào trong bước quy trình này</td></tr>
               ) : (
-                apps.map((app, idx) => {
+                paginatedApps.map((app, idx) => {
                   const ac = AVATAR_COLORS[idx % AVATAR_COLORS.length];
-                  const sc = STATUS_COLORS[app.status] || STATUS_COLORS.DRAFT;
+                  
+                  // Exceptions require detail page manually
+                  const hasException = app.validationStatus === "ERROR" || app.riskLevel === "High";
+
                   return (
-                    <tr key={app.id} style={{ cursor: "pointer", transition: "background 0.15s" }}
-                      onMouseEnter={e => e.currentTarget.style.background = "#FAFBFC"}
-                      onMouseLeave={e => e.currentTarget.style.background = "transparent"}
+                    <tr key={app.id} 
+                      style={{ 
+                        cursor: "pointer", 
+                        transition: "background 0.15s",
+                        background: hasException ? "rgba(254, 242, 242, 0.4)" : "transparent"
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = hasException ? "rgba(254, 242, 242, 0.7)" : "#FAFBFC"}
+                      onMouseLeave={e => e.currentTarget.style.background = hasException ? "rgba(254, 242, 242, 0.4)" : "transparent"}
                       onClick={() => navigate(`/officer/applicants/${app.id}`)}
                     >
-                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                        <code style={{
-                          fontSize: 11, fontWeight: 700, color: "#FF6B35",
-                          background: "#FFF7ED", padding: "3px 8px", borderRadius: 6
-                        }}>{app.applicationCode}</code>
+                      {/* Checkbox */}
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC", width: 46 }} onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          disabled={hasException}
+                          checked={selectedIds.includes(app.id)}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setSelectedIds(prev => [...prev, app.id]);
+                            } else {
+                              setSelectedIds(prev => prev.filter(selectedId => selectedId !== app.id));
+                            }
+                          }}
+                          style={{ cursor: hasException ? "not-allowed" : "pointer" }}
+                          title={hasException ? "Hồ sơ lỗi/rủi ro bắt buộc duyệt thủ công" : ""}
+                        />
                       </td>
+                      {/* Code */}
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                          <code style={{
+                            fontSize: 11, fontWeight: 700, color: "#FF6B35",
+                            background: "#FFF7ED", padding: "3px 8px", borderRadius: 6,
+                            alignSelf: "flex-start"
+                          }}>{app.applicationCode}</code>
+                          <span style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 10, color: "#94A3B8" }}>
+                            {isWaitingTooLong(app) ? <span style={{ color: "#EF4444", fontWeight: 600 }}>⏳ {new Date(app.submittedAt).toLocaleDateString("vi-VN")}</span> : new Date(app.submittedAt).toLocaleDateString("vi-VN")}
+                          </span>
+                        </div>
+                      </td>
+
+                      {/* Name & Phone */}
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
                         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                           <div style={{
@@ -419,37 +761,111 @@ export default function ApplicantList() {
                             fontWeight: 700, fontSize: 12, flexShrink: 0
                           }}>{getInitials(app.studentName)}</div>
                           <div>
-                            <div style={{ fontWeight: 600, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
+                            <div style={{ fontWeight: 700, color: "#1E293B", fontSize: 14 }}>{app.studentName}</div>
+                            <div style={{ fontSize: 11, color: "#64748B" }}>{app.studentEmail}</div>
+                            {app.studentPhone && <div style={{ fontSize: 11, color: "#94A3B8" }}>SĐT: {app.studentPhone}</div>}
                           </div>
                         </div>
                       </td>
+
+                      {/* Major */}
                       <td style={{ padding: "14px 16px", fontSize: 13, color: "#475569", borderBottom: "1px solid #F8FAFC" }}>
-                        {app.majorName || "—"}
+                        <div style={{ fontWeight: 500 }}>{app.majorName || "—"}</div>
+                        <div style={{ fontSize: 11, color: "#94A3B8" }}>CS: {app.campusName}</div>
                       </td>
+
+
+
+                      {/* Priority Score */}
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                        {(() => {
-                          const val = parseFloat(app.potentialScore) || 0;
-                          const color = val >= 27 ? "#16A34A" : val >= 24 ? "#FF6B35" : "#DC2626";
-                          return <span style={{ fontSize: 15, fontWeight: 800, color }}>{val.toFixed(2)}</span>;
-                        })()}
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                          <span style={{ fontSize: 15, fontWeight: 800, color: app.priorityScore >= 80 ? "#16A34A" : app.priorityScore >= 60 ? "#FF6B35" : "#DC2626" }}>
+                            {app.priorityScore}/100
+                          </span>
+                          <span style={{ color: "#F59E0B", fontSize: 12, letterSpacing: 1 }}>
+                            {getStars(app.priorityScore)}
+                          </span>
+                        </div>
                       </td>
+
+                      {/* AI Recommendation & Risk Level */}
                       <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                        <span style={{
-                          display: "inline-block", padding: "4px 10px", borderRadius: 999,
-                          fontSize: 11, fontWeight: 700, background: sc.bg, color: sc.color
-                        }}>{STATUS_LABELS[app.status]}</span>
+                        <div style={{ display: "flex", flexDirection: "column", gap: 6, alignItems: "flex-start" }}>
+                          {getAIRecommendationBadge(app.aiRecommendation, app.aiConfidence)}
+                          {getRiskBadge(app.riskLevel)}
+                        </div>
                       </td>
-                      <td style={{ padding: "14px 16px", fontSize: 13, color: "#94A3B8", borderBottom: "1px solid #F8FAFC" }}>
-                        {app.submittedAt ? new Date(app.submittedAt).toLocaleDateString("vi-VN") : "—"}
-                      </td>
-                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }}>
-                        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                          <button onClick={e => { e.stopPropagation(); navigate(`/officer/applicants/${app.id}`); }}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#64748B", padding: 4, borderRadius: 6 }}
-                            title="Xem chi tiết"><Eye size={16} /></button>
-                          <button onClick={e => { e.stopPropagation(); setDeleteConfirm(app.id); }}
-                            style={{ background: "none", border: "none", cursor: "pointer", color: "#EF4444", padding: 4, borderRadius: 6 }}
-                            title="Xóa hồ sơ"><Trash2 size={16} /></button>
+
+                      {/* Direct Inline Review Actions */}
+                      <td style={{ padding: "14px 16px", borderBottom: "1px solid #F8FAFC" }} onClick={e => e.stopPropagation()}>
+                        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                          {actionLoading === app.id ? (
+                            <span style={{ fontSize: 11, color: "#64748B" }}>Đang xử lý...</span>
+                          ) : (
+                            <>
+                              {hasException ? (
+                                <button
+                                  onClick={() => navigate(`/officer/applicants/${app.id}`)}
+                                  style={{
+                                    padding: "6px 12px", background: "#EF4444", color: "white",
+                                    border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                    cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                                  }}
+                                >
+                                  <AlertCircle size={12} /> Bắt buộc Xem chi tiết
+                                </button>
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={(e) => handleApprove(app.id, e)}
+                                    title="Duyệt nhanh"
+                                    style={{
+                                      padding: "6px 10px", background: "#10B981", color: "white",
+                                      border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                      cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                                    }}
+                                  >
+                                    <CheckCircle size={12} /> Duyệt
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => triggerRequestDocs(app.id, e)}
+                                    title="Yêu cầu bổ sung tài liệu"
+                                    style={{
+                                      padding: "6px 10px", background: "#F59E0B", color: "white",
+                                      border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                      cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                                    }}
+                                  >
+                                    <FileQuestion size={12} /> Bổ sung
+                                  </button>
+
+                                  <button
+                                    onClick={(e) => triggerReject(app.id, e)}
+                                    title="Từ chối hồ sơ"
+                                    style={{
+                                      padding: "6px 10px", background: "#EF4444", color: "white",
+                                      border: "none", borderRadius: 6, fontSize: 11, fontWeight: 700,
+                                      cursor: "pointer", display: "flex", alignItems: "center", gap: 4
+                                    }}
+                                  >
+                                    <XCircle size={12} /> Từ chối
+                                  </button>
+                                </>
+                              )}
+
+                              <button
+                                onClick={(e) => handleRecalculate(app.id, e)}
+                                title="Tính toán lại"
+                                style={{
+                                  padding: "6px", background: "#F3F4F6", color: "#4B5563",
+                                  border: "1px solid #E5E7EB", borderRadius: 6, cursor: "pointer"
+                                }}
+                              >
+                                <RefreshCw size={12} />
+                              </button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -460,7 +876,7 @@ export default function ApplicantList() {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination Controls */}
         <div style={{
           padding: "14px 20px", display: "flex", alignItems: "center",
           justifyContent: "space-between", borderTop: "1px solid #F1F5F9"
@@ -508,82 +924,142 @@ export default function ApplicantList() {
             ><ChevronRight size={14} /></button>
           </div>
 
-          <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "#94A3B8" }}>
-            Đi tới trang:
-            <input
-              type="number" min={1} max={totalPages}
-              value={currentPage + 1}
-              onChange={e => {
-                const val = parseInt(e.target.value) - 1;
-                if (val >= 0 && val < totalPages) setCurrentPage(val);
-              }}
-              style={{
-                width: 50, padding: "4px 8px", border: "1px solid #E2E8F0",
-                borderRadius: 6, fontSize: 12, textAlign: "center"
-              }}
-            />
+          <div style={{ fontSize: 12, color: "#94A3B8" }}>
+            Trang {currentPage + 1} / {totalPages}
           </div>
         </div>
       </div>
 
-      {/* Bottom section: Chart + AI Suggestion */}
-      <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 16 }}>
-        {/* Xu hướng nộp hồ sơ */}
+      {/* Reject Modal */}
+      {rejectAppId && (
         <div style={{
-          background: "white", borderRadius: 16, padding: "20px 24px",
-          border: "1px solid #F1F5F9", boxShadow: "0 2px 6px rgba(0,0,0,0.04)"
-        }}>
-          <div style={{ fontSize: 16, fontWeight: 700, color: "#0F172A", marginBottom: 16 }}>
-            Xu hướng nộp hồ sơ
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", gap: 10, height: 120, padding: "0 4px" }}>
-            {weekDays.map((day, i) => {
-              const maxVal = Math.max(...weekValues);
-              const isHighlight = weekValues[i] === maxVal;
-              return (
-                <div key={day} style={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, gap: 6 }}>
-                  {isHighlight && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "#DC2626" }}>{weekValues[i]}</span>
-                  )}
-                  <div style={{
-                    width: "100%", maxWidth: 32,
-                    height: `${(weekValues[i] / maxVal) * 90}px`,
-                    background: isHighlight ? "#DC2626" : "#FFD4C0",
-                    borderRadius: "4px 4px 0 0", transition: "height 0.5s ease"
-                  }} />
-                  <span style={{ fontSize: 9, color: "#94A3B8" }}>{day}</span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Gợi ý thông minh */}
-        <div style={{
-          background: "linear-gradient(135deg, #2D3748 0%, #1A202C 100%)",
-          borderRadius: 16, padding: "24px", color: "white",
-          display: "flex", flexDirection: "column", justifyContent: "center"
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 1000, backdropFilter: "blur(4px)"
         }}>
           <div style={{
-            width: 36, height: 36, borderRadius: 10,
-            background: "rgba(255,107,53,0.2)", display: "flex",
-            alignItems: "center", justifyContent: "center", marginBottom: 14
+            background: "white", borderRadius: 16, padding: 24, width: 450,
+            display: "flex", flexDirection: "column", gap: 16, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
           }}>
-            <Sparkles size={18} color="#FF6B35" />
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1F2937" }}>Từ chối hồ sơ</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13, color: "#4B5563", fontWeight: 600 }}>Lý do từ chối:</label>
+              <textarea
+                rows={4}
+                value={rejectReason}
+                onChange={e => setRejectReason(e.target.value)}
+                placeholder="Nhập lý do từ chối chi tiết gửi tới thí sinh (ví dụ: Điểm học bạ môn Toán chưa đạt yêu cầu xét tuyển)..."
+                style={{
+                  padding: 10, border: "1px solid #D1D5DB", borderRadius: 8,
+                  fontSize: 13, fontFamily: "inherit", resize: "none"
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                onClick={() => setRejectAppId(null)}
+                style={{
+                  padding: "8px 16px", background: "#F3F4F6", border: "1px solid #E5E7EB",
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#4B5563", cursor: "pointer"
+                }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleRejectSubmit}
+                style={{
+                  padding: "8px 16px", background: "#EF4444", border: "none",
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer"
+                }}
+              >
+                Xác nhận từ chối
+              </button>
+            </div>
           </div>
-          <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>Gợi ý thông minh</div>
-          <p style={{ fontSize: 13, color: "rgba(255,255,255,0.7)", lineHeight: 1.6, margin: "0 0 16px" }}>
-            Số lượng hồ sơ ngành Kỹ thuật phần mềm đã tăng 24% so với tuần trước. Hãy ưu tiên phê duyệt các hồ sơ này để đạt chỉ tiêu sớm.
-          </p>
-          <button style={{
-            padding: "10px 20px", background: "white", border: "none",
-            borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#1E293B",
-            cursor: "pointer", display: "flex", alignItems: "center", gap: 6, alignSelf: "flex-start"
-          }}>
-            Xem phân tích sâu →
-          </button>
         </div>
-      </div>
+      )}
+
+      {/* Request Documents Modal */}
+      {requestDocsAppId && (
+        <div style={{
+          position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+          background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center",
+          justifyContent: "center", zIndex: 1000, backdropFilter: "blur(4px)"
+        }}>
+          <div style={{
+            background: "white", borderRadius: 16, padding: 24, width: 450,
+            display: "flex", flexDirection: "column", gap: 16, boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)"
+          }}>
+            <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: "#1F2937" }}>Yêu cầu bổ sung tài liệu</h3>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <label style={{ fontSize: 13, color: "#4B5563", fontWeight: 600 }}>Chi tiết yêu cầu bổ sung:</label>
+              <textarea
+                rows={4}
+                value={requestNotes}
+                onChange={e => setRequestNotes(e.target.value)}
+                placeholder="Nhập thông tin mô tả chi tiết các tài liệu cần bổ sung (ví dụ: Thiếu Bản sao học bạ công chứng lớp 12, vui lòng tải lên bổ sung)..."
+                style={{
+                  padding: 10, border: "1px solid #D1D5DB", borderRadius: 8,
+                  fontSize: 13, fontFamily: "inherit", resize: "none"
+                }}
+              />
+            </div>
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button
+                onClick={() => setRequestDocsAppId(null)}
+                style={{
+                  padding: "8px 16px", background: "#F3F4F6", border: "1px solid #E5E7EB",
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: "#4B5563", cursor: "pointer"
+                }}
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={handleRequestDocsSubmit}
+                style={{
+                  padding: "8px 16px", background: "#F59E0B", border: "none",
+                  borderRadius: 8, fontSize: 13, fontWeight: 600, color: "white", cursor: "pointer"
+                }}
+              >
+                Gửi yêu cầu
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {selectedIds.length > 0 && (
+        <div style={{
+          position: "fixed", bottom: 24, left: "50%", transform: "translateX(-50%)",
+          background: "#1E293B", color: "white", padding: "14px 24px", borderRadius: 16,
+          display: "flex", alignItems: "center", gap: 20, boxShadow: "0 10px 25px -5px rgba(0,0,0,0.3)",
+          zIndex: 100, border: "1px solid #334155"
+        }}>
+          <span style={{ fontSize: 14, fontWeight: 600 }}>Đã chọn {selectedIds.length} hồ sơ đủ điều kiện</span>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button
+              onClick={handleBatchApprove}
+              style={{
+                padding: "8px 16px", background: "#10B981", color: "white", border: "none",
+                borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 6
+              }}
+            >
+              <CheckCircle size={15} /> Phê duyệt hàng loạt
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              style={{
+                padding: "8px 16px", background: "transparent", color: "#94A3B8",
+                border: "1px solid #475569", borderRadius: 8, fontSize: 13,
+                fontWeight: 600, cursor: "pointer"
+              }}
+            >
+              Hủy chọn
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
