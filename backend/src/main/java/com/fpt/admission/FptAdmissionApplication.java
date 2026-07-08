@@ -6,6 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.scheduling.annotation.EnableAsync;
 import org.springframework.scheduling.annotation.EnableScheduling;
 import com.fpt.admission.service.PipelineService;
+import com.fpt.admission.entity.StrategicRecommendation;
+import com.fpt.admission.entity.StrategicRisk;
+import com.fpt.admission.repository.StrategicRecommendationRepository;
+import com.fpt.admission.repository.StrategicRiskRepository;
 
 @SpringBootApplication
 @EnableAsync
@@ -39,6 +43,54 @@ public class FptAdmissionApplication {
             } catch (Exception e) {
                 System.err.println("[DB-MIGRATION] Failed to alter applications status column: " + e.getMessage());
             }
+
+            // 2026 Admissions Structure Migration: add elective subject columns and combination code
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN physics_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added physics_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN chemistry_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added chemistry_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN biology_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added biology_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN history_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added history_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN geography_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added geography_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN gdpl_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added gdpl_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN it_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added it_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE academic_backgrounds ADD COLUMN technology_score DECIMAL(4,2) NULL");
+                System.out.println("[DB-MIGRATION] Added technology_score to academic_backgrounds.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("ALTER TABLE applications ADD COLUMN combination_code VARCHAR(10) NULL");
+                System.out.println("[DB-MIGRATION] Added combination_code to applications.");
+            } catch (Exception e) {}
+            try {
+                jdbcTemplate.update("UPDATE admission_methods SET is_active = true WHERE id = 2");
+                System.out.println("[DB-MIGRATION] Activated THPT method (id = 2).");
+            } catch (Exception e) {}
+            try {
+                // Populate default elective scores and combination codes if null
+                jdbcTemplate.update("UPDATE applications SET combination_code = 'D01' WHERE combination_code IS NULL");
+                jdbcTemplate.update("UPDATE academic_backgrounds SET physics_score = 8.5, chemistry_score = 8.0, biology_score = 7.5, history_score = 7.0, geography_score = 7.5, gdpl_score = 8.0, it_score = 9.0, technology_score = 8.5 WHERE physics_score IS NULL");
+                System.out.println("[DB-MIGRATION] Populated default combination_code and elective scores.");
+            } catch (Exception e) {}
 
             try {
                 jdbcTemplate.update("UPDATE applications SET admission_method_id = 2 WHERE admission_method_id = 5");
@@ -236,6 +288,125 @@ public class FptAdmissionApplication {
                 }
             } catch (Exception e) {
                 System.err.println("[DB-MIGRATION] Failed to repair high school names: " + e.getMessage());
+            }
+        };
+    }
+
+    @org.springframework.context.annotation.Bean
+    public org.springframework.boot.CommandLineRunner seedStrategicData(
+            StrategicRecommendationRepository recommendationRepository,
+            StrategicRiskRepository riskRepository) {
+        return args -> {
+            if (recommendationRepository.count() == 0) {
+                recommendationRepository.save(StrategicRecommendation.builder()
+                    .title("Tăng chỉ tiêu ngành AI")
+                    .description("Nhu cầu tăng 35% YoY. Đề xuất tăng 200 chỉ tiêu cho năm 2026 tại cơ sở Hà Nội và TP.HCM.")
+                    .impact("Tiềm năng doanh thu: ~5.6 tỷ VNĐ")
+                    .priority("HIGH")
+                    .status("PENDING")
+                    .category("AI_QUOTA")
+                    .currentValue(500)
+                    .targetValue(700)
+                    .actionPlan("Chuẩn bị cơ sở hạ tầng (Q1/2026): Mua sắm thiết bị GPU, thiết kế lại chương trình AI nâng cao.")
+                    .build());
+
+                recommendationRepository.save(StrategicRecommendation.builder()
+                    .title("Mở rộng tuyển sinh khu vực Miền Trung")
+                    .description("Thị phần miền Trung chỉ 16.5%. Đề xuất tăng cường marketing tại Nghệ An, Huế và Đà Nẵng.")
+                    .impact("Tiềm năng: +2,000 hồ sơ")
+                    .priority("HIGH")
+                    .status("PENDING")
+                    .category("REGION_MID")
+                    .currentValue(16)
+                    .targetValue(20)
+                    .actionPlan("Chiến dịch FPT Pioneer miền Trung và gói học bổng địa phương hỗ trợ 20% học phí.")
+                    .build());
+
+                recommendationRepository.save(StrategicRecommendation.builder()
+                    .title("Cải thiện tỷ lệ chuyển đổi (Duyệt → Nhập học)")
+                    .description("Tỷ lệ nhập học hiện tại là 83%. Cần tư vấn proactive sau khi duyệt hồ sơ.")
+                    .impact("Tiềm năng: +800 sinh viên nhập học")
+                    .priority("MEDIUM")
+                    .status("PENDING")
+                    .category("CONVERSION_RATE")
+                    .currentValue(83)
+                    .targetValue(90)
+                    .actionPlan("Gọi điện hỗ trợ trực tiếp và tổ chức các buổi tham quan Campus cho thí sinh đã trúng tuyển.")
+                    .build());
+
+                recommendationRepository.save(StrategicRecommendation.builder()
+                    .title("Tối ưu quy trình xét duyệt hồ sơ")
+                    .description("Thời gian xét duyệt trung bình 8 ngày. Đề xuất tự động hóa để rút ngắn xuống 5 ngày.")
+                    .impact("Hiệu quả: xử lý nhanh hơn 37.5%")
+                    .priority("MEDIUM")
+                    .status("PENDING")
+                    .category("PROCESS_OPT")
+                    .currentValue(8)
+                    .targetValue(5)
+                    .actionPlan("Tích hợp tự động quét OCR học bạ và đối chiếu điểm số với cơ sở dữ liệu Bộ GD&ĐT.")
+                    .build());
+                
+                System.out.println("[DB-MIGRATION] Seeded 4 strategic recommendations.");
+            }
+
+            if (riskRepository.count() == 0) {
+                riskRepository.save(StrategicRisk.builder()
+                    .level("HIGH")
+                    .levelLabel("Rủi ro cao")
+                    .levelBg("#FEE2E2")
+                    .levelColor("#DC2626")
+                    .title("Tỷ lệ nhập học thấp hơn kỳ vọng")
+                    .description("Tỷ lệ nhập học hiện tại đạt 60%, thấp hơn mục tiêu đã ra là 75%. Sự sụt giảm tập trung ở các khối ngành kỹ thuật. Cần can thiệp ngay để đảm bảo chỉ tiêu năm học.")
+                    .suggestion("Tăng cường tư vấn hậu kết quả và tổ chức Workshop trải nghiệm thực tế cho thí sinh.")
+                    .suggestionColor("#16A34A")
+                    .iconType("ALERT")
+                    .status("ACTIVE")
+                    .actionPlan("Tổ chức 5 buổi hội thảo công nghệ thông tin lớn tại Hà Nội và TP.HCM, gửi thư mời trực tiếp tới nhóm thí sinh tiềm năng.")
+                    .build());
+
+                riskRepository.save(StrategicRisk.builder()
+                    .level("HIGH")
+                    .levelLabel("Rủi ro cao")
+                    .levelBg("#FEE2E2")
+                    .levelColor("#DC2626")
+                    .title("Cạnh tranh từ các trường ĐH khác")
+                    .description("RMIT, Hutech và một số trường tư thục đang tích cực tuyển sinh, mở các gói học bổng hấp dẫn và truyền thông mạnh mẽ, ảnh hưởng trực tiếp đến tập thí sinh tiềm năng của FPT.")
+                    .suggestion("Đẩy mạnh USP với cơ hội việc làm toàn cầu và Học bổng tài năng 100%.")
+                    .suggestionColor("#2563EB")
+                    .iconType("TREND")
+                    .status("ACTIVE")
+                    .actionPlan("Công bố chương trình FPT Global Talent, cam kết cơ hội thực tập tại Nhật Bản/Mỹ cho top 10% sinh viên xuất sắc.")
+                    .build());
+
+                riskRepository.save(StrategicRisk.builder()
+                    .level("MEDIUM")
+                    .levelLabel("Rủi ro vừa")
+                    .levelBg("#FEF3C7")
+                    .levelColor("#D97706")
+                    .title("Phụ thuộc cao vào Facebook Ads")
+                    .description("55% nguồn hồ sơ đến từ kênh Facebook. Đây là rủi ro lớn nếu thuật toán thay đổi hoặc chi phí CPM tăng đột ngột trong giai đoạn cao điểm tuyển sinh.")
+                    .suggestion("Đa dạng hóa kênh marketing sang LinkedIn (B2B), TikTok và đẩy mạnh SEO content.")
+                    .suggestionColor("#D97706")
+                    .iconType("SHARE")
+                    .status("ACTIVE")
+                    .actionPlan("Chuyển dịch 20% ngân sách marketing sang xây dựng kênh TikTok học sinh chuyên và chạy quảng cáo định hướng nghề nghiệp trên LinkedIn.")
+                    .build());
+
+                riskRepository.save(StrategicRisk.builder()
+                    .level("LOW")
+                    .levelLabel("Rủi ro thấp")
+                    .levelBg("#DCFCE7")
+                    .levelColor("#16A34A")
+                    .title("Thiếu hụt nhân viên tuyển sinh")
+                    .description("Hiện còn 2 vị trí nhân viên tuyển sinh cần tuyển dụng bổ sung cho Q3. Tuy nhiên, đội ngũ hiện tại vẫn đang xử lý tốt khối lượng công việc.")
+                    .suggestion("Tiến hành phỏng vấn khẩn cấp và triển khai chương trình đào tạo nhân viên thực tập.")
+                    .suggestionColor("#16A34A")
+                    .iconType("USERS")
+                    .status("ACTIVE")
+                    .actionPlan("Hợp tác với khoa Quản trị Kinh doanh tuyển 5 cộng tác viên thực tập hỗ trợ tư vấn học đường.")
+                    .build());
+
+                System.out.println("[DB-MIGRATION] Seeded 4 strategic risks.");
             }
         };
     }

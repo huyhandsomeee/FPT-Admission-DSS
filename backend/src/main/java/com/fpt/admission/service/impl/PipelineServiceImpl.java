@@ -153,6 +153,49 @@ public class PipelineServiceImpl implements PipelineService {
             gpaValid = false;
         }
 
+        // 3b. Check combination subject scores for THPT method
+        boolean combinationScoresValid = true;
+        if (app.getAdmissionMethod() != null && "THPT".equals(app.getAdmissionMethod().getCode())) {
+            String comb = app.getCombinationCode();
+            if (comb == null || comb.trim().isEmpty()) {
+                comb = "D01"; // Fallback
+            }
+            if (ab == null) {
+                combinationScoresValid = false;
+            } else {
+                switch (comb.toUpperCase()) {
+                    case "A00":
+                        if (ab.getMathScore() == null || ab.getPhysicsScore() == null || ab.getChemistryScore() == null) combinationScoresValid = false;
+                        break;
+                    case "A01":
+                        if (ab.getMathScore() == null || ab.getPhysicsScore() == null || ab.getEnglishScore() == null) combinationScoresValid = false;
+                        break;
+                    case "B00":
+                        if (ab.getMathScore() == null || ab.getChemistryScore() == null || ab.getBiologyScore() == null) combinationScoresValid = false;
+                        break;
+                    case "C00":
+                        if (ab.getLiteratureScore() == null || ab.getHistoryScore() == null || ab.getGeographyScore() == null) combinationScoresValid = false;
+                        break;
+                    case "F01":
+                        if (ab.getMathScore() == null || ab.getLiteratureScore() == null || ab.getItScore() == null || ab.getTechnologyScore() == null) combinationScoresValid = false;
+                        break;
+                    case "F02":
+                        if (ab.getMathScore() == null || ab.getLiteratureScore() == null || ab.getGdplScore() == null || ab.getHistoryScore() == null) combinationScoresValid = false;
+                        break;
+                    case "F03":
+                        if (ab.getMathScore() == null || ab.getLiteratureScore() == null || ab.getPhysicsScore() == null || ab.getItScore() == null) combinationScoresValid = false;
+                        break;
+                    case "F05":
+                        if (ab.getMathScore() == null || ab.getLiteratureScore() == null || ab.getEnglishScore() == null || ab.getGdplScore() == null) combinationScoresValid = false;
+                        break;
+                    case "D01":
+                    default:
+                        if (ab.getMathScore() == null || ab.getLiteratureScore() == null || ab.getEnglishScore() == null) combinationScoresValid = false;
+                        break;
+                }
+            }
+        }
+
         // 4. IELTS/TOEIC expiration
         boolean certNotExpired = true;
         if (ab != null && (ab.getIeltsScore() != null || ab.getToeflScore() != null)) {
@@ -181,7 +224,7 @@ public class PipelineServiceImpl implements PipelineService {
         long duplicateEmailCount = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM users WHERE email = ? AND id != ?",
                 Long.class, studentUser.getEmail().trim(), studentUser.getId()
-        );
+            );
         boolean noDuplicateEmail = (duplicateEmailCount == 0);
 
         // 7. Duplicate Phone
@@ -202,12 +245,13 @@ public class PipelineServiceImpl implements PipelineService {
         if (profile.getEthnicity() == null || profile.getEthnicity().trim().isEmpty()) missingInfo.add("ethnicity");
         if (profile.getPermanentAddress() == null || profile.getPermanentAddress().trim().isEmpty()) missingInfo.add("permanentAddress");
         if (profile.getCccdNumber() == null || profile.getCccdNumber().trim().isEmpty()) missingInfo.add("cccdNumber");
+        if (!combinationScoresValid) missingInfo.add("combinationScores");
 
         // Status determination
         String status = "COMPLETE";
         if (!requiredDocsOk || !cccdFormatOk || !gpaValid || !certNotExpired || !noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || invalidFormatFound || !missingInfo.isEmpty()) {
             // Check if errors or warnings
-            if (!noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || !gpaValid || !cccdFormatOk) {
+            if (!noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || !gpaValid || !cccdFormatOk || !combinationScoresValid) {
                 status = "ERROR"; // Critical exceptions needing manual review
             } else {
                 status = "WARNING"; // Minor issue like missing docs or warnings

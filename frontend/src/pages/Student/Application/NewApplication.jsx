@@ -62,6 +62,18 @@ export default function NewApplication() {
     cccdIssueDate: "",
     cccdIssuePlace: "",
     academicAchievement: "",
+    combinationCode: "D01",
+    mathScore: "",
+    literatureScore: "",
+    englishScore: "",
+    physicsScore: "",
+    chemistryScore: "",
+    biologyScore: "",
+    historyScore: "",
+    geographyScore: "",
+    gdplScore: "",
+    itScore: "",
+    technologyScore: "",
   });
 
   // File upload
@@ -273,6 +285,7 @@ export default function NewApplication() {
                 setFiles={setFiles}
                 fetchSchools={fetchSchools}
                 showHocBaSection={methods.find(m => m.id == form.methodId)?.code === 'HOC_BA'}
+                showThptSection={methods.find(m => m.id == form.methodId)?.code === 'THPT'}
               />
               <SectionCampusMajor
                 form={form}

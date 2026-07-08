@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../../config/axiosConfig";
 import {
-  LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
 } from "recharts";
 import { Users, Award, Target, TrendingUp, ArrowUp, Monitor } from "lucide-react";
@@ -24,8 +24,10 @@ export default function ExecutiveDashboard() {
   const [stats, setStats] = useState(null);
   const [trendData, setTrendData] = useState([]);
   const [selectedAlert, setSelectedAlert] = useState(null);
+  const [risks, setRisks] = useState([]);
+  const [combinationData, setCombinationData] = useState([]);
 
-  useEffect(() => {
+  const loadDashboardData = () => {
     api.get("/api/manager/dashboard")
       .then(r => {
         if (r.data) setStats(r.data);
@@ -44,7 +46,38 @@ export default function ExecutiveDashboard() {
         }
       })
       .catch(() => {});
+
+    api.get("/api/manager/risks")
+      .then(r => {
+        if (Array.isArray(r.data)) {
+          setRisks(r.data);
+        }
+      })
+      .catch(() => {});
+
+    api.get("/api/manager/analytics/combinations")
+      .then(r => {
+        if (Array.isArray(r.data)) {
+          setCombinationData(r.data);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    loadDashboardData();
   }, []);
+
+  const handleMitigate = async (id, suggestion) => {
+    try {
+      await api.post(`/api/manager/risks/${id}/mitigate`);
+      alert(`Đã kích hoạt giải pháp ứng phó: ${suggestion}`);
+      setSelectedAlert(null);
+      loadDashboardData();
+    } catch (err) {
+      alert("Lỗi khi kích hoạt kế hoạch ứng phó: " + (err.response?.data?.message || err.message));
+    }
+  };
 
   const displayStats = stats || {
     totalApplications: 20000, approved: 14500, enrolled: 12000,
@@ -237,6 +270,31 @@ export default function ExecutiveDashboard() {
         </div>
       </div>
 
+      {/* 2026 Elective Combinations Analysis Row */}
+      <div style={{ background: "white", borderRadius: 16, padding: 24, border: "1px solid #E8EDF5", boxShadow: "0 1px 6px rgba(0,0,0,0.05)" }}>
+        <div style={{ marginBottom: 12 }}>
+          <h3 style={{ margin: 0, fontWeight: 700, fontSize: 15, color: "#1E293B" }}>
+            Phân tích Cơ cấu Tổ hợp môn học tự chọn tuyển sinh (2026)
+          </h3>
+          <p style={{ margin: "3px 0 0", fontSize: 12, color: "#94A3B8" }}>
+            Theo dõi xu hướng đăng ký các tổ hợp môn tự chọn theo cải cách thi THPT quốc gia mới của học sinh
+          </p>
+        </div>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={combinationData.length > 0 ? combinationData : [
+            { name: "D01", count: 450 }, { name: "A01", count: 280 }, { name: "A00", count: 150 },
+            { name: "F01", count: 110 }, { name: "F03", count: 90 }, { name: "F05", count: 75 },
+            { name: "B00", count: 40 }
+          ]}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" vertical={false} />
+            <XAxis dataKey="name" tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0" }} formatter={v => v.toLocaleString()} />
+            <Bar dataKey="count" fill="#0d1b3e" radius={[6, 6, 0, 0]} name="Số lượng hồ sơ" />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+
       {/* Bottom row: 3 cards */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
         {/* Nguồn hồ sơ */}
@@ -254,8 +312,8 @@ export default function ExecutiveDashboard() {
                   <span style={{ fontSize: 13, color: "#475569" }}>{s.label}</span>
                   <span style={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>{s.pct}%</span>
                 </div>
-                <div style={{ width: "100%", height: 6, background: "#F1F5F9", borderRadius: 99 }}>
-                  <div style={{ width: `${s.pct}%`, height: "100%", background: s.color, borderRadius: 99 }} />
+                <div style={{ width: "100%", height: 4, background: "#F1F5F9", borderRadius: 99 }}>
+                  <div style={{ width: `${s.pct}%`, height: "100%", background: "#64748B", borderRadius: 99 }} />
                 </div>
               </div>
             ))}
@@ -271,19 +329,39 @@ export default function ExecutiveDashboard() {
             <h3 style={{ margin: 0, fontWeight: 700, fontSize: 14, color: "#DC2626" }}>Cảnh báo rủi ro</h3>
           </div>
           <p style={{ margin: 0, fontSize: 13, color: "#374151", lineHeight: 1.6 }}>
-            Tốc độ rút hồ sơ tại khu vực <strong style={{ color: "#DC2626" }}>Miền Trung</strong> tăng 2% so với tuần trước. Cần rà soát ngay chính sách học bổng địa phương.
+            {risks.find(r => r.level === "HIGH" && r.status === "ACTIVE") ? (
+              risks.find(r => r.level === "HIGH" && r.status === "ACTIVE").description
+            ) : (
+              <span>Tốc độ rút hồ sơ tại khu vực <strong style={{ color: "#DC2626" }}>Miền Trung</strong> tăng 2% so với tuần trước. Cần rà soát ngay chính sách học bổng địa phương.</span>
+            )}
           </p>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 12 }}>
             <div style={{ padding: "8px 12px", background: "#FEF2F2", borderRadius: 8 }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: "#DC2626" }}>❗ MỨC ĐỘ NGHIÊM TRỌNG: CAO</span>
             </div>
             <button 
-              onClick={() => setSelectedAlert({
-                title: "Rủi ro rút hồ sơ khu vực Miền Trung",
-                level: "HIGH",
-                description: "Tốc độ rút hồ sơ tại khu vực Miền Trung tăng 2.1% so với tuần trước (tập trung tại Quảng Nam, Đà Nẵng). Đối thủ cạnh tranh trực tiếp vừa tung ra gói học bổng địa phương giảm 20% học phí.",
-                actionPlan: "Rà soát lại quỹ học bổng FPT Talent miền Trung. Cử đội ngũ tư vấn liên hệ trực tiếp với các thí sinh có ý định rút hồ sơ để đối thoại và hỗ trợ chính sách.",
-              })}
+              onClick={() => {
+                const activeHighRisk = risks.find(r => r.level === "HIGH" && r.status === "ACTIVE");
+                if (activeHighRisk) {
+                  setSelectedAlert({
+                    id: activeHighRisk.id,
+                    title: activeHighRisk.title,
+                    level: activeHighRisk.level,
+                    description: activeHighRisk.description,
+                    actionPlan: activeHighRisk.actionPlan || activeHighRisk.suggestion,
+                    suggestion: activeHighRisk.suggestion
+                  });
+                } else {
+                  setSelectedAlert({
+                    id: null,
+                    title: "Rủi ro rút hồ sơ khu vực Miền Trung",
+                    level: "HIGH",
+                    description: "Tốc độ rút hồ sơ tại khu vực Miền Trung tăng 2.1% so với tuần trước (tập trung tại Quảng Nam, Đà Nẵng). Đối thủ cạnh tranh trực tiếp vừa tung ra gói học bổng địa phương giảm 20% học phí.",
+                    actionPlan: "Rà soát lại quỹ học bổng FPT Talent miền Trung. Cử đội ngũ tư vấn liên hệ trực tiếp với các thí sinh có ý định rút hồ sơ để đối thoại và hỗ trợ chính sách.",
+                    suggestion: "Rà soát lại quỹ học bổng FPT Talent miền Trung. Cử đội ngũ tư vấn liên hệ trực tiếp với các thí sinh có ý định rút hồ sơ để đối thoại và hỗ trợ chính sách."
+                  });
+                }
+              }}
               style={{
                 background: "none", border: "none", color: "#2563EB", fontWeight: 700, fontSize: 13, cursor: "pointer"
               }}>
@@ -356,7 +434,14 @@ export default function ExecutiveDashboard() {
                 Bỏ qua
               </button>
               <button 
-                onClick={() => { alert("Đã phê duyệt và kích hoạt kế hoạch ứng phó khẩn cấp!"); setSelectedAlert(null); }}
+                onClick={() => {
+                  if (selectedAlert.id) {
+                    handleMitigate(selectedAlert.id, selectedAlert.suggestion);
+                  } else {
+                    alert("Đã phê duyệt và kích hoạt kế hoạch ứng phó khẩn cấp!");
+                    setSelectedAlert(null);
+                  }
+                }}
                 style={{
                   padding: "8px 16px", background: "#DC2626", border: "none",
                   borderRadius: 8, color: "white", fontSize: 13, fontWeight: 700, cursor: "pointer",

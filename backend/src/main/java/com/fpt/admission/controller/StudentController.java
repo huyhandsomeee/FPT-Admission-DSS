@@ -153,6 +153,15 @@ public class StudentController {
             @RequestParam(value = "mathScore", required = false, defaultValue = "0") double mathScore,
             @RequestParam(value = "literatureScore", required = false, defaultValue = "0") double literatureScore,
             @RequestParam(value = "englishScore", required = false, defaultValue = "0") double englishScore,
+            @RequestParam(value = "physicsScore", required = false) Double physicsScore,
+            @RequestParam(value = "chemistryScore", required = false) Double chemistryScore,
+            @RequestParam(value = "biologyScore", required = false) Double biologyScore,
+            @RequestParam(value = "historyScore", required = false) Double historyScore,
+            @RequestParam(value = "geographyScore", required = false) Double geographyScore,
+            @RequestParam(value = "gdplScore", required = false) Double gdplScore,
+            @RequestParam(value = "itScore", required = false) Double itScore,
+            @RequestParam(value = "technologyScore", required = false) Double technologyScore,
+            @RequestParam(value = "combinationCode", required = false) String combinationCode,
             @RequestParam(value = "gpa10", required = false, defaultValue = "0") double gpa10,
             @RequestParam(value = "gpa11", required = false, defaultValue = "0") double gpa11,
             @RequestParam(value = "gpa12", required = false, defaultValue = "0") double gpa12,
@@ -225,10 +234,21 @@ public class StudentController {
         ab.setMathScore(BigDecimal.valueOf(mathScore));
         ab.setLiteratureScore(BigDecimal.valueOf(literatureScore));
         ab.setEnglishScore(BigDecimal.valueOf(englishScore));
+        ab.setPhysicsScore(physicsScore != null ? BigDecimal.valueOf(physicsScore) : null);
+        ab.setChemistryScore(chemistryScore != null ? BigDecimal.valueOf(chemistryScore) : null);
+        ab.setBiologyScore(biologyScore != null ? BigDecimal.valueOf(biologyScore) : null);
+        ab.setHistoryScore(historyScore != null ? BigDecimal.valueOf(historyScore) : null);
+        ab.setGeographyScore(geographyScore != null ? BigDecimal.valueOf(geographyScore) : null);
+        ab.setGdplScore(gdplScore != null ? BigDecimal.valueOf(gdplScore) : null);
+        ab.setItScore(itScore != null ? BigDecimal.valueOf(itScore) : null);
+        ab.setTechnologyScore(technologyScore != null ? BigDecimal.valueOf(technologyScore) : null);
         ab.setGpa10(BigDecimal.valueOf(gpa10));
         ab.setGpa11(BigDecimal.valueOf(gpa11));
         ab.setGpa12(BigDecimal.valueOf(gpa12));
-        ab.setTotalScore(BigDecimal.valueOf(mathScore + literatureScore + englishScore));
+        
+        double calculatedTotalScore = calculateCombinationScore(combinationCode, mathScore, literatureScore, englishScore,
+                physicsScore, chemistryScore, biologyScore, historyScore, geographyScore, gdplScore, itScore, technologyScore);
+        ab.setTotalScore(BigDecimal.valueOf(calculatedTotalScore));
         if (academicAchievement != null && !academicAchievement.trim().isEmpty()) {
             ab.setAcademicAchievement(academicAchievement.trim());
         }
@@ -258,6 +278,7 @@ public class StudentController {
             .major(major)
             .admissionMethod(method)
             .totalScore(appTotalScore)
+            .combinationCode(combinationCode)
             .status(ApplicationStatus.SUBMITTED)
             .submittedAt(LocalDateTime.now())
             .build();
@@ -854,5 +875,35 @@ public class StudentController {
         m.put("enrolledAt", app.getEnrolledAt());
         m.put("feePaidAt", app.getFeePaidAt());
         return m;
+    }
+
+    private double calculateCombinationScore(String combinationCode, double math, double literature, double english,
+            Double physics, Double chemistry, Double biology, Double history, Double geography, Double gdpl, Double it, Double tech) {
+        if (combinationCode == null || combinationCode.trim().isEmpty()) {
+            return math + literature + english; // Default D01
+        }
+        
+        double p = physics != null ? physics : 0.0;
+        double c = chemistry != null ? chemistry : 0.0;
+        double b = biology != null ? biology : 0.0;
+        double h = history != null ? history : 0.0;
+        double g = geography != null ? geography : 0.0;
+        double l = gdpl != null ? gdpl : 0.0;
+        double i = it != null ? it : 0.0;
+        double t = tech != null ? tech : 0.0;
+        
+        switch (combinationCode.trim().toUpperCase()) {
+            case "A00": return math + p + c;
+            case "A01": return math + p + english;
+            case "B00": return math + c + b;
+            case "C00": return literature + h + g;
+            case "F01": return (math + literature + i + t) * 3.0 / 4.0;
+            case "F02": return (math + literature + l + h) * 3.0 / 4.0;
+            case "F03": return (math + literature + p + i) * 3.0 / 4.0;
+            case "F05": return (math + literature + english + l) * 3.0 / 4.0;
+            case "D01":
+            default:
+                return math + literature + english;
+        }
     }
 }

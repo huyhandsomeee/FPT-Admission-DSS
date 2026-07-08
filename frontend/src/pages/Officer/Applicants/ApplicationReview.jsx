@@ -207,7 +207,9 @@ export default function ApplicationReview() {
             <ArrowLeft size={16} /> Quay lại
           </button>
           <div>
-            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0F172A" }}>Đánh Giá Hồ Sơ Xét Tuyển</h1>
+            <h1 style={{ margin: 0, fontWeight: 800, fontSize: 22, color: "#0F172A" }}>
+              Đánh Giá Hồ Sơ Xét Tuyển {app.applicationCode ? `(${app.applicationCode})` : ""}
+            </h1>
             <p style={{ margin: "2px 0 0", fontSize: 13, color: "#64748B" }}>Cập nhật điểm số và duyệt trạng thái hồ sơ</p>
           </div>
         </div>

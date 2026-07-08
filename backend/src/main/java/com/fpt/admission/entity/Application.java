@@ -42,6 +42,9 @@ public class Application {
     @Column(name = "total_score", precision = 5, scale = 2)
     private BigDecimal totalScore;
 
+    @Column(name = "combination_code", length = 10)
+    private String combinationCode;
+
     @Enumerated(EnumType.STRING)
     private ApplicationStatus status = ApplicationStatus.DRAFT;
 

@@ -39,6 +39,7 @@ const MajorAnalysis = lazy(() => import("./pages/Manager/Analytics/MajorAnalysis
 const RegionalAnalysis = lazy(() => import("./pages/Manager/Analytics/RegionalAnalysis"));
 const ManagerForecast = lazy(() => import("./pages/Manager/Forecast"));
 const ManagerRecommendations = lazy(() => import("./pages/Manager/Recommendations"));
+const WhatIfSimulation = lazy(() => import("./pages/Manager/WhatIfSimulation"));
 
 // BOD pages
 const BodDashboard = lazy(() => import("./pages/BOD/ExecutiveDashboard"));
@@ -141,6 +142,7 @@ function App() {
           <Route path="analytics/regional" element={<RegionalAnalysis />} />
           <Route path="forecast" element={<ManagerForecast />} />
           <Route path="recommendations" element={<ManagerRecommendations />} />
+          <Route path="simulation" element={<WhatIfSimulation />} />
         </Route>
 
         {/* ========================
@@ -156,10 +158,12 @@ function App() {
         >
           <Route index element={<Navigate to="/bod/dashboard" replace />} />
           <Route path="dashboard" element={<BodDashboard />} />
+          <Route path="analytics/majors" element={<MajorAnalysis />} />
           <Route path="forecast" element={<BodForecast />} />
           <Route path="risks" element={<RiskMonitor />} />
           <Route path="recommendations" element={<BodRecommendations />} />
           <Route path="export" element={<ExportReports />} />
+          <Route path="simulation" element={<WhatIfSimulation />} />
         </Route>
 
         {/* ========================

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Download, FileText, BarChart3, Users, TrendingUp, Filter, FolderOpen } from "lucide-react";
+import api from "../../config/axiosConfig";
 
 const REPORTS = [
   {
@@ -59,7 +60,27 @@ export default function ExportReports() {
 
   const handleDownload = (name) => {
     setDownloading(name);
-    setTimeout(() => setDownloading(null), 2000);
+    api.get(`/api/manager/reports/export?name=${encodeURIComponent(name)}`, { responseType: 'blob' })
+      .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        let filename = "bao_cao.csv";
+        if (name.includes("tổng hợp")) filename = "bao_cao_tong_hop_tuyen_sinh.csv";
+        else if (name.includes("thí sinh")) filename = "danh_sach_thi_sinh_nhap_hoc.csv";
+        else if (name.includes("ngành")) filename = "bao_cao_phan_tich_theo_nganh.csv";
+        else if (name.includes("dự báo")) filename = "du_bao_tuyen_sinh_2027_2029.csv";
+        link.setAttribute('download', filename);
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        setDownloading(null);
+      })
+      .catch(err => {
+        console.error("Lỗi khi tải báo cáo:", err);
+        alert("Lỗi tải báo cáo từ hệ thống!");
+        setDownloading(null);
+      });
   };
 
   return (

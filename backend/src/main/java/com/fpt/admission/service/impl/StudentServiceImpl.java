@@ -103,6 +103,9 @@ public class StudentServiceImpl implements StudentService {
             String phone, String cccd, String permanentAddress, Long provinceId,
             String parentName, String parentPhone, String schoolName, int graduationYear,
             double mathScore, double literatureScore, double englishScore,
+            Double physicsScore, Double chemistryScore, Double biologyScore,
+            Double historyScore, Double geographyScore, Double gdplScore,
+            Double itScore, Double technologyScore, String combinationCode,
             double gpa10, double gpa11, double gpa12,
             Long campusId, Long majorId, Long methodId,
             MultipartFile cccdFile, MultipartFile hocBaFile, MultipartFile bangTNFile,
@@ -142,10 +145,21 @@ public class StudentServiceImpl implements StudentService {
         ab.setMathScore(BigDecimal.valueOf(mathScore));
         ab.setLiteratureScore(BigDecimal.valueOf(literatureScore));
         ab.setEnglishScore(BigDecimal.valueOf(englishScore));
+        ab.setPhysicsScore(physicsScore != null ? BigDecimal.valueOf(physicsScore) : null);
+        ab.setChemistryScore(chemistryScore != null ? BigDecimal.valueOf(chemistryScore) : null);
+        ab.setBiologyScore(biologyScore != null ? BigDecimal.valueOf(biologyScore) : null);
+        ab.setHistoryScore(historyScore != null ? BigDecimal.valueOf(historyScore) : null);
+        ab.setGeographyScore(geographyScore != null ? BigDecimal.valueOf(geographyScore) : null);
+        ab.setGdplScore(gdplScore != null ? BigDecimal.valueOf(gdplScore) : null);
+        ab.setItScore(itScore != null ? BigDecimal.valueOf(itScore) : null);
+        ab.setTechnologyScore(technologyScore != null ? BigDecimal.valueOf(technologyScore) : null);
         ab.setGpa10(BigDecimal.valueOf(gpa10));
         ab.setGpa11(BigDecimal.valueOf(gpa11));
         ab.setGpa12(BigDecimal.valueOf(gpa12));
-        ab.setTotalScore(BigDecimal.valueOf(mathScore + literatureScore + englishScore));
+        
+        double calculatedTotalScore = calculateCombinationScore(combinationCode, mathScore, literatureScore, englishScore,
+                physicsScore, chemistryScore, biologyScore, historyScore, geographyScore, gdplScore, itScore, technologyScore);
+        ab.setTotalScore(BigDecimal.valueOf(calculatedTotalScore));
         academicBackgroundRepository.save(ab);
 
         // 3. Create Application
@@ -160,7 +174,9 @@ public class StudentServiceImpl implements StudentService {
         profile.setStudentCode(code);
         studentProfileRepository.save(profile);
 
-        java.math.BigDecimal appTotalScore = method.getCode().equals("HOC_BA") ? ab.getGpa12() : ab.getTotalScore();
+        java.math.BigDecimal appTotalScore = method.getCode().equals("HOC_BA")
+                ? BigDecimal.valueOf(gpa10).add(BigDecimal.valueOf(gpa11)).add(BigDecimal.valueOf(gpa12))
+                : ab.getTotalScore();
 
         var app = Application.builder()
                 .applicationCode(code)
@@ -170,6 +186,7 @@ public class StudentServiceImpl implements StudentService {
                 .major(major)
                 .admissionMethod(method)
                 .totalScore(appTotalScore)
+                .combinationCode(combinationCode)
                 .status(ApplicationStatus.SUBMITTED)
                 .submittedAt(LocalDateTime.now())
                 .build();
@@ -475,5 +492,35 @@ public class StudentServiceImpl implements StudentService {
         saveAppDoc(app.getId(), docTypeId, file, userId);
 
         return Map.of("message", "Upload tài liệu thành công", "typeCode", typeCode);
+    }
+
+    private double calculateCombinationScore(String combinationCode, double math, double literature, double english,
+            Double physics, Double chemistry, Double biology, Double history, Double geography, Double gdpl, Double it, Double tech) {
+        if (combinationCode == null || combinationCode.trim().isEmpty()) {
+            return math + literature + english; // Default D01
+        }
+        
+        double p = physics != null ? physics : 0.0;
+        double c = chemistry != null ? chemistry : 0.0;
+        double b = biology != null ? biology : 0.0;
+        double h = history != null ? history : 0.0;
+        double g = geography != null ? geography : 0.0;
+        double l = gdpl != null ? gdpl : 0.0;
+        double i = it != null ? it : 0.0;
+        double t = tech != null ? tech : 0.0;
+        
+        switch (combinationCode.trim().toUpperCase()) {
+            case "A00": return math + p + c;
+            case "A01": return math + p + english;
+            case "B00": return math + c + b;
+            case "C00": return literature + h + g;
+            case "F01": return (math + literature + i + t) * 3.0 / 4.0;
+            case "F02": return (math + literature + l + h) * 3.0 / 4.0;
+            case "F03": return (math + literature + p + i) * 3.0 / 4.0;
+            case "F05": return (math + literature + english + l) * 3.0 / 4.0;
+            case "D01":
+            default:
+                return math + literature + english;
+        }
     }
 }

@@ -49,6 +49,30 @@ public class AcademicBackground {
     @Column(name = "english_score", precision = 4, scale = 2)
     private BigDecimal englishScore;
 
+    @Column(name = "physics_score", precision = 4, scale = 2)
+    private BigDecimal physicsScore;
+
+    @Column(name = "chemistry_score", precision = 4, scale = 2)
+    private BigDecimal chemistryScore;
+
+    @Column(name = "biology_score", precision = 4, scale = 2)
+    private BigDecimal biologyScore;
+
+    @Column(name = "history_score", precision = 4, scale = 2)
+    private BigDecimal historyScore;
+
+    @Column(name = "geography_score", precision = 4, scale = 2)
+    private BigDecimal geographyScore;
+
+    @Column(name = "gdpl_score", precision = 4, scale = 2)
+    private BigDecimal gdplScore;
+
+    @Column(name = "it_score", precision = 4, scale = 2)
+    private BigDecimal itScore;
+
+    @Column(name = "technology_score", precision = 4, scale = 2)
+    private BigDecimal technologyScore;
+
     @Column(name = "total_score", precision = 5, scale = 2)
     private BigDecimal totalScore;
 

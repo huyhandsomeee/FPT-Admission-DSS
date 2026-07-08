@@ -1,28 +1,36 @@
 import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { LayoutDashboard, TrendingUp, AlertTriangle, Lightbulb, Download, Settings, LogOut, Bell, User } from "lucide-react";
+import { useState, useEffect } from "react";
+import api from "../../config/axiosConfig";
+import { LayoutDashboard, TrendingUp, AlertTriangle, Lightbulb, Download, Settings, LogOut, Bell, User, Layers, BarChart2 } from "lucide-react";
 
 const navItems = [
   { to: "/bod/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+  { to: "/bod/analytics/majors", icon: BarChart2, label: "Phân tích theo ngành" },
   { to: "/bod/forecast", icon: TrendingUp, label: "Báo cáo dự báo" },
   { to: "/bod/risks", icon: AlertTriangle, label: "Giám sát rủi ro" },
   { to: "/bod/recommendations", icon: Lightbulb, label: "Đề xuất chiến lược" },
+  { to: "/bod/simulation", icon: Layers, label: "Mô phỏng kịch bản" },
   { to: "/bod/export", icon: Download, label: "Xuất báo cáo" },
 ];
 
 const PAGE_TITLES = {
   "/bod/dashboard": "Executive Decision Portal",
+  "/bod/analytics/majors": "Phân tích theo ngành",
   "/bod/forecast": "Executive Dashboard",
   "/bod/risks": "Executive Dashboard",
   "/bod/recommendations": "Chi Tiết Đề xuất",
+  "/bod/simulation": "Bảng mô phỏng giả định What-If",
   "/bod/export": "Xuất báo cáo",
 };
 
 const PAGE_SUBTITLES = {
   "/bod/dashboard": "FPT University • 2026 Admissions Cycle",
+  "/bod/analytics/majors": "Phân tích trạng thái chỉ tiêu tuyển sinh • FPT University",
   "/bod/forecast": "Board of Directors Portal • FPT University",
   "/bod/risks": "Board of Directors Portal • FPT University",
   "/bod/recommendations": "Board of Directors Portal • FPT University",
+  "/bod/simulation": "Executive Sandbox • FPT University",
   "/bod/export": "Board of Directors Portal • FPT University",
 };
 
@@ -30,6 +38,33 @@ export default function BodLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
+
+  const [notifications, setNotifications] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const fetchNotifications = () => {
+    api.get("/api/student/notifications?page=0&size=10")
+      .then(r => {
+        if (r.data && r.data.content) {
+          setNotifications(r.data.content);
+          setUnreadCount(r.data.unreadCount || 0);
+        }
+      })
+      .catch(() => {});
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+    const interval = setInterval(fetchNotifications, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const handleMarkAllRead = () => {
+    api.post("/api/student/notifications/read-all")
+      .then(() => fetchNotifications())
+      .catch(() => {});
+  };
 
   const DARK = "#0d1b3e";
   const DARKER = "#091429";
@@ -147,9 +182,63 @@ export default function BodLayout() {
 
           {/* Right: Bell + User */}
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <button style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", padding: 6, borderRadius: 8 }}>
-              <Bell size={18} />
-            </button>
+            {/* Bell icon with dropdown popup */}
+            <div style={{ position: "relative" }}>
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                style={{ background: "none", border: "none", cursor: "pointer", position: "relative", color: "#94A3B8", display: "flex", alignItems: "center", padding: 6, borderRadius: 8 }}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <div style={{
+                    position: "absolute", top: -4, right: -4, 
+                    background: "#FF6B35", color: "white", borderRadius: "50%",
+                    fontSize: "9px", fontWeight: "800", minWidth: "14px", height: "14px",
+                    display: "flex", alignItems: "center", justifyContent: "center", padding: "0 3px"
+                  }}>
+                    {unreadCount}
+                  </div>
+                )}
+              </button>
+
+              {showNotifications && (
+                <div style={{
+                  position: "absolute", right: 0, top: 32, width: 340,
+                  backgroundColor: "white", borderRadius: 12, border: "1px solid #E2E8F0",
+                  boxShadow: "0 10px 25px rgba(0,0,0,0.1)", zIndex: 100, overflow: "hidden"
+                }}>
+                  <div style={{ padding: "12px 16px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F8FAFC" }}>
+                    <span style={{ fontWeight: 700, fontSize: 13.5, color: "#1E293B" }}>Thông báo tuyển sinh</span>
+                    {unreadCount > 0 && (
+                      <button onClick={handleMarkAllRead} style={{ background: "none", border: "none", color: "#FF6B35", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
+                        Đánh dấu đã đọc
+                      </button>
+                    )}
+                  </div>
+                  <div style={{ maxHeight: 280, overflowY: "auto" }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: 24, textAlign: "center", color: "#94A3B8", fontSize: 12.5 }}>
+                        Không có thông báo mới nào
+                      </div>
+                    ) : (
+                      notifications.map(n => (
+                        <div key={n.id} style={{
+                          padding: "12px 16px", borderBottom: "1px solid #F8FAFC",
+                          background: n.isRead ? "white" : "#FFF7ED", transition: "background 0.2s",
+                          textAlign: "left"
+                        }}>
+                          <div style={{ fontWeight: 700, fontSize: 12.5, color: "#1E293B", marginBottom: 3 }}>{n.title}</div>
+                          <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{n.message}</div>
+                          <div style={{ fontSize: 10, color: "#94A3B8", marginTop: 6, fontWeight: 500 }}>
+                            {n.createdAt ? new Date(n.createdAt).toLocaleString("vi-VN") : ""}
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
             <button style={{ background: "#F1F5F9", border: "1px solid #E2E8F0", borderRadius: 8, width: 32, height: 32, display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
               <User size={15} color="#475569" />
             </button>

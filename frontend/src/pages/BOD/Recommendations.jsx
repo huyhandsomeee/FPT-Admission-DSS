@@ -6,7 +6,8 @@ import api from "../../config/axiosConfig";
 export default function BodRecommendations() {
   const [message, setMessage] = useState("");
   const [aiQuota, setAiQuota] = useState(500);
-  const [decisionState, setDecisionState] = useState("PENDING"); // PENDING, APPROVED, REJECTED, ADJUST_REQUESTED
+  const [recs, setRecs] = useState([]);
+  const [selectedRecId, setSelectedRecId] = useState(null);
 
   const [boardMessages, setBoardMessages] = useState([
     {
@@ -25,7 +26,7 @@ export default function BodRecommendations() {
     },
   ]);
 
-  useEffect(() => {
+  const loadRecommendations = () => {
     api.get("/api/manager/recommendations/ai-quota")
       .then(r => {
         if (r.data && r.data.quota !== undefined) {
@@ -33,32 +34,40 @@ export default function BodRecommendations() {
         }
       })
       .catch(err => console.error("Lỗi khi lấy chỉ tiêu AI:", err));
+
+    api.get("/api/manager/recommendations")
+      .then(r => {
+        if (Array.isArray(r.data)) {
+          setRecs(r.data);
+          if (r.data.length > 0) {
+            // Find pending or first
+            const pending = r.data.find(rec => rec.status === "PENDING") || r.data[0];
+            setSelectedRecId(pending.id);
+          }
+        }
+      })
+      .catch(err => console.error("Lỗi khi lấy danh sách khuyến nghị:", err));
+  };
+
+  useEffect(() => {
+    loadRecommendations();
   }, []);
 
-  const handleApprove = async () => {
+  const handleAction = async (actionType) => {
+    if (!selectedRecId) return;
+
     try {
-      const res = await api.post("/api/manager/recommendations/approve", { type: "INCREASE_AI_QUOTA" });
-      alert(res.data.message || "Đã phê duyệt tăng chỉ tiêu ngành AI!");
-      setDecisionState("APPROVED");
-      
-      const quotaRes = await api.get("/api/manager/recommendations/ai-quota");
-      if (quotaRes.data && quotaRes.data.quota !== undefined) {
-        setAiQuota(quotaRes.data.quota);
-      }
+      const res = await api.post(`/api/manager/recommendations/${selectedRecId}/action`, { action: actionType });
+      alert(res.data.message || "Đã cập nhật trạng thái đề xuất thành công!");
+      loadRecommendations();
     } catch (err) {
-      alert("Lỗi khi phê duyệt: " + (err.response?.data?.message || err.message));
+      alert("Lỗi khi gửi yêu cầu hành động: " + (err.response?.data?.message || err.message));
     }
   };
 
-  const handleReject = () => {
-    setDecisionState("REJECTED");
-    alert("Đã từ chối đề xuất này.");
-  };
-
-  const handleAdjust = () => {
-    setDecisionState("ADJUST_REQUESTED");
-    alert("Đã gửi yêu cầu điều chỉnh đề xuất.");
-  };
+  const handleApprove = () => handleAction("APPROVE");
+  const handleReject = () => handleAction("REJECT");
+  const handleAdjust = () => handleAction("ADJUST");
 
   const handleSendMessage = () => {
     if (!message.trim()) return;
@@ -75,20 +84,44 @@ export default function BodRecommendations() {
     setMessage("");
   };
 
+  const currentRec = recs.find(r => r.id === selectedRecId) || {
+    title: "Phê duyệt tăng chỉ tiêu AI 2026",
+    description: "Hiện tại, nguồn cung nhân lực AI tại Việt Nam đang thiếu nghiêm trọng. Với tốc độ phát triển của hệ sinh thái FPT, nhu cầu tuyển dụng kỹ sư AI dự kiến tăng gấp 3 lần trong giai đoạn 2025-2028. Các đối thủ cạnh tranh đang mở rộng quy mô đào tạo nhanh chóng.",
+    impact: "Tăng quy mô đào tạo lên 1,500 sinh viên ngành AI, tăng doanh thu dự kiến ~5.6 tỷ VNĐ/năm.",
+    actionPlan: "Nâng chỉ tiêu tuyển sinh ngành AI lên 1,500 sinh viên/năm. Đào tạo liên kết quốc tế và tối ưu phòng thí nghiệm GPU chuyên sâu.",
+    status: "PENDING"
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {/* Selector dropdown for multiple recommendations */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, background: "white", padding: "16px 20px", borderRadius: 12, border: "1px solid #E2E8F0" }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Chọn Kịch bản / Đề xuất cần duyệt:</span>
+        <select
+          value={selectedRecId || ""}
+          onChange={e => setSelectedRecId(Number(e.target.value))}
+          style={{ padding: "8px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: "#1E293B", flex: 1, outline: "none" }}
+        >
+          {recs.map(r => (
+            <option key={r.id} value={r.id}>
+              [{r.status}] {r.title} ({r.category === "AI_QUOTA" ? "Chỉ tiêu AI" : "Giả lập Sandbox"})
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Breadcrumb + Title */}
       <div>
         <div style={{ fontSize: 12, color: "#94A3B8", marginBottom: 4 }}>
           <span style={{ color: "#64748B" }}>Chiến lược</span>
           <span style={{ margin: "0 6px" }}>›</span>
-          <span style={{ color: "#FF6B35", fontWeight: 600 }}>Đào tạo AI</span>
+          <span style={{ color: "#FF6B35", fontWeight: 600 }}>Duyệt kịch bản tuyển sinh 2026</span>
         </div>
         <h1 style={{ margin: "0 0 4px", fontWeight: 800, fontSize: 22, color: "#0F172A" }}>
-          Phê duyệt tăng chỉ tiêu AI 2026 (Hiện tại: {aiQuota})
+          {currentRec.title}
         </h1>
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
-          {decisionState === "PENDING" && (
+          {currentRec.status === "PENDING" && (
             <>
               <span style={{ fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCA5A5" }}>
                 ✕ Cần quyết định
@@ -98,17 +131,17 @@ export default function BodRecommendations() {
               </span>
             </>
           )}
-          {decisionState === "APPROVED" && (
+          {currentRec.status === "APPROVED" && (
             <span style={{ fontSize: 11, fontWeight: 700, background: "#DCFCE7", color: "#16A34A", padding: "3px 9px", borderRadius: 5, border: "1px solid #86EFAC" }}>
-              ✓ Đã phê duyệt (+200 chỉ tiêu)
+              ✓ Đã phê duyệt kịch bản
             </span>
           )}
-          {decisionState === "REJECTED" && (
+          {currentRec.status === "REJECTED" && (
             <span style={{ fontSize: 11, fontWeight: 700, background: "#FEE2E2", color: "#DC2626", padding: "3px 9px", borderRadius: 5, border: "1px solid #FCA5A5" }}>
               ✕ Đã từ chối
             </span>
           )}
-          {decisionState === "ADJUST_REQUESTED" && (
+          {currentRec.status === "ADJUST_REQUESTED" && (
             <span style={{ fontSize: 11, fontWeight: 700, background: "#EFF6FF", color: "#1D4ED8", padding: "3px 9px", borderRadius: 5, border: "1px solid #93C5FD" }}>
               ℹ Đang yêu cầu điều chỉnh
             </span>
@@ -117,52 +150,52 @@ export default function BodRecommendations() {
         <div style={{ display: "flex", gap: 10 }}>
           <button 
             onClick={handleAdjust} 
-            disabled={decisionState !== "PENDING"}
+            disabled={currentRec.status !== "PENDING"}
             style={{ 
               padding: "9px 18px", 
-              background: decisionState === "ADJUST_REQUESTED" ? "#EFF6FF" : "white", 
+              background: currentRec.status === "ADJUST_REQUESTED" ? "#EFF6FF" : "white", 
               border: "1px solid #E2E8F0", 
               borderRadius: 9, 
-              color: decisionState === "ADJUST_REQUESTED" ? "#1D4ED8" : "#475569", 
+              color: currentRec.status === "ADJUST_REQUESTED" ? "#1D4ED8" : "#475569", 
               fontWeight: 600, 
               fontSize: 13, 
-              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed",
-              opacity: decisionState !== "PENDING" && decisionState !== "ADJUST_REQUESTED" ? 0.5 : 1
+              cursor: currentRec.status === "PENDING" ? "pointer" : "not-allowed",
+              opacity: currentRec.status !== "PENDING" && currentRec.status !== "ADJUST_REQUESTED" ? 0.5 : 1
             }}>
             Yêu cầu điều chỉnh
           </button>
           <button 
             onClick={handleReject} 
-            disabled={decisionState !== "PENDING"}
+            disabled={currentRec.status !== "PENDING"}
             style={{ 
               padding: "9px 18px", 
-              background: decisionState === "REJECTED" ? "#FEE2E2" : "white", 
+              background: currentRec.status === "REJECTED" ? "#FEE2E2" : "white", 
               border: "1px solid #E2E8F0", 
               borderRadius: 9, 
               color: "#DC2626", 
               fontWeight: 600, 
               fontSize: 13, 
-              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed",
-              opacity: decisionState !== "PENDING" && decisionState !== "REJECTED" ? 0.5 : 1
+              cursor: currentRec.status === "PENDING" ? "pointer" : "not-allowed",
+              opacity: currentRec.status !== "PENDING" && currentRec.status !== "REJECTED" ? 0.5 : 1
             }}>
             Từ chối
           </button>
           <button 
             onClick={handleApprove} 
-            disabled={decisionState !== "PENDING"}
+            disabled={currentRec.status !== "PENDING"}
             style={{ 
               padding: "9px 18px", 
-              background: decisionState === "APPROVED" ? "#10B981" : "#FF6B35", 
+              background: currentRec.status === "APPROVED" ? "#10B981" : "#FF6B35", 
               border: "none", 
               borderRadius: 9, 
               color: "white", 
               fontWeight: 700, 
               fontSize: 13, 
-              cursor: decisionState === "PENDING" ? "pointer" : "not-allowed", 
-              boxShadow: decisionState === "APPROVED" ? "0 2px 8px rgba(16,185,129,0.3)" : "0 2px 8px rgba(255,107,53,0.3)",
-              opacity: decisionState !== "PENDING" && decisionState !== "APPROVED" ? 0.5 : 1
+              cursor: currentRec.status === "PENDING" ? "pointer" : "not-allowed", 
+              boxShadow: currentRec.status === "APPROVED" ? "0 2px 8px rgba(16,185,129,0.3)" : "0 2px 8px rgba(255,107,53,0.3)",
+              opacity: currentRec.status !== "PENDING" && currentRec.status !== "APPROVED" ? 0.5 : 1
             }}>
-            {decisionState === "APPROVED" ? "Đã phê duyệt" : "Phê duyệt"}
+            {currentRec.status === "APPROVED" ? "Đã phê duyệt" : "Phê duyệt"}
           </button>
         </div>
       </div>
@@ -178,21 +211,14 @@ export default function BodRecommendations() {
           <div style={{ marginBottom: 14 }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.3px", marginBottom: 5 }}>Vấn đề &amp; Bối cảnh</div>
             <p style={{ margin: 0, fontSize: 12, color: "#475569", lineHeight: 1.7 }}>
-              Hiện tại, nguồn cung nhân lực AI tại Việt Nam đang thiếu nghiêm trọng. Với tốc độ phát triển của hệ sinh thái FPT, nhu cầu tuyển dụng kỹ sư AI dự kiến tăng gấp 3 lần trong giai đoạn 2025-2028. Các đối thủ cạnh tranh đang mở rộng quy mô đào tạo nhanh chóng.
+              {currentRec.description}
             </p>
           </div>
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.3px", marginBottom: 8 }}>Mục tiêu chiến lược</div>
-            {[
-              "Nâng chỉ tiêu tuyển sinh ngành AI lên 1,500 sinh viên/năm.",
-              "Tăng tỷ lệ việc làm sinh viên AI tại các Big Tech lên 25%.",
-              "Xác lập vị thế dẫn đầu trong đào tạo AI ứng dụng tại khu vực.",
-            ].map((item, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: 7, marginBottom: 7 }}>
-                <div style={{ width: 5, height: 5, borderRadius: "50%", background: "#0d1b3e", marginTop: 5, flexShrink: 0 }} />
-                <span style={{ fontSize: 12, color: "#475569", lineHeight: 1.5 }}>{item}</span>
-              </div>
-            ))}
+            <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", letterSpacing: "0.3px", marginBottom: 8 }}>Kế hoạch hành động</div>
+            <p style={{ margin: 0, fontSize: 12, color: "#475569", lineHeight: 1.6 }}>
+              {currentRec.actionPlan}
+            </p>
           </div>
         </div>
 
@@ -203,14 +229,16 @@ export default function BodRecommendations() {
               <div style={{ width: 32, height: 32, background: "#ECFDF5", borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center" }}>
                 <TrendingUp size={16} color="#16A34A" />
               </div>
-              <span style={{ fontWeight: 700, fontSize: 13, color: "#1E293B" }}>AI Forecast</span>
+              <span style={{ fontWeight: 700, fontSize: 13, color: "#1E293B" }}>Dự báo kịch bản</span>
             </div>
             <span style={{ fontSize: 9, fontWeight: 700, background: "#DCFCE7", color: "#16A34A", padding: "3px 8px", borderRadius: 5, letterSpacing: "0.5px" }}>LIVE</span>
           </div>
           <div style={{ fontSize: 12, color: "#475569", lineHeight: 1.6, marginBottom: 16 }}>
-            Dự báo doanh thu tiềm năng từ việc mở rộng quy mô đào tạo và dịch vụ R&D:
+            Tác động dự kiến về lượng hồ sơ &amp; tài chính:
           </div>
-          <div style={{ fontSize: 28, fontWeight: 900, color: "#16A34A", lineHeight: 1, marginBottom: 8 }}>~5.6 tỷ VNĐ/năm</div>
+          <div style={{ fontSize: 14.5, fontWeight: 800, color: "#16A34A", lineHeight: 1.6, marginBottom: 8 }}>
+            {currentRec.impact}
+          </div>
           <div style={{ fontSize: 11, fontWeight: 700, color: "#94A3B8", marginBottom: 16 }}>DỰ BÁO DOANH THU</div>
 
           {/* Confidence bar */}
