@@ -124,6 +124,14 @@ export default function ApplicantList() {
       .then(res => {
         const data = res.data?.data || [];
         setRawQueue(data);
+        // Trigger background recalculate cho hồ sơ chưa có pipeline data
+        const needsCalc = data.filter(a => a.needsRecalculate);
+        if (needsCalc.length > 0) {
+          api.post("/api/officer/pipeline/recalculate-all")
+            .then(() => api.get("/api/officer/pipeline"))
+            .then(res2 => setRawQueue(res2.data?.data || []))
+            .catch(() => {});
+        }
       })
       .catch(err => {
         console.error("Error fetching review queue:", err);
@@ -195,9 +203,7 @@ export default function ApplicantList() {
     }
 
     if (selectedStatus === "all") {
-      if (activePipelineTab !== "approved") {
-        result = result.filter(app => app.status === "SUBMITTED" || app.status === "UNDER_REVIEW");
-      }
+      // Không lọc theo status khi chọn "Tất cả" — hiển thị hết
     } else {
       result = result.filter(app => app.status === selectedStatus);
     }

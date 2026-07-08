@@ -31,6 +31,10 @@ const ApplicationReview = lazy(() => import("./pages/Officer/Applicants/Applicat
 const OfficerCommunication = lazy(() => import("./pages/Officer/Communication"));
 const OfficerSettings = lazy(() => import("./pages/Officer/Settings"));
 const MoetResults = lazy(() => import("./pages/Officer/MoetResults"));
+const EnrollmentNotification = lazy(() => import("./pages/Officer/EnrollmentNotification"));
+const EnrollmentGuidance = lazy(() => import("./pages/Student/Application/EnrollmentGuidance"));
+const EnrollmentForm = lazy(() => import("./pages/Student/Application/EnrollmentForm"));
+const FeePaymentPage = lazy(() => import("./pages/Student/FeePaymentPage"));
 
 // Manager pages
 const ManagerDashboard = lazy(() => import("./pages/Manager/Dashboard"));
@@ -99,6 +103,9 @@ function App() {
           <Route path="dashboard" element={<StudentDashboard />} />
           <Route path="apply" element={<NewApplication />} />
           <Route path="applications" element={<MyApplications />} />
+          <Route path="enrollment/:id" element={<EnrollmentGuidance />} />
+          <Route path="enrollment-form/:id" element={<EnrollmentForm />} />
+          <Route path="fee-payment/:id" element={<FeePaymentPage />} />
           <Route path="documents" element={<StudentDocuments />} />
           <Route path="notifications" element={<StudentNotifications />} />
           <Route path="university-info" element={<UniversityInfo />} />
@@ -122,6 +129,7 @@ function App() {
           <Route path="communication" element={<OfficerCommunication />} />
           <Route path="settings" element={<OfficerSettings />} />
           <Route path="moet-results" element={<MoetResults />} />
+          <Route path="enrollment" element={<EnrollmentNotification />} />
         </Route>
 
         {/* ========================

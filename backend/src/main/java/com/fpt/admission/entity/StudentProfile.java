@@ -59,6 +59,18 @@ public class StudentProfile {
     @Column(name = "parent_email")
     private String parentEmail;
 
+    @Column(name = "father_name")
+    private String fatherName;
+
+    @Column(name = "father_phone")
+    private String fatherPhone;
+
+    @Column(name = "mother_name")
+    private String motherName;
+
+    @Column(name = "mother_phone")
+    private String motherPhone;
+
     @Column(name = "allow_new_application")
     private Boolean allowNewApplication = false;
 

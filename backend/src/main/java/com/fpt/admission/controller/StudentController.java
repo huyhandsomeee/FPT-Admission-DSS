@@ -906,4 +906,291 @@ public class StudentController {
                 return math + literature + english;
         }
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // STUDENT ENROLLMENT GUIDANCE ENDPOINTS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Get enrollment notification detail for a specific application */
+    @GetMapping("/enrollment/{appId}")
+    public ResponseEntity<?> getEnrollmentGuidance(@PathVariable Long appId,
+            @RequestHeader("Authorization") String authHeader) {
+        String email = new com.fpt.admission.security.JwtUtil(null).extractEmail(authHeader.replace("Bearer ", ""));
+        // Find application by id
+        var appOpt = applicationRepository.findById(appId);
+        if (appOpt.isEmpty()) return ResponseEntity.notFound().build();
+        var app = appOpt.get();
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("applicationId", app.getId());
+        result.put("applicationCode", app.getApplicationCode());
+        result.put("status", app.getStatus() != null ? app.getStatus().name() : "");
+        result.put("majorName", app.getMajor() != null ? app.getMajor().getName() : "");
+        result.put("campusName", app.getCampus() != null ? app.getCampus().getName() : "");
+        result.put("acceptedAt", app.getReviewedAt());
+        result.put("studentName", app.getStudentProfile() != null ? app.getStudentProfile().getFullName() : "");
+
+        // Latest enrollment notification
+        try {
+            List<Map<String, Object>> notifs = jdbcTemplate.queryForList(
+                "SELECT * FROM enrollment_notifications WHERE application_id = ? ORDER BY sent_at DESC LIMIT 1", appId);
+            if (!notifs.isEmpty()) {
+                result.put("notification", notifs.get(0));
+            } else {
+                result.put("notification", null);
+            }
+        } catch (Exception e) {
+            result.put("notification", null);
+        }
+
+        // Checklist state
+        try {
+            List<Map<String, Object>> checks = jdbcTemplate.queryForList(
+                "SELECT * FROM enrollment_checklist WHERE application_id = ?", appId);
+            result.put("checklist", checks);
+        } catch (Exception e) {
+            result.put("checklist", List.of());
+        }
+
+        return ResponseEntity.ok(result);
+    }
+
+    /** Student confirms they have read the enrollment guidance */
+    @PostMapping("/enrollment/{appId}/confirm-read")
+    public ResponseEntity<?> confirmEnrollmentRead(@PathVariable Long appId) {
+        try {
+            jdbcTemplate.update(
+                "UPDATE enrollment_notifications SET read_at = COALESCE(read_at, NOW()), confirmed_at = NOW() " +
+                "WHERE application_id = ? AND id = (SELECT MAX(id) FROM (SELECT id FROM enrollment_notifications WHERE application_id = ?) t)",
+                appId, appId);
+        } catch (Exception ignored) {}
+        return ResponseEntity.ok(Map.of("message", "Đã xác nhận đọc hướng dẫn nhập học"));
+    }
+
+    /** Student updates a checklist item (e.g., tuition paid, scheduled visit) */
+    @PostMapping("/enrollment/{appId}/checklist")
+    public ResponseEntity<?> updateChecklist(@PathVariable Long appId,
+            @RequestBody Map<String, Object> payload) {
+        String item = (String) payload.getOrDefault("item", "");
+        boolean done = Boolean.parseBoolean(payload.getOrDefault("done", "false").toString());
+        String column = switch (item) {
+            case "READ_GUIDE"    -> "read_at";
+            case "TUITION_PAID"  -> "tuition_paid_at";
+            case "SCHEDULED"     -> "scheduled_at";
+            case "COMPLETED"     -> "completed_at";
+            default -> null;
+        };
+        if (column != null) {
+            try {
+                String val = done ? "NOW()" : "NULL";
+                jdbcTemplate.update(
+                    "UPDATE enrollment_notifications SET " + column + " = " + val + " " +
+                    "WHERE application_id = ? AND id = (SELECT MAX(id) FROM (SELECT id FROM enrollment_notifications WHERE application_id = ?) t)",
+                    appId, appId);
+            } catch (Exception ignored) {}
+        }
+        return ResponseEntity.ok(Map.of("message", "Đã cập nhật checklist"));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ENROLLMENT FORM - sinh viên điền thủ tục nhập học
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** Get enrollment form data (pre-filled if exists) */
+    @GetMapping("/enrollment/{appId}/form")
+    public ResponseEntity<?> getEnrollmentForm(@PathVariable Long appId) {
+        var appOpt = applicationRepository.findById(appId);
+        if (appOpt.isEmpty()) return ResponseEntity.notFound().build();
+        var app = appOpt.get();
+        var profile = app.getStudentProfile();
+
+        // Pre-fill from student profile
+        Map<String, Object> prefill = new LinkedHashMap<>();
+        prefill.put("fullName",    profile != null ? profile.getFullName() : "");
+        prefill.put("dob",         profile != null && profile.getDateOfBirth() != null ? profile.getDateOfBirth().toString() : "");
+        prefill.put("gender",      profile != null ? profile.getGender() : "");
+        prefill.put("idNumber",    profile != null ? profile.getIdentityNumber() : "");
+        prefill.put("phone",       profile != null ? profile.getPhone() : "");
+        prefill.put("email",       profile != null ? profile.getEmail() : "");
+        prefill.put("address",     profile != null ? profile.getAddress() : "");
+        prefill.put("parentName",  profile != null ? profile.getParentName() : "");
+        prefill.put("parentPhone", profile != null ? profile.getParentPhone() : "");
+        prefill.put("fatherName",  profile != null ? profile.getFatherName() : "");
+        prefill.put("fatherPhone", profile != null ? profile.getFatherPhone() : "");
+        prefill.put("motherName",  profile != null ? profile.getMotherName() : "");
+        prefill.put("motherPhone", profile != null ? profile.getMotherPhone() : "");
+        prefill.put("highSchool",  profile != null && profile.getAcademicBackground() != null ? profile.getAcademicBackground().getSchoolName() : "");
+        prefill.put("graduationYear", profile != null && profile.getAcademicBackground() != null ? String.valueOf(profile.getAcademicBackground().getGraduationYear()) : "");
+        prefill.put("majorName",   app.getMajor() != null ? app.getMajor().getName() : "");
+        prefill.put("campusName",  app.getCampus() != null ? app.getCampus().getName() : "");
+        prefill.put("applicationCode", app.getApplicationCode());
+
+        // Check if form already submitted
+        Map<String, Object> formData = null;
+        try {
+            // Ensure table exists
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS enrollment_forms (" +
+                "  id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                "  application_id BIGINT NOT NULL UNIQUE, " +
+                "  full_name VARCHAR(255), dob VARCHAR(20), gender VARCHAR(10), " +
+                "  id_number VARCHAR(50), id_issued_date VARCHAR(20), id_issued_place VARCHAR(255), " +
+                "  permanent_address TEXT, contact_address TEXT, " +
+                "  phone VARCHAR(20), email VARCHAR(255), " +
+                "  parent_name VARCHAR(255), parent_phone VARCHAR(20), " +
+                "  father_name VARCHAR(255), father_phone VARCHAR(20), " +
+                "  mother_name VARCHAR(255), mother_phone VARCHAR(20), " +
+                "  high_school VARCHAR(255), graduation_year VARCHAR(10), " +
+                "  exam_score DECIMAL(5,2), preferred_campus VARCHAR(100), " +
+                "  expected_start VARCHAR(20), scholarship_apply TINYINT(1) DEFAULT 0, " +
+                "  dormitory_apply TINYINT(1) DEFAULT 0, dormitory_room_type VARCHAR(50), " +
+                "  additional_notes TEXT, " +
+                "  submitted_at DATETIME, reviewed_at DATETIME, review_notes TEXT, " +
+                "  status VARCHAR(50) DEFAULT 'PENDING', created_at DATETIME DEFAULT NOW())"
+            );
+            // Add new columns if table already existed
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN father_name VARCHAR(255)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN father_phone VARCHAR(20)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN mother_name VARCHAR(255)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN mother_phone VARCHAR(20)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN dormitory_room_type VARCHAR(50)"); } catch (Exception ignored) {}
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(
+                "SELECT * FROM enrollment_forms WHERE application_id = ?", appId);
+            if (!rows.isEmpty()) formData = rows.get(0);
+        } catch (Exception ignored) {}
+
+        return ResponseEntity.ok(Map.of(
+            "prefill", prefill,
+            "form", formData != null ? formData : Map.of(),
+            "submitted", formData != null
+        ));
+    }
+
+    /** Student submits enrollment form */
+    @PostMapping("/enrollment/{appId}/form")
+    public ResponseEntity<?> submitEnrollmentForm(@PathVariable Long appId,
+            @RequestBody Map<String, Object> body) {
+        var appOpt = applicationRepository.findById(appId);
+        if (appOpt.isEmpty()) return ResponseEntity.notFound().build();
+        var app = appOpt.get();
+
+        // Validation
+        String fullName = body.getOrDefault("fullName", "").toString().trim();
+        String idNumber = body.getOrDefault("idNumber", "").toString().trim();
+        if (fullName.isEmpty() || idNumber.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Vui lòng điền đầy đủ thông tin bắt buộc (Họ tên, CCCD)."));
+        }
+
+        try {
+            // Ensure table exists
+            jdbcTemplate.execute(
+                "CREATE TABLE IF NOT EXISTS enrollment_forms (" +
+                "  id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                "  application_id BIGINT NOT NULL UNIQUE, " +
+                "  full_name VARCHAR(255), dob VARCHAR(20), gender VARCHAR(10), " +
+                "  id_number VARCHAR(50), id_issued_date VARCHAR(20), id_issued_place VARCHAR(255), " +
+                "  permanent_address TEXT, contact_address TEXT, " +
+                "  phone VARCHAR(20), email VARCHAR(255), " +
+                "  parent_name VARCHAR(255), parent_phone VARCHAR(20), " +
+                "  father_name VARCHAR(255), father_phone VARCHAR(20), " +
+                "  mother_name VARCHAR(255), mother_phone VARCHAR(20), " +
+                "  high_school VARCHAR(255), graduation_year VARCHAR(10), " +
+                "  exam_score DECIMAL(5,2), preferred_campus VARCHAR(100), " +
+                "  expected_start VARCHAR(20), scholarship_apply TINYINT(1) DEFAULT 0, " +
+                "  dormitory_apply TINYINT(1) DEFAULT 0, dormitory_room_type VARCHAR(50), " +
+                "  additional_notes TEXT, " +
+                "  submitted_at DATETIME, reviewed_at DATETIME, review_notes TEXT, " +
+                "  status VARCHAR(50) DEFAULT 'PENDING', created_at DATETIME DEFAULT NOW())"
+            );
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN father_name VARCHAR(255)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN father_phone VARCHAR(20)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN mother_name VARCHAR(255)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN mother_phone VARCHAR(20)"); } catch (Exception ignored) {}
+            try { jdbcTemplate.execute("ALTER TABLE enrollment_forms ADD COLUMN dormitory_room_type VARCHAR(50)"); } catch (Exception ignored) {}
+
+            // Upsert form
+            jdbcTemplate.update(
+                "INSERT INTO enrollment_forms " +
+                "(application_id, full_name, dob, gender, id_number, id_issued_date, id_issued_place, " +
+                " permanent_address, contact_address, phone, email, parent_name, parent_phone, " +
+                " father_name, father_phone, mother_name, mother_phone, " +
+                " high_school, graduation_year, preferred_campus, expected_start, " +
+                " scholarship_apply, dormitory_apply, dormitory_room_type, additional_notes, submitted_at, status) " +
+                "VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),'PENDING') " +
+                "ON DUPLICATE KEY UPDATE " +
+                " full_name=VALUES(full_name), dob=VALUES(dob), gender=VALUES(gender), " +
+                " id_number=VALUES(id_number), id_issued_date=VALUES(id_issued_date), " +
+                " id_issued_place=VALUES(id_issued_place), permanent_address=VALUES(permanent_address), " +
+                " contact_address=VALUES(contact_address), phone=VALUES(phone), email=VALUES(email), " +
+                " parent_name=VALUES(parent_name), parent_phone=VALUES(parent_phone), " +
+                " father_name=VALUES(father_name), father_phone=VALUES(father_phone), " +
+                " mother_name=VALUES(mother_name), mother_phone=VALUES(mother_phone), " +
+                " high_school=VALUES(high_school), graduation_year=VALUES(graduation_year), " +
+                " preferred_campus=VALUES(preferred_campus), expected_start=VALUES(expected_start), " +
+                " scholarship_apply=VALUES(scholarship_apply), dormitory_apply=VALUES(dormitory_apply), " +
+                " dormitory_room_type=VALUES(dormitory_room_type), " +
+                " additional_notes=VALUES(additional_notes), submitted_at=NOW(), status='PENDING'",
+                appId,
+                fullName,
+                body.getOrDefault("dob", "").toString(),
+                body.getOrDefault("gender", "").toString(),
+                idNumber,
+                body.getOrDefault("idIssuedDate", "").toString(),
+                body.getOrDefault("idIssuedPlace", "").toString(),
+                body.getOrDefault("permanentAddress", "").toString(),
+                body.getOrDefault("contactAddress", "").toString(),
+                body.getOrDefault("phone", "").toString(),
+                body.getOrDefault("email", "").toString(),
+                body.getOrDefault("parentName", "").toString(),
+                body.getOrDefault("parentPhone", "").toString(),
+                body.getOrDefault("fatherName", "").toString(),
+                body.getOrDefault("fatherPhone", "").toString(),
+                body.getOrDefault("motherName", "").toString(),
+                body.getOrDefault("motherPhone", "").toString(),
+                body.getOrDefault("highSchool", "").toString(),
+                body.getOrDefault("graduationYear", "").toString(),
+                body.getOrDefault("preferredCampus", app.getCampus() != null ? app.getCampus().getName() : "").toString(),
+                body.getOrDefault("expectedStart", "01/09/2026").toString(),
+                Boolean.parseBoolean(body.getOrDefault("scholarshipApply", "false").toString()) ? 1 : 0,
+                Boolean.parseBoolean(body.getOrDefault("dormitoryApply", "false").toString()) ? 1 : 0,
+                body.getOrDefault("dormitoryRoomType", "").toString(),
+                body.getOrDefault("additionalNotes", "").toString()
+            );
+
+            // Mark application as ENROLLED
+            app.setStatus(ApplicationStatus.ENROLLED);
+            app.setReviewedAt(LocalDateTime.now());
+            applicationRepository.save(app);
+
+            // Update enrollment notification: mark completed
+            try {
+                jdbcTemplate.update(
+                    "UPDATE enrollment_notifications SET completed_at = COALESCE(completed_at, NOW()) WHERE application_id = ?",
+                    appId);
+            } catch (Exception ignored) {}
+
+            // Send confirmation notification
+            try {
+                com.fpt.admission.entity.Notification notif = com.fpt.admission.entity.Notification.builder()
+                    .user(app.getStudentProfile().getUser())
+                    .title("✅ Đã nhận form thủ tục nhập học – Chào mừng bạn đến với FPT University!")
+                    .message("Form thủ tục nhập học của bạn đã được ghi nhận. Phòng Tuyển sinh sẽ xem xét và liên hệ bạn trong thời gian sớm nhất. Chào mừng bạn đến với gia đình FPT!")
+                    .type(com.fpt.admission.entity.enums.NotificationType.ADMISSION_UPDATE)
+                    .relatedEntityType("ENROLLMENT_FORM")
+                    .relatedEntityId(appId)
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+                notificationRepository.save(notif);
+            } catch (Exception ignored) {}
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("error", "Lỗi lưu form: " + e.getMessage()));
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "message", "✅ Đã nộp form thủ tục nhập học thành công! Chào mừng bạn đến với FPT University.",
+            "status", "ENROLLED"
+        ));
+    }
 }

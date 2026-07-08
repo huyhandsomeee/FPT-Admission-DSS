@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import api from "../../../config/axiosConfig";
-import { FileText, Plus, Award, X } from "lucide-react";
+import { FileText, Plus, Award, X, GraduationCap } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import ProgressTracker from "../../../components/common/ProgressTracker";
 import DetailModal from "../../../components/common/DetailModal";
@@ -133,6 +133,37 @@ export default function MyApplications() {
                   currentStatus={getVisualStatus(app.status)}
                   statusLabels={VISUAL_STEP_LABELS}
                 />
+
+                {/* 🎉 ACCEPTED_MOET: Congratulations card */}
+                {app.status === "ACCEPTED_MOET" && (
+                  <div style={{
+                    background: "linear-gradient(135deg,#FFF7ED 0%,#FED7AA 100%)",
+                    borderRadius: "14px", padding: "18px 20px",
+                    border: "2px solid #FB923C", marginTop: "16px", marginBottom: "8px",
+                    boxShadow: "0 4px 16px rgba(255,107,53,0.18)"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                      <GraduationCap size={22} color="#EA580C" />
+                      <h4 style={{ margin: 0, color: "#C2410C", fontWeight: 800, fontSize: 15 }}>🎉 Chúc mừng! Bạn đã trúng tuyển chính thức</h4>
+                    </div>
+                    <p style={{ margin: "0 0 12px", color: "#7C2D12", fontSize: 13, lineHeight: 1.6 }}>
+                      Ngành <strong>{app.majorName}</strong> tại <strong>{app.campusName}</strong>. Vui lòng đọc hướng dẫn nhập học và hoàn thành các thủ tục trước hạn quy định.
+                    </p>
+                    <button
+                      onClick={() => navigate(`/student/enrollment/${app.id}`)}
+                      style={{
+                        padding: "10px 20px",
+                        background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+                        color: "white", border: "none", borderRadius: "10px",
+                        fontWeight: "800", fontSize: "13px", cursor: "pointer",
+                        boxShadow: "0 4px 12px rgba(255,107,53,0.35)",
+                        display: "flex", alignItems: "center", gap: 8
+                      }}
+                    >
+                      <GraduationCap size={15} /> Xem hướng dẫn nhập học →
+                    </button>
+                  </div>
+                )}
 
                 {app.status === "APPROVED" && (
                   <div style={{

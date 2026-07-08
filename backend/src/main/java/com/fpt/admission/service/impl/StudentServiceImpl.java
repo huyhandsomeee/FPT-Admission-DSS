@@ -178,6 +178,17 @@ public class StudentServiceImpl implements StudentService {
                 ? BigDecimal.valueOf(gpa10).add(BigDecimal.valueOf(gpa11)).add(BigDecimal.valueOf(gpa12))
                 : ab.getTotalScore();
 
+        // Kiểm tra điểm sàn — chỉ áp dụng cho HOC_BA (tổng GPA10+GPA11+GPA12)
+        if ("HOC_BA".equals(method.getCode())) {
+            double minScore = "CST".equalsIgnoreCase(major.getCode()) ? 21.0 : 18.0;
+            double scoreValue = appTotalScore != null ? appTotalScore.doubleValue() : 0.0;
+            if (scoreValue < minScore) {
+                throw new RuntimeException(
+                    String.format("Hồ sơ không đạt điểm sàn học bạ. Tổng GPA của bạn: %.2f, điểm sàn yêu cầu: %.1f", scoreValue, minScore)
+                );
+            }
+        }
+
         var app = Application.builder()
                 .applicationCode(code)
                 .studentProfile(profile)

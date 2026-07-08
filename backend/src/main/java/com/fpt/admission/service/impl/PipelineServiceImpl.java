@@ -41,6 +41,15 @@ public class PipelineServiceImpl implements PipelineService {
     private static final List<String> REQUIRED_DOC_CODES = List.of("CCCD", "HOC_BA", "BANG_TN", "ANH_THE", "GK_THPT");
     private static final List<String> ALLOWED_EXTENSIONS = List.of("pdf", "png", "jpg", "jpeg", "gif");
 
+    // Điểm sàn: mặc định 18, riêng Cử nhân tài năng KHMT là 21
+    private static final double DEFAULT_MIN_SCORE = 18.0;
+    private static final double TALENT_CS_MIN_SCORE = 21.0;
+    private static final String TALENT_CS_MAJOR_CODE = "CST"; // Cử nhân tài năng Khoa học máy tính
+
+    private double getMinScore(String majorCode) {
+        return TALENT_CS_MAJOR_CODE.equalsIgnoreCase(majorCode) ? TALENT_CS_MIN_SCORE : DEFAULT_MIN_SCORE;
+    }
+
     @PostConstruct
     @Override
     public void seedDefaultRules() {
@@ -140,17 +149,35 @@ public class PipelineServiceImpl implements PipelineService {
         String cccd = profile.getCccdNumber();
         boolean cccdFormatOk = cccd != null && CCCD_PATTERN.matcher(cccd.trim()).matches();
 
-        // 3. GPA validity
+        // 3. GPA validity — only required for HOC_BA method
+        String appMethodCode = app.getAdmissionMethod() != null ? app.getAdmissionMethod().getCode() : "";
+        boolean isHocBa = "HOC_BA".equals(appMethodCode);
+
+        // 3c. Điểm sàn — chỉ áp dụng cho HOC_BA (tổng GPA10+GPA11+GPA12 ≥ 18, riêng CST ≥ 21)
+        String majorCode = app.getMajor() != null ? app.getMajor().getCode() : "";
+        boolean meetsMinScore = true;
+        double minScore = 0.0;
+        double totalGpaForCheck = 0.0;
+        if (isHocBa) {
+            minScore = getMinScore(majorCode);
+            double gpa10v = ab != null && ab.getGpa10() != null ? ab.getGpa10().doubleValue() : 0.0;
+            double gpa11v = ab != null && ab.getGpa11() != null ? ab.getGpa11().doubleValue() : 0.0;
+            double gpa12v = ab != null && ab.getGpa12() != null ? ab.getGpa12().doubleValue() : 0.0;
+            totalGpaForCheck = gpa10v + gpa11v + gpa12v;
+            meetsMinScore = totalGpaForCheck >= minScore;
+        }
         boolean gpaValid = true;
-        if (ab != null) {
-            BigDecimal g10 = ab.getGpa10();
-            BigDecimal g11 = ab.getGpa11();
-            BigDecimal g12 = ab.getGpa12();
-            if (g10 == null || g10.doubleValue() < 0.0 || g10.doubleValue() > 10.0) gpaValid = false;
-            if (g11 == null || g11.doubleValue() < 0.0 || g11.doubleValue() > 10.0) gpaValid = false;
-            if (g12 == null || g12.doubleValue() < 0.0 || g12.doubleValue() > 10.0) gpaValid = false;
-        } else {
-            gpaValid = false;
+        if (isHocBa) {
+            if (ab != null) {
+                BigDecimal g10 = ab.getGpa10();
+                BigDecimal g11 = ab.getGpa11();
+                BigDecimal g12 = ab.getGpa12();
+                if (g10 == null || g10.doubleValue() < 0.0 || g10.doubleValue() > 10.0) gpaValid = false;
+                if (g11 == null || g11.doubleValue() < 0.0 || g11.doubleValue() > 10.0) gpaValid = false;
+                if (g12 == null || g12.doubleValue() < 0.0 || g12.doubleValue() > 10.0) gpaValid = false;
+            } else {
+                gpaValid = false;
+            }
         }
 
         // 3b. Check combination subject scores for THPT method
@@ -247,14 +274,15 @@ public class PipelineServiceImpl implements PipelineService {
         if (profile.getCccdNumber() == null || profile.getCccdNumber().trim().isEmpty()) missingInfo.add("cccdNumber");
         if (!combinationScoresValid) missingInfo.add("combinationScores");
 
+        if (!meetsMinScore) missingInfo.add("belowMinScore:" + totalGpaForCheck + "<" + minScore);
+
         // Status determination
         String status = "COMPLETE";
         if (!requiredDocsOk || !cccdFormatOk || !gpaValid || !certNotExpired || !noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || invalidFormatFound || !missingInfo.isEmpty()) {
-            // Check if errors or warnings
-            if (!noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || !gpaValid || !cccdFormatOk || !combinationScoresValid) {
-                status = "ERROR"; // Critical exceptions needing manual review
+            if (!noDuplicateCccd || !noDuplicateEmail || !noDuplicatePhone || !gpaValid || !cccdFormatOk || !combinationScoresValid || !meetsMinScore) {
+                status = "ERROR";
             } else {
-                status = "WARNING"; // Minor issue like missing docs or warnings
+                status = "WARNING";
             }
         }
 
@@ -288,12 +316,16 @@ public class PipelineServiceImpl implements PipelineService {
         ValidationResult vr = validationResultRepository.findByApplicationId(applicationId)
                 .orElseGet(() -> validateApplication(applicationId));
 
-        // 1. GPA Component (40%)
+        // 1. GPA Component (40%) — only meaningful for HOC_BA method
         double gpaWeight = 40.0;
         double gpaScore = 0.0;
-        if (ab != null && ab.getGpa10() != null && ab.getGpa11() != null && ab.getGpa12() != null) {
+        String psMethodCode = app.getAdmissionMethod() != null ? app.getAdmissionMethod().getCode() : "";
+        if ("HOC_BA".equals(psMethodCode) && ab != null && ab.getGpa10() != null && ab.getGpa11() != null && ab.getGpa12() != null) {
             double avgGpa = (ab.getGpa10().doubleValue() + ab.getGpa11().doubleValue() + ab.getGpa12().doubleValue()) / 3.0;
             gpaScore = (avgGpa / 10.0) * 100.0;
+        } else if (!"HOC_BA".equals(psMethodCode) && ab != null && ab.getTotalScore() != null) {
+            // For THPT: use combination score (max 30) scaled to 100
+            gpaScore = Math.min(100.0, (ab.getTotalScore().doubleValue() / 30.0) * 100.0);
         }
         double gpaComponent = (gpaScore * gpaWeight) / 100.0;
 
@@ -392,6 +424,17 @@ public class PipelineServiceImpl implements PipelineService {
         boolean hasDuplicates = !vr.getNoDuplicateCccd() || !vr.getNoDuplicateEmail() || !vr.getNoDuplicatePhone();
         boolean hasExceptions = !vr.getCccdFormatOk() || !vr.getGpaValid() || !vr.getCertNotExpired() || hasDuplicates;
 
+        // Check điểm sàn — chỉ HOC_BA, tính lại từ GPA
+        String aiMethodCode = app.getAdmissionMethod() != null ? app.getAdmissionMethod().getCode() : "";
+        String aiMajorCode = app.getMajor() != null ? app.getMajor().getCode() : "";
+        boolean isAiHocBa = "HOC_BA".equals(aiMethodCode);
+        double aiMinScore = isAiHocBa ? getMinScore(aiMajorCode) : 0.0;
+        double aiGpa10 = ab != null && ab.getGpa10() != null ? ab.getGpa10().doubleValue() : 0.0;
+        double aiGpa11 = ab != null && ab.getGpa11() != null ? ab.getGpa11().doubleValue() : 0.0;
+        double aiGpa12 = ab != null && ab.getGpa12() != null ? ab.getGpa12().doubleValue() : 0.0;
+        double aiTotalScore = isAiHocBa ? (aiGpa10 + aiGpa11 + aiGpa12) : (app.getTotalScore() != null ? app.getTotalScore().doubleValue() : 0.0);
+        boolean meetsMinScore = !isAiHocBa || aiTotalScore >= aiMinScore;
+
         for (ReviewRule rule : rules) {
             boolean matches = false;
             if ("REJECT_RECOMMENDED".equals(rule.getAction())) {
@@ -401,7 +444,7 @@ public class PipelineServiceImpl implements PipelineService {
             } else if ("MANUAL_REVIEW".equals(rule.getAction())) {
                 matches = (!rule.getAllowDuplicates() && hasDuplicates) || hasExceptions;
             } else if ("READY_FOR_APPROVAL".equals(rule.getAction())) {
-                matches = vr.getRequiredDocsOk() && avgGpa >= rule.getMinGpa() && !hasDuplicates && !hasExceptions;
+                matches = vr.getRequiredDocsOk() && avgGpa >= rule.getMinGpa() && !hasDuplicates && !hasExceptions && meetsMinScore;
             }
             
             if (matches) {
@@ -464,7 +507,16 @@ public class PipelineServiceImpl implements PipelineService {
             sb.append("✔ No special achievements recorded\n");
         }
 
-        // 5. Duplicates
+        // 5b. Điểm sàn (chỉ hiển thị với HOC_BA)
+        if (isAiHocBa) {
+            if (meetsMinScore) {
+                sb.append(String.format("✔ Tổng GPA đạt sàn (%.2f ≥ %.1f)\n", aiTotalScore, aiMinScore));
+            } else {
+                sb.append(String.format("✖ Tổng GPA chưa đạt sàn (%.2f < %.1f)\n", aiTotalScore, aiMinScore));
+            }
+        }
+
+        // 6. Duplicates
         if (!hasDuplicates) {
             sb.append("✔ No duplicate records\n");
         } else {
@@ -510,113 +562,74 @@ public class PipelineServiceImpl implements PipelineService {
 
     @Override
     public List<Map<String, Object>> getSmartReviewQueue() {
-        // Query applications that are SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED, or ENROLLED
         List<Application> apps = applicationRepository.findAll().stream()
                 .filter(a -> a.getStatus() != ApplicationStatus.DRAFT)
                 .toList();
 
-        // Pass 1: Pre-calculate missing pipeline data in parallel
-        apps.parallelStream().forEach(a -> {
-            try {
-                boolean hasVr = validationResultRepository.findByApplicationId(a.getId()).isPresent();
-                boolean hasPs = priorityScoreRepository.findByApplicationId(a.getId()).isPresent();
-                boolean hasAi = aiSummaryRepository.findByApplicationId(a.getId()).isPresent();
-                if (!hasVr || !hasPs || !hasAi) {
-                    processPipeline(a.getId());
-                }
-            } catch (Exception e) {
-                log.error("Failed to pre-calculate pipeline for application ID: " + a.getId(), e);
-            }
-        });
-
-        // Pass 2: Fast sequential queue construction using cached data
         List<Map<String, Object>> queue = new ArrayList<>();
         for (Application a : apps) {
-            ValidationResult vr = validationResultRepository.findByApplicationId(a.getId()).orElse(null);
-            PriorityScore ps = priorityScoreRepository.findByApplicationId(a.getId()).orElse(null);
-            AISummary ai = aiSummaryRepository.findByApplicationId(a.getId()).orElse(null);
+            try {
+                ValidationResult vr = validationResultRepository.findByApplicationId(a.getId()).orElse(null);
+                PriorityScore ps = priorityScoreRepository.findByApplicationId(a.getId()).orElse(null);
+                AISummary ai = aiSummaryRepository.findByApplicationId(a.getId()).orElse(null);
 
-            Map<String, Object> m = new LinkedHashMap<>();
-            m.put("id", a.getId());
-            m.put("applicationCode", a.getApplicationCode());
-            m.put("studentName", a.getStudentProfile().getUser().getFullName());
-            m.put("studentEmail", a.getStudentProfile().getUser().getEmail());
-            m.put("studentPhone", a.getStudentProfile().getUser().getPhone());
-            m.put("majorName", a.getMajor().getName());
-            m.put("campusName", a.getCampus().getName());
-            m.put("methodName", a.getAdmissionMethod().getName());
-            m.put("status", a.getStatus().name());
-            m.put("submittedAt", a.getSubmittedAt());
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", a.getId());
+                m.put("applicationCode", a.getApplicationCode());
+                m.put("studentName", a.getStudentProfile().getUser().getFullName());
+                m.put("studentEmail", a.getStudentProfile().getUser().getEmail());
+                m.put("studentPhone", a.getStudentProfile().getUser().getPhone());
+                m.put("majorName", a.getMajor().getName());
+                m.put("campusName", a.getCampus().getName());
+                m.put("methodName", a.getAdmissionMethod().getName());
+                m.put("status", a.getStatus().name());
+                m.put("submittedAt", a.getSubmittedAt());
+                m.put("validationStatus", vr != null ? vr.getStatus() : "PENDING");
+                m.put("priorityScore", ps != null ? ps.getScore() : 0);
+                m.put("aiRecommendation", ai != null ? ai.getRecommendation() : "MANUAL_REVIEW");
+                m.put("aiConfidence", ai != null ? ai.getConfidence() : 50);
+                m.put("aiSummaryText", ai != null ? ai.getSummary() : "");
+                m.put("needsRecalculate", vr == null || ps == null || ai == null);
 
-            // Add pipeline details
-            m.put("validationStatus", vr != null ? vr.getStatus() : "UNKNOWN");
-            m.put("priorityScore", ps != null ? ps.getScore() : 0);
-            m.put("aiRecommendation", ai != null ? ai.getRecommendation() : "MANUAL_REVIEW");
-            m.put("aiConfidence", ai != null ? ai.getConfidence() : 50);
-            m.put("aiSummaryText", ai != null ? ai.getSummary() : "");
-            
-            // Extract missing documents
-            List<String> missingList = new ArrayList<>();
-            if (vr != null && vr.getMissingInfoDetails() != null && vr.getMissingInfoDetails().contains("missingDocs:")) {
-                String segment = vr.getMissingInfoDetails();
-                int idx = segment.indexOf("missingDocs:");
-                if (idx != -1) {
-                    String sub = segment.substring(idx + "missingDocs:".length());
-                    int nextComma = sub.indexOf(",");
-                    String docsStr = (nextComma == -1) ? sub : sub.substring(0, nextComma);
-                    if (!docsStr.trim().isEmpty()) {
-                        missingList.addAll(Arrays.asList(docsStr.split(";")));
+                List<String> missingList = new ArrayList<>();
+                if (vr != null && vr.getMissingInfoDetails() != null && vr.getMissingInfoDetails().contains("missingDocs:")) {
+                    String segment = vr.getMissingInfoDetails();
+                    int idx = segment.indexOf("missingDocs:");
+                    if (idx != -1) {
+                        String sub = segment.substring(idx + "missingDocs:".length());
+                        int nextComma = sub.indexOf(",");
+                        String docsStr = (nextComma == -1) ? sub : sub.substring(0, nextComma);
+                        if (!docsStr.trim().isEmpty()) missingList.addAll(Arrays.asList(docsStr.split(";")));
                     }
                 }
-            }
-            m.put("missingDocuments", missingList);
+                m.put("missingDocuments", missingList);
 
-            // Compute risk level
-            String riskLevel = "Low";
-            if (vr != null) {
-                boolean hasDuplicates = !vr.getNoDuplicateCccd() || !vr.getNoDuplicateEmail() || !vr.getNoDuplicatePhone();
-                if (hasDuplicates) {
-                    riskLevel = "High";
-                } else if ("ERROR".equals(vr.getStatus()) || !vr.getCertNotExpired() || !vr.getCccdFormatOk()) {
-                    riskLevel = "Medium";
+                String riskLevel = "Low";
+                if (vr != null) {
+                    boolean hasDuplicates = !vr.getNoDuplicateCccd() || !vr.getNoDuplicateEmail() || !vr.getNoDuplicatePhone();
+                    if (hasDuplicates) riskLevel = "High";
+                    else if ("ERROR".equals(vr.getStatus()) || !vr.getCertNotExpired() || !vr.getCccdFormatOk()) riskLevel = "Medium";
                 }
-            }
-            m.put("riskLevel", riskLevel);
+                m.put("riskLevel", riskLevel);
 
-            queue.add(m);
+                queue.add(m);
+            } catch (Exception e) {
+                log.error("Error building queue entry for app {}: {}", a.getId(), e.getMessage());
+            }
         }
 
-        // Sort the queue according to Feature 5:
-        // Priority order:
-        // 1. High Priority (score >= 80)
-        // 2. Waiting too long (submitted date is oldest, so older dates first)
-        // 3. Complete applications (validationStatus == COMPLETE)
-        // 4. Missing documents (validationStatus == WARNING)
-        // 5. Need manual verification (validationStatus == ERROR)
         queue.sort((o1, o2) -> {
             int score1 = (int) o1.get("priorityScore");
             int score2 = (int) o2.get("priorityScore");
-            boolean high1 = score1 >= 80;
-            boolean high2 = score2 >= 80;
-            
-            if (high1 && !high2) return -1;
-            if (!high1 && high2) return 1;
-
-            // Sort by submission date (oldest first - waiting too long)
+            if (score1 >= 80 && score2 < 80) return -1;
+            if (score1 < 80 && score2 >= 80) return 1;
             LocalDateTime date1 = (LocalDateTime) o1.get("submittedAt");
             LocalDateTime date2 = (LocalDateTime) o2.get("submittedAt");
-            if (date1 != null && date2 != null) {
-                int c = date1.compareTo(date2);
-                if (c != 0) return c;
-            }
-
-            // Complete first
+            if (date1 != null && date2 != null) { int c = date1.compareTo(date2); if (c != 0) return c; }
             String val1 = (String) o1.get("validationStatus");
             String val2 = (String) o2.get("validationStatus");
-            
             int rank1 = "COMPLETE".equals(val1) ? 0 : "WARNING".equals(val1) ? 1 : 2;
             int rank2 = "COMPLETE".equals(val2) ? 0 : "WARNING".equals(val2) ? 1 : 2;
-            
             return Integer.compare(rank1, rank2);
         });
 

@@ -411,4 +411,183 @@ public class OfficerController {
 
         return ResponseEntity.ok(Map.of("message", "Xử lý yêu cầu thành công"));
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // ENROLLMENT NOTIFICATION ENDPOINTS
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** List all ACCEPTED_MOET applicants with their enrollment notification status */
+    @GetMapping("/enrollment/notifications")
+    public ResponseEntity<?> getEnrollmentList(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        String sql =
+            "SELECT a.id, a.application_code, a.status, " +
+            "  sp.full_name, sp.email, sp.phone, " +
+            "  m.name AS major_name, c.name AS campus_name, " +
+            "  a.reviewed_at AS accepted_at, " +
+            "  COALESCE(en.notif_status, 'NOT_SENT') AS notif_status, " +
+            "  en.sent_at, en.read_at, en.confirmed_at, en.tuition_paid_at, " +
+            "  en.scheduled_at, en.completed_at, en.sent_by_name " +
+            "FROM applications a " +
+            "JOIN student_profiles sp ON a.student_profile_id = sp.id " +
+            "JOIN majors m ON a.major_id = m.id " +
+            "JOIN campuses c ON a.campus_id = c.id " +
+            "LEFT JOIN (" +
+            "  SELECT application_id, " +
+            "    CASE " +
+            "      WHEN completed_at IS NOT NULL THEN 'COMPLETED' " +
+            "      WHEN tuition_paid_at IS NOT NULL OR scheduled_at IS NOT NULL THEN 'IN_PROGRESS' " +
+            "      WHEN confirmed_at IS NOT NULL THEN 'CONFIRMED' " +
+            "      WHEN read_at IS NOT NULL THEN 'READ' " +
+            "      WHEN sent_at IS NOT NULL THEN 'SENT' " +
+            "      ELSE 'NOT_SENT' END AS notif_status, " +
+            "    sent_at, read_at, confirmed_at, tuition_paid_at, scheduled_at, completed_at, sent_by_name " +
+            "  FROM enrollment_notifications " +
+            "  WHERE id IN (SELECT MAX(id) FROM enrollment_notifications GROUP BY application_id) " +
+            ") en ON en.application_id = a.id " +
+            "WHERE a.status = 'ACCEPTED_MOET' ";
+        if (status != null && !status.isBlank() && !status.equals("ALL")) {
+            sql += "AND COALESCE(en.notif_status, 'NOT_SENT') = '" + status.replace("'", "") + "' ";
+        }
+        sql += "ORDER BY a.reviewed_at DESC " +
+               "LIMIT " + size + " OFFSET " + (page * size);
+        try {
+            List<Map<String, Object>> rows = jdbcTemplate.queryForList(sql);
+            long total = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM applications WHERE status = 'ACCEPTED_MOET'", Long.class);
+            return ResponseEntity.ok(Map.of("content", rows, "totalElements", total, "page", page, "size", size));
+        } catch (Exception e) {
+            // Table may not exist yet – return empty list gracefully
+            return ResponseEntity.ok(Map.of("content", List.of(), "totalElements", 0L, "page", 0, "size", size));
+        }
+    }
+
+    /** Send enrollment notification to one or multiple applicants */
+    @PostMapping("/enrollment/send")
+    public ResponseEntity<?> sendEnrollmentNotification(
+            @RequestBody Map<String, Object> payload,
+            @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.replace("Bearer ", "");
+        String senderEmail = jwtUtil.extractEmail(token);
+        var senderUser = userRepository.findByEmail(senderEmail).orElse(null);
+        String senderName = senderUser != null ? senderUser.getFullName() : "Cán bộ tuyển sinh";
+
+        @SuppressWarnings("unchecked")
+        List<Object> appIds = (List<Object>) payload.get("applicationIds");
+        String title    = (String) payload.getOrDefault("title", "Thông báo nhập học ĐH FPT 2026");
+        String content  = (String) payload.getOrDefault("content", "");
+        String deadline = (String) payload.getOrDefault("deadline", "");
+        String hotline  = (String) payload.getOrDefault("hotline", "1800 6036");
+        String tuitionAmount = (String) payload.getOrDefault("tuitionAmount", "");
+        String tuitionLink   = (String) payload.getOrDefault("tuitionLink", "");
+        String scheduleLink  = (String) payload.getOrDefault("scheduleLink", "");
+        String downloadLink  = (String) payload.getOrDefault("downloadLink", "");
+        String contactPerson = (String) payload.getOrDefault("contactPerson", senderName);
+        String documents = (String) payload.getOrDefault("documents", "");
+        String channels  = payload.getOrDefault("channels", "PORTAL").toString();
+
+        if (appIds == null || appIds.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Vui lòng chọn ít nhất một thí sinh."));
+        }
+
+        int sentCount = 0;
+        for (Object idObj : appIds) {
+            long appId = Long.parseLong(idObj.toString());
+            var appOpt = applicationRepository.findById(appId);
+            if (appOpt.isEmpty()) continue;
+            var app = appOpt.get();
+
+            // Upsert enrollment_notifications table (create if needed)
+            try {
+                jdbcTemplate.execute(
+                    "CREATE TABLE IF NOT EXISTS enrollment_notifications (" +
+                    "  id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                    "  application_id BIGINT NOT NULL, " +
+                    "  title VARCHAR(512), " +
+                    "  content TEXT, " +
+                    "  deadline VARCHAR(100), " +
+                    "  documents TEXT, " +
+                    "  tuition_amount VARCHAR(100), " +
+                    "  tuition_link VARCHAR(512), " +
+                    "  schedule_link VARCHAR(512), " +
+                    "  download_link VARCHAR(512), " +
+                    "  hotline VARCHAR(100), " +
+                    "  contact_person VARCHAR(200), " +
+                    "  channels VARCHAR(100), " +
+                    "  sent_at DATETIME, " +
+                    "  sent_by_name VARCHAR(200), " +
+                    "  read_at DATETIME, " +
+                    "  confirmed_at DATETIME, " +
+                    "  tuition_paid_at DATETIME, " +
+                    "  scheduled_at DATETIME, " +
+                    "  completed_at DATETIME, " +
+                    "  created_at DATETIME DEFAULT NOW()" +
+                    ")"
+                );
+                jdbcTemplate.update(
+                    "INSERT INTO enrollment_notifications " +
+                    "(application_id, title, content, deadline, documents, tuition_amount, tuition_link, " +
+                    " schedule_link, download_link, hotline, contact_person, channels, sent_at, sent_by_name) " +
+                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)",
+                    appId, title, content, deadline, documents, tuitionAmount,
+                    tuitionLink, scheduleLink, downloadLink, hotline, contactPerson, channels, senderName
+                );
+            } catch (Exception ex) {
+                continue;
+            }
+
+            // Portal notification
+            try {
+                Notification notif = Notification.builder()
+                    .user(app.getStudentProfile().getUser())
+                    .title(title)
+                    .message(content.length() > 200 ? content.substring(0, 200) + "..." : content)
+                    .type(com.fpt.admission.entity.enums.NotificationType.ADMISSION_UPDATE)
+                    .isRead(false)
+                    .createdAt(LocalDateTime.now())
+                    .build();
+                notificationRepository.save(notif);
+            } catch (Exception ignored) {}
+
+            sentCount++;
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "message", "Đã gửi thông báo nhập học thành công",
+            "sentCount", sentCount
+        ));
+    }
+
+    /** Get enrollment notification logs for a given application */
+    @GetMapping("/enrollment/logs")
+    public ResponseEntity<?> getEnrollmentLogs(
+            @RequestParam(required = false) Long applicationId) {
+        try {
+            String sql = "SELECT en.*, a.application_code, sp.full_name, sp.email " +
+                "FROM enrollment_notifications en " +
+                "JOIN applications a ON en.application_id = a.id " +
+                "JOIN student_profiles sp ON a.student_profile_id = sp.id ";
+            if (applicationId != null) sql += "WHERE en.application_id = " + applicationId + " ";
+            sql += "ORDER BY en.sent_at DESC LIMIT 100";
+            return ResponseEntity.ok(jdbcTemplate.queryForList(sql));
+        } catch (Exception e) {
+            return ResponseEntity.ok(List.of());
+        }
+    }
+
+    /** Officer marks enrollment as completed for a student */
+    @PostMapping("/enrollment/{id}/complete")
+    public ResponseEntity<?> markEnrollmentComplete(@PathVariable Long id) {
+        try {
+            jdbcTemplate.update(
+                "UPDATE enrollment_notifications SET completed_at = NOW() WHERE application_id = ? AND completed_at IS NULL",
+                id);
+            return ResponseEntity.ok(Map.of("message", "Đã đánh dấu hoàn tất nhập học"));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("message", "Cập nhật thành công"));
+        }
+    }
 }
+

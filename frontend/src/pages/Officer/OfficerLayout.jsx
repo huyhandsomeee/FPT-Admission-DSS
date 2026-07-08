@@ -5,12 +5,13 @@ import api from "../../config/axiosConfig";
 import {
   LayoutDashboard, Users, MessageSquare,
   Settings, LogOut, Bell, HelpCircle, Search,
-  PlusCircle
+  PlusCircle, GraduationCap
 } from "lucide-react";
 
 const navItems = [
   { to: "/officer/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
   { to: "/officer/applicants", icon: Users, label: "Danh sách hồ sơ" },
+  { to: "/officer/enrollment", icon: GraduationCap, label: "Thông báo nhập học" },
   { to: "/officer/communication", icon: MessageSquare, label: "Liên hệ sinh viên" },
 ];
 

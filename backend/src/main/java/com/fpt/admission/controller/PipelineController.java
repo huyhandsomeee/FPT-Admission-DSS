@@ -35,6 +35,25 @@ public class PipelineController {
         }
     }
 
+    @PostMapping("/recalculate-all")
+    public ResponseEntity<?> recalculateAll() {
+        try {
+            var apps = pipelineService.getSmartReviewQueue();
+            int processed = 0;
+            for (var item : apps) {
+                if (Boolean.TRUE.equals(item.get("needsRecalculate"))) {
+                    try {
+                        pipelineService.processPipeline(((Number) item.get("id")).longValue());
+                        processed++;
+                    } catch (Exception ignored) {}
+                }
+            }
+            return ResponseEntity.ok(ApiResponse.success("Tính toán lại thành công " + processed + " hồ sơ", processed));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi: " + e.getMessage()));
+        }
+    }
+
     @PostMapping("/approve/{id}")
     public ResponseEntity<?> approve(@PathVariable Long id, Authentication authentication) {
         try {

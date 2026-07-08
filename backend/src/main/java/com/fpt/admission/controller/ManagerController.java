@@ -62,20 +62,26 @@ public class ManagerController {
             .orElse(admissionYearRepository.findTopByOrderByYearDesc().orElse(null));
         if (activeYear == null) return ResponseEntity.ok(List.of());
 
-        String query = "SELECT m.name as name, SUM(m.quota) as quota, " +
-                       "(SELECT COUNT(a.id) FROM applications a JOIN majors m2 ON a.major_id = m2.id WHERE m2.name = m.name AND a.admission_year_id = ?) as count " +
+        String query = "SELECT m.name as name, " +
+                       "SUM(m.quota) as quota, " +
+                       "COUNT(a.id) as count, " +
+                       "SUM(CASE WHEN a.status IN ('APPROVED', 'REGISTERED_MOET', 'WAITING_MOET', 'ACCEPTED_MOET', 'ENROLLED') THEN 1 ELSE 0 END) as approved_count " +
                        "FROM majors m " +
+                       "LEFT JOIN applications a ON a.major_id = m.id AND a.status != 'DRAFT' " +
+                       "AND a.admission_year_id IN (SELECT id FROM admission_years WHERE year = ?) " +
                        "WHERE m.is_active = true " +
                        "GROUP BY m.name " +
                        "ORDER BY count DESC";
         
-        java.util.List<Map<String, Object>> rows = jdbcTemplate.queryForList(query, activeYear.getId());
+        java.util.List<Map<String, Object>> rows = jdbcTemplate.queryForList(query, activeYear.getYear());
         
         java.util.List<Map<String, Object>> result = rows.stream().map(row -> {
             long count = row.get("count") != null ? ((Number) row.get("count")).longValue() : 0L;
+            long approvedCount = row.get("approved_count") != null ? ((Number) row.get("approved_count")).longValue() : 0L;
             long quota = row.get("quota") != null ? ((Number) row.get("quota")).longValue() : 0L;
             long difference = count - quota;
             String status = difference > 0 ? "SURPLUS" : (difference < 0 ? "DEFICIT" : "BALANCED");
+            String rate = count > 0 ? (Math.round((double) approvedCount / count * 100.0) + "%") : "0%";
             
             Map<String, Object> m = new java.util.HashMap<>();
             m.put("name", row.get("name").toString());
@@ -83,6 +89,7 @@ public class ManagerController {
             m.put("quota", quota);
             m.put("difference", difference);
             m.put("status", status);
+            m.put("rate", rate);
             return m;
         }).toList();
 
