@@ -15,4 +15,5 @@ public interface PipelineService {
     void rejectApplication(Long applicationId, String reason, String officerEmail);
     void requestMoreDocuments(Long applicationId, String notes, String officerEmail);
     void seedDefaultRules();
+    void processAllPipelines();
 }

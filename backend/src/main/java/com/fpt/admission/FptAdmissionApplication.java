@@ -8,8 +8,10 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import com.fpt.admission.service.PipelineService;
 import com.fpt.admission.entity.StrategicRecommendation;
 import com.fpt.admission.entity.StrategicRisk;
+import com.fpt.admission.entity.RecommendationModelConfig;
 import com.fpt.admission.repository.StrategicRecommendationRepository;
 import com.fpt.admission.repository.StrategicRiskRepository;
+import com.fpt.admission.repository.RecommendationModelConfigRepository;
 
 @SpringBootApplication
 @EnableAsync
@@ -322,14 +324,93 @@ public class FptAdmissionApplication {
             } catch (Exception e) {
                 System.err.println("[DB-MIGRATION] Failed to repair high school names: " + e.getMessage());
             }
+
+            // Seed ACCEPTED_MOET applications for Enrollment Notification page
+            try {
+                // Check if any ACCEPTED_MOET applications exist
+                Long acceptedCount = jdbcTemplate.queryForObject(
+                    "SELECT COUNT(*) FROM applications WHERE status = 'ACCEPTED_MOET'", Long.class);
+                if (acceptedCount == null || acceptedCount == 0) {
+                    // Pick some APPROVED & ENROLLED applications to convert to ACCEPTED_MOET
+                    java.util.List<java.util.Map<String, Object>> candidates = jdbcTemplate.queryForList(
+                        "SELECT a.id, a.application_code FROM applications a " +
+                        "WHERE a.status IN ('APPROVED', 'ENROLLED') " +
+                        "ORDER BY a.id ASC LIMIT 8"
+                    );
+                    if (!candidates.isEmpty()) {
+                        System.out.println("[DB-MIGRATION] Seeding ACCEPTED_MOET applications for Enrollment Notification page...");
+                        jdbcTemplate.execute(
+                            "CREATE TABLE IF NOT EXISTS enrollment_notifications (" +
+                            "  id BIGINT AUTO_INCREMENT PRIMARY KEY, " +
+                            "  application_id BIGINT NOT NULL, " +
+                            "  title VARCHAR(512), content TEXT, deadline VARCHAR(100), documents TEXT, " +
+                            "  tuition_amount VARCHAR(100), tuition_link VARCHAR(512), schedule_link VARCHAR(512), " +
+                            "  download_link VARCHAR(512), hotline VARCHAR(100), contact_person VARCHAR(200), " +
+                            "  channels VARCHAR(100), sent_at DATETIME, sent_by_name VARCHAR(200), " +
+                            "  read_at DATETIME, confirmed_at DATETIME, tuition_paid_at DATETIME, " +
+                            "  scheduled_at DATETIME, completed_at DATETIME, created_at DATETIME DEFAULT NOW())"
+                        );
+                        for (java.util.Map<String, Object> app : candidates) {
+                            Long appId = ((Number) app.get("id")).longValue();
+                            String code = (String) app.get("application_code");
+                            // Update status to ACCEPTED_MOET
+                            jdbcTemplate.update(
+                                "UPDATE applications SET status = 'ACCEPTED_MOET', moet_released_at = NOW() WHERE id = ?",
+                                appId
+                            );
+                            // Create enrollment notification
+                            Integer cnt = jdbcTemplate.queryForObject(
+                                "SELECT COUNT(*) FROM enrollment_notifications WHERE application_id = ?",
+                                Integer.class, appId);
+                            if (cnt == null || cnt == 0) {
+                                jdbcTemplate.update(
+                                    "INSERT INTO enrollment_notifications (application_id, title, content, deadline, documents, " +
+                                    "tuition_amount, tuition_link, schedule_link, download_link, hotline, contact_person, channels, sent_at, sent_by_name) " +
+                                    "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), ?)",
+                                    appId, "Thông báo nhập học – Đại học FPT 2026",
+                                    "Chúc mừng bạn đã chính thức trúng tuyển vào Đại học FPT năm học 2026!\n\n" +
+                                    "Vui lòng đọc kỹ hướng dẫn nhập học và hoàn thành các bước theo đúng thời hạn.",
+                                    "15/09/2026",
+                                    "- Căn cước công dân (bản gốc + 2 bản sao)\n- Bằng tốt nghiệp THPT (bản gốc)\n- Học bạ THPT (bản gốc)",
+                                    "22.000.000 VNĐ/kỳ", "https://payments.fpt.edu.vn", "https://nhaphoc.fpt.edu.vn",
+                                    "https://tuyensinh.fpt.edu.vn/giaybao", "1800 6036",
+                                    "Phòng Tuyển sinh – Đại học FPT", "PORTAL,EMAIL",
+                                    "HỆ THỐNG TỰ ĐỘNG"
+                                );
+                            }
+                            System.out.println("[DB-MIGRATION] Seeded ACCEPTED_MOET for app " + code + " (ID: " + appId + ")");
+                        }
+                        System.out.println("[DB-MIGRATION] Successfully seeded ACCEPTED_MOET applications with enrollment notifications.");
+                    }
+                } else {
+                    System.out.println("[DB-MIGRATION] ACCEPTED_MOET applications already exist (" + acceptedCount + "). Skipping seed.");
+                }
+            } catch (Exception e) {
+                System.err.println("[DB-MIGRATION] Failed to seed ACCEPTED_MOET applications: " + e.getMessage());
+            }
         };
     }
 
     @org.springframework.context.annotation.Bean
     public org.springframework.boot.CommandLineRunner seedStrategicData(
             StrategicRecommendationRepository recommendationRepository,
-            StrategicRiskRepository riskRepository) {
+            StrategicRiskRepository riskRepository,
+            RecommendationModelConfigRepository configRepository) {
         return args -> {
+            if (configRepository.count() == 0) {
+                configRepository.save(RecommendationModelConfig.builder()
+                    .quotaThresholdWeight(1.0)
+                    .regionThresholdWeight(1.0)
+                    .conversionThresholdWeight(1.0)
+                    .processOptWeight(1.0)
+                    .learningRate(0.05)
+                    .trainingEpochs(10)
+                    .modelAccuracy(0.92)
+                    .lastTrainedAt(java.time.LocalDateTime.now().minusDays(1))
+                    .totalRuns(1)
+                    .build());
+                System.out.println("[DB-MIGRATION] Seeded default recommendation model configuration.");
+            }
             if (recommendationRepository.count() == 0) {
                 recommendationRepository.save(StrategicRecommendation.builder()
                     .title("Tăng chỉ tiêu ngành AI")

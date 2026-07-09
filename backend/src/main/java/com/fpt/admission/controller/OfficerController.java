@@ -425,7 +425,7 @@ public class OfficerController {
             @RequestParam(defaultValue = "20") int size) {
         String sql =
             "SELECT a.id, a.application_code, a.status, " +
-            "  sp.full_name, sp.email, sp.phone, " +
+            "  u.full_name, u.email, u.phone, " +
             "  m.name AS major_name, c.name AS campus_name, " +
             "  a.reviewed_at AS accepted_at, " +
             "  COALESCE(en.notif_status, 'NOT_SENT') AS notif_status, " +
@@ -433,6 +433,7 @@ public class OfficerController {
             "  en.scheduled_at, en.completed_at, en.sent_by_name " +
             "FROM applications a " +
             "JOIN student_profiles sp ON a.student_profile_id = sp.id " +
+            "JOIN users u ON sp.user_id = u.id " +
             "JOIN majors m ON a.major_id = m.id " +
             "JOIN campuses c ON a.campus_id = c.id " +
             "LEFT JOIN (" +
@@ -566,10 +567,11 @@ public class OfficerController {
     public ResponseEntity<?> getEnrollmentLogs(
             @RequestParam(required = false) Long applicationId) {
         try {
-            String sql = "SELECT en.*, a.application_code, sp.full_name, sp.email " +
+            String sql = "SELECT en.*, a.application_code, u.full_name, u.email " +
                 "FROM enrollment_notifications en " +
                 "JOIN applications a ON en.application_id = a.id " +
-                "JOIN student_profiles sp ON a.student_profile_id = sp.id ";
+                "JOIN student_profiles sp ON a.student_profile_id = sp.id " +
+                "JOIN users u ON sp.user_id = u.id ";
             if (applicationId != null) sql += "WHERE en.application_id = " + applicationId + " ";
             sql += "ORDER BY en.sent_at DESC LIMIT 100";
             return ResponseEntity.ok(jdbcTemplate.queryForList(sql));

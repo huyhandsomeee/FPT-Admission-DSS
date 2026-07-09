@@ -6,4 +6,5 @@ import java.util.Optional;
 
 public interface StrategicRecommendationRepository extends JpaRepository<StrategicRecommendation, Long> {
     Optional<StrategicRecommendation> findByCategory(String category);
+    java.util.List<StrategicRecommendation> findAllByCategory(String category);
 }

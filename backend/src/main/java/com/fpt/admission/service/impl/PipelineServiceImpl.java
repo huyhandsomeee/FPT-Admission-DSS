@@ -764,4 +764,19 @@ public class PipelineServiceImpl implements PipelineService {
         if (lastIdx == -1) return "";
         return fileName.substring(lastIdx + 1);
     }
+
+    @Override
+    @Transactional
+    public void processAllPipelines() {
+        log.info("Bắt đầu xử lý lại toàn bộ hồ sơ ứng tuyển theo thay đổi kịch bản...");
+        List<Application> apps = applicationRepository.findAll();
+        for (Application app : apps) {
+            try {
+                processPipeline(app.getId());
+            } catch (Exception e) {
+                log.error("Lỗi xử lý lại pipeline cho hồ sơ " + app.getId() + ": " + e.getMessage());
+            }
+        }
+        log.info("Đã hoàn tất xử lý lại toàn bộ hồ sơ ứng tuyển.");
+    }
 }
