@@ -44,16 +44,15 @@ export default function StudentNotifications() {
   const filtered = filter === "unread" ? notifs.filter(n => !n.isRead) : notifs;
 
   return (
-    <div className="space-y-6 animate-fade-in" style={{ padding: "8px 0" }}>
-
+    <>
       {/* Modal chi tiết thông báo */}
       {selectedNotif && (() => {
         const cfg = TYPE_CONFIG[selectedNotif.type] || TYPE_CONFIG.SYSTEM;
         const Icon = cfg.icon;
         return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div style={{ background: "white", borderRadius: 20, maxWidth: 500, width: "100%", boxShadow: "0 20px 60px rgba(0,0,0,0.2)", overflow: "hidden" }}>
-              <div style={{ background: cfg.color, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+            <div style={{ background: "white", borderRadius: 24, maxWidth: 500, width: "100%", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+              <div style={{ background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", color: "white" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                   <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <Icon size={20} color="white" />
@@ -67,13 +66,16 @@ export default function StudentNotifications() {
                   <X size={18} />
                 </button>
               </div>
-              <div style={{ padding: "24px" }}>
-                <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 700, color: "#0F172A" }}>{selectedNotif.title}</h3>
+              <div style={{ padding: "28px 28px 20px" }}>
+                <h3 style={{ margin: "0 0 12px", fontSize: 18, fontWeight: 800, color: "#0F172A", lineHeight: 1.4 }}>{selectedNotif.title}</h3>
                 <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.8 }}>{selectedNotif.message}</p>
               </div>
-              <div style={{ padding: "0 24px 20px", display: "flex", justifyContent: "flex-end" }}>
+              <div style={{ padding: "0 28px 24px", display: "flex", justifyContent: "flex-end" }}>
                 <button onClick={() => setSelectedNotif(null)}
-                  style={{ padding: "10px 24px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+                  style={{ padding: "11px 24px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}
+                  onMouseOver={e => e.target.style.background = "#E2E8F0"}
+                  onMouseOut={e => e.target.style.background = "#F1F5F9"}
+                >
                   Đóng
                 </button>
               </div>
@@ -81,6 +83,8 @@ export default function StudentNotifications() {
           </div>
         );
       })()}
+
+      <div className="space-y-6 animate-fade-in" style={{ padding: "8px 0" }}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Thông báo</h1>
@@ -156,5 +160,6 @@ export default function StudentNotifications() {
         })}
       </div>
     </div>
-  );
+  </>
+);
 }

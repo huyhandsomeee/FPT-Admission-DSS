@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import api from "../../../config/axiosConfig";
+import api from "../../config/axiosConfig";
 import { CheckCircle, CreditCard, DollarSign, Home, ArrowLeft } from "lucide-react";
 
 export default function FeePaymentPage() {
@@ -33,11 +33,19 @@ export default function FeePaymentPage() {
     setPaying(true);
     setError(null);
     try {
-      // In a real app, you'd integrate a payment gateway here.
-      // We'll simulate a successful payment.
+      // Simulate payment delay
       await new Promise(resolve => setTimeout(resolve, 1500));
-      // You might want to have an API endpoint to record the payment status
-      // await api.post(`/api/student/enrollment/${id}/payment`, { status: 'paid' });
+      
+      // Update enrollment checklist for Tuition payment
+      try {
+        await api.post(`/api/student/enrollment/${id}/checklist`, { item: "TUITION_PAID", done: true });
+      } catch (err) {
+        console.error("Failed to update enrollment checklist:", err);
+      }
+
+      // Update application checklist for fee payment
+      await api.put(`/api/student/applications/${id}/checklist`, { chkPayFee: true });
+
       setPaid(true);
     } catch (err) {
       setError("Thanh toán thất bại. Vui lòng thử lại.");
@@ -46,7 +54,8 @@ export default function FeePaymentPage() {
     }
   };
 
-  const totalFee = TUITION_FEE + (enrollmentData?.dormitory_apply ? DORMITORY_FEE : 0);
+  const hasDormitory = enrollmentData?.dormitory_apply == 1 || enrollmentData?.dormitory_apply === true;
+  const totalFee = TUITION_FEE + (hasDormitory ? DORMITORY_FEE : 0);
 
   if (loading) return (
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", minHeight: 400, gap: 12 }}>
@@ -91,9 +100,9 @@ export default function FeePaymentPage() {
                 <div style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>{TUITION_FEE.toLocaleString('vi-VN')} VNĐ</div>
             </div>
 
-            {enrollmentData?.dormitory_apply && (
+            {hasDormitory && (
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={{ fontSize: 14, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}><Home size={16} /> Phí ký túc xá</div>
+                    <div style={{ fontSize: 14, color: "#475569", display: "flex", alignItems: "center", gap: 8 }}><Home size={16} /> Phí ký túc xá ({enrollmentData?.dormitory_room_type || "Tạm tính"})</div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: "#1E293B" }}>{DORMITORY_FEE.toLocaleString('vi-VN')} VNĐ</div>
                 </div>
             )}

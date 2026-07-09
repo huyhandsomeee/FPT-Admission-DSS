@@ -915,7 +915,7 @@ public class StudentController {
     @GetMapping("/enrollment/{appId}")
     public ResponseEntity<?> getEnrollmentGuidance(@PathVariable Long appId,
             @RequestHeader("Authorization") String authHeader) {
-        String email = new com.fpt.admission.security.JwtUtil(null).extractEmail(authHeader.replace("Bearer ", ""));
+        String email = jwtUtil.extractEmail(authHeader.replace("Bearer ", ""));
         // Find application by id
         var appOpt = applicationRepository.findById(appId);
         if (appOpt.isEmpty()) return ResponseEntity.notFound().build();
@@ -928,7 +928,7 @@ public class StudentController {
         result.put("majorName", app.getMajor() != null ? app.getMajor().getName() : "");
         result.put("campusName", app.getCampus() != null ? app.getCampus().getName() : "");
         result.put("acceptedAt", app.getReviewedAt());
-        result.put("studentName", app.getStudentProfile() != null ? app.getStudentProfile().getFullName() : "");
+        result.put("studentName", app.getStudentProfile() != null && app.getStudentProfile().getUser() != null ? app.getStudentProfile().getUser().getFullName() : "");
 
         // Latest enrollment notification
         try {
@@ -1006,13 +1006,15 @@ public class StudentController {
 
         // Pre-fill from student profile
         Map<String, Object> prefill = new LinkedHashMap<>();
-        prefill.put("fullName",    profile != null ? profile.getFullName() : "");
-        prefill.put("dob",         profile != null && profile.getDateOfBirth() != null ? profile.getDateOfBirth().toString() : "");
+        prefill.put("fullName",    profile != null && profile.getUser() != null ? profile.getUser().getFullName() : "");
+        prefill.put("dob",         profile != null && profile.getDob() != null ? profile.getDob().toString() : "");
         prefill.put("gender",      profile != null ? profile.getGender() : "");
-        prefill.put("idNumber",    profile != null ? profile.getIdentityNumber() : "");
-        prefill.put("phone",       profile != null ? profile.getPhone() : "");
-        prefill.put("email",       profile != null ? profile.getEmail() : "");
-        prefill.put("address",     profile != null ? profile.getAddress() : "");
+        prefill.put("idNumber",    profile != null ? profile.getCccdNumber() : "");
+        prefill.put("idIssuedDate",  profile != null && profile.getCccdIssueDate() != null ? profile.getCccdIssueDate().toString() : "");
+        prefill.put("idIssuedPlace", profile != null ? profile.getCccdIssuePlace() : "");
+        prefill.put("phone",       profile != null && profile.getUser() != null ? profile.getUser().getPhone() : "");
+        prefill.put("email",       profile != null && profile.getUser() != null ? profile.getUser().getEmail() : "");
+        prefill.put("address",     profile != null ? profile.getPermanentAddress() : "");
         prefill.put("parentName",  profile != null ? profile.getParentName() : "");
         prefill.put("parentPhone", profile != null ? profile.getParentPhone() : "");
         prefill.put("fatherName",  profile != null ? profile.getFatherName() : "");
@@ -1156,6 +1158,23 @@ public class StudentController {
                 body.getOrDefault("dormitoryRoomType", "").toString(),
                 body.getOrDefault("additionalNotes", "").toString()
             );
+
+            // Update checklist items on application
+            app.setChkDeclareInfo(true);
+            boolean dormApply = Boolean.parseBoolean(body.getOrDefault("dormitoryApply", "false").toString());
+            if (dormApply) {
+                app.setChkRegisterDorm(true);
+            }
+
+            // Save father & mother names/phones to StudentProfile if available
+            var profile = app.getStudentProfile();
+            if (profile != null) {
+                if (body.containsKey("fatherName")) profile.setFatherName(body.get("fatherName").toString());
+                if (body.containsKey("fatherPhone")) profile.setFatherPhone(body.get("fatherPhone").toString());
+                if (body.containsKey("motherName")) profile.setMotherName(body.get("motherName").toString());
+                if (body.containsKey("motherPhone")) profile.setMotherPhone(body.get("motherPhone").toString());
+                studentProfileRepository.save(profile);
+            }
 
             // Mark application as ENROLLED
             app.setStatus(ApplicationStatus.ENROLLED);

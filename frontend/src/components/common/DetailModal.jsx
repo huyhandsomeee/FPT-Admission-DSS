@@ -37,16 +37,16 @@ export default function DetailModal({ show, onClose, appDetail, loading }) {
   const totalGpa = bg ? ((parseFloat(bg.gpa10) || 0) + (parseFloat(bg.gpa11) || 0) + (parseFloat(bg.gpa12) || 0)).toFixed(2) : null;
 
   return (
-    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.55)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-      <div style={{ background: "#F8FAFC", borderRadius: 20, width: "100%", maxWidth: 680, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 24px 64px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+    <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+      <div style={{ background: "#F8FAFC", borderRadius: 24, width: "100%", maxWidth: 720, maxHeight: "90vh", display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden" }}>
 
         {/* Header */}
-        <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
+        <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "22px 28px", display: "flex", alignItems: "center", justifyContent: "space-between", flexShrink: 0 }}>
           <div>
-            <div style={{ color: "white", fontWeight: 800, fontSize: 17 }}>Chi tiết hồ sơ đăng ký</div>
-            {appDetail && <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, marginTop: 3 }}>Mã HS: {appDetail.applicationCode}</div>}
+            <div style={{ color: "white", fontWeight: 900, fontSize: 18, letterSpacing: "0.5px" }}>Chi tiết hồ sơ đăng ký</div>
+            {appDetail && <div style={{ color: "rgba(255,255,255,0.8)", fontSize: 12, marginTop: 3, fontWeight: 600 }}>Mã HS: {appDetail.applicationCode}</div>}
           </div>
-          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", color: "white", display: "flex" }}>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 10, padding: 8, cursor: "pointer", color: "white", display: "flex", transition: "all 0.2s" }}>
             <X size={18} />
           </button>
         </div>
@@ -221,8 +221,12 @@ export default function DetailModal({ show, onClose, appDetail, loading }) {
         </div>
 
         {/* Footer */}
-        <div style={{ padding: "14px 24px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", background: "white", flexShrink: 0 }}>
-          <button onClick={onClose} style={{ padding: "10px 24px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
+        <div style={{ padding: "16px 28px", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", background: "white", flexShrink: 0 }}>
+          <button onClick={onClose}
+            style={{ padding: "11px 28px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}
+            onMouseOver={e => e.target.style.background = "#E2E8F0"}
+            onMouseOut={e => e.target.style.background = "#F1F5F9"}
+          >
             Đóng
           </button>
         </div>

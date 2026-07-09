@@ -60,9 +60,11 @@ export default function EnrollmentForm() {
     fullName: "", dob: "", gender: "Nam", idNumber: "", idIssuedDate: "", idIssuedPlace: "",
     permanentAddress: "", contactAddress: "", phone: "", email: "",
     parentName: "", parentPhone: "",
+    fatherName: "", fatherPhone: "",
+    motherName: "", motherPhone: "",
     highSchool: "", graduationYear: new Date().getFullYear().toString(),
     preferredCampus: "", expectedStart: "01/09/2026",
-    scholarshipApply: false, dormitoryApply: false, additionalNotes: ""
+    scholarshipApply: false, dormitoryApply: false, dormitoryRoomType: "", additionalNotes: ""
   });
 
   useEffect(() => {
@@ -78,20 +80,25 @@ export default function EnrollmentForm() {
             dob: saved.dob || prefill?.dob || "",
             gender: saved.gender || prefill?.gender || "Nam",
             idNumber: saved.id_number || prefill?.idNumber || "",
-            idIssuedDate: saved.id_issued_date || "",
-            idIssuedPlace: saved.id_issued_place || "",
+            idIssuedDate: saved.id_issued_date || prefill?.idIssuedDate || "",
+            idIssuedPlace: saved.id_issued_place || prefill?.idIssuedPlace || "",
             permanentAddress: saved.permanent_address || prefill?.address || "",
             contactAddress: saved.contact_address || "",
             phone: saved.phone || prefill?.phone || "",
             email: saved.email || prefill?.email || "",
-            parentName: saved.parent_name || "",
-            parentPhone: saved.parent_phone || "",
-            highSchool: saved.high_school || "",
-            graduationYear: saved.graduation_year || new Date().getFullYear().toString(),
+            parentName: saved.parent_name || prefill?.parentName || "",
+            parentPhone: saved.parent_phone || prefill?.parentPhone || "",
+            fatherName: saved.father_name || prefill?.fatherName || "",
+            fatherPhone: saved.father_phone || prefill?.fatherPhone || "",
+            motherName: saved.mother_name || prefill?.motherName || "",
+            motherPhone: saved.mother_phone || prefill?.motherPhone || "",
+            highSchool: saved.high_school || prefill?.highSchool || "",
+            graduationYear: saved.graduation_year || prefill?.graduationYear || new Date().getFullYear().toString(),
             preferredCampus: saved.preferred_campus || prefill?.campusName || "",
             expectedStart: saved.expected_start || "01/09/2026",
             scholarshipApply: !!saved.scholarship_apply,
             dormitoryApply: !!saved.dormitory_apply,
+            dormitoryRoomType: saved.dormitory_room_type || "",
             additionalNotes: saved.additional_notes || ""
           });
         } else if (prefill) {
@@ -102,10 +109,20 @@ export default function EnrollmentForm() {
             dob: prefill.dob || "",
             gender: prefill.gender || "Nam",
             idNumber: prefill.idNumber || "",
+            idIssuedDate: prefill.idIssuedDate || "",
+            idIssuedPlace: prefill.idIssuedPlace || "",
             permanentAddress: prefill.address || "",
             contactAddress: prefill.address || "",
             phone: prefill.phone || "",
             email: prefill.email || "",
+            parentName: prefill.parentName || "",
+            parentPhone: prefill.parentPhone || "",
+            fatherName: prefill.fatherName || "",
+            fatherPhone: prefill.fatherPhone || "",
+            motherName: prefill.motherName || "",
+            motherPhone: prefill.motherPhone || "",
+            highSchool: prefill.highSchool || "",
+            graduationYear: prefill.graduationYear || new Date().getFullYear().toString(),
             preferredCampus: prefill.campusName || "",
           }));
         }
@@ -123,6 +140,10 @@ export default function EnrollmentForm() {
     e.preventDefault();
     if (!form.fullName.trim() || !form.idNumber.trim()) {
       setError("Vui lòng điền đầy đủ họ tên và số CCCD (bắt buộc).");
+      return;
+    }
+    if (form.dormitoryApply && !form.dormitoryRoomType) {
+      setError("Vui lòng chọn loại phòng ký túc xá mong muốn.");
       return;
     }
     setError(null);
@@ -263,6 +284,18 @@ export default function EnrollmentForm() {
         <Field label="Số điện thoại phụ huynh">
           <input value={form.parentPhone} onChange={set("parentPhone")} style={inp} placeholder="09xxxxxxxx" onFocus={e => e.target.style.borderColor="#8B5CF6"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
         </Field>
+        <Field label="Họ tên bố">
+          <input value={form.fatherName} onChange={set("fatherName")} style={inp} placeholder="Họ tên bố" onFocus={e => e.target.style.borderColor="#8B5CF6"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
+        </Field>
+        <Field label="Số điện thoại bố">
+          <input value={form.fatherPhone} onChange={set("fatherPhone")} style={inp} placeholder="SĐT bố" onFocus={e => e.target.style.borderColor="#8B5CF6"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
+        </Field>
+        <Field label="Họ tên mẹ">
+          <input value={form.motherName} onChange={set("motherName")} style={inp} placeholder="Họ tên mẹ" onFocus={e => e.target.style.borderColor="#8B5CF6"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
+        </Field>
+        <Field label="Số điện thoại mẹ">
+          <input value={form.motherPhone} onChange={set("motherPhone")} style={inp} placeholder="SĐT mẹ" onFocus={e => e.target.style.borderColor="#8B5CF6"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
+        </Field>
       </Section>
 
       {/* Section 4: Academic info */}
@@ -284,15 +317,31 @@ export default function EnrollmentForm() {
           <input value={form.expectedStart} onChange={set("expectedStart")} style={inp} placeholder="01/09/2026" onFocus={e => e.target.style.borderColor="#F59E0B"} onBlur={e => e.target.style.borderColor="#E2E8F0"} />
         </Field>
         <FullRow>
-          <div style={{ display: "flex", gap: 20 }}>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: form.scholarshipApply ? "#FF6B35" : "#64748B", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.scholarshipApply} onChange={set("scholarshipApply")} style={{ accentColor: "#FF6B35", width: 16, height: 16 }} />
-              🎓 Đăng ký xét học bổng
-            </label>
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: form.dormitoryApply ? "#FF6B35" : "#64748B", cursor: "pointer" }}>
-              <input type="checkbox" checked={form.dormitoryApply} onChange={set("dormitoryApply")} style={{ accentColor: "#FF6B35", width: 16, height: 16 }} />
-              🏠 Đăng ký ở ký túc xá
-            </label>
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div style={{ display: "flex", gap: 20 }}>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: form.scholarshipApply ? "#FF6B35" : "#64748B", cursor: "pointer" }}>
+                <input type="checkbox" checked={form.scholarshipApply} onChange={set("scholarshipApply")} style={{ accentColor: "#FF6B35", width: 16, height: 16 }} />
+                🎓 Đăng ký xét học bổng
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13, fontWeight: 600, color: form.dormitoryApply ? "#FF6B35" : "#64748B", cursor: "pointer" }}>
+                <input type="checkbox" checked={form.dormitoryApply} onChange={set("dormitoryApply")} style={{ accentColor: "#FF6B35", width: 16, height: 16 }} />
+                🏠 Đăng ký ở ký túc xá
+              </label>
+            </div>
+            
+            {form.dormitoryApply && (
+              <div style={{ maxWidth: 320, display: "flex", flexDirection: "column", gap: 6, animation: "fadeIn 0.2s" }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+                  Lựa chọn loại phòng Ký túc xá <span style={{ color: "#EF4444", marginLeft: 3 }}>*</span>
+                </label>
+                <select value={form.dormitoryRoomType} onChange={set("dormitoryRoomType")} style={inp} required>
+                  <option value="">-- Chọn loại phòng --</option>
+                  <option value="Phòng 4 người (Điều hòa)">Phòng 4 người (Điều hòa) - 1.200.000 VNĐ/tháng</option>
+                  <option value="Phòng 6 người (Điều hòa)">Phòng 6 người (Điều hòa) - 800.000 VNĐ/tháng</option>
+                  <option value="Phòng 8 người (Quạt)">Phòng 8 người (Quạt) - 600.000 VNĐ/tháng</option>
+                </select>
+              </div>
+            )}
           </div>
         </FullRow>
         <FullRow>

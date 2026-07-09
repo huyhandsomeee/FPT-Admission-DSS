@@ -99,6 +99,39 @@ public class FptAdmissionApplication {
                 System.err.println("[DB-MIGRATION] Failed to clean up database: " + e.getMessage());
             }
 
+            // Fix admission year ID mismatch for seeded applications
+            try {
+                Long year2026Id = jdbcTemplate.queryForObject("SELECT id FROM admission_years WHERE year = 2026 LIMIT 1", Long.class);
+                Long year2027Id = jdbcTemplate.queryForObject("SELECT id FROM admission_years WHERE year = 2027 LIMIT 1", Long.class);
+                if (year2026Id != null && year2027Id != null && !year2026Id.equals(3L) && year2027Id.equals(3L)) {
+                    int updated = jdbcTemplate.update(
+                        "UPDATE applications SET admission_year_id = ? WHERE admission_year_id = ? AND (application_code LIKE '%26%' OR application_code LIKE '%27%')",
+                        year2026Id, year2027Id
+                    );
+                    if (updated > 0) {
+                        System.out.println("[DB-MIGRATION] Re-linked " + updated + " seeded applications from 2027 (ID 3) to 2026 (ID " + year2026Id + ").");
+                        jdbcTemplate.update(
+                            "UPDATE applications SET application_code = REPLACE(application_code, '270', '260') WHERE admission_year_id = ?",
+                            year2026Id
+                        );
+                        jdbcTemplate.update(
+                            "UPDATE applications SET application_code = REPLACE(application_code, '271', '261') WHERE admission_year_id = ?",
+                            year2026Id
+                        );
+                        jdbcTemplate.update(
+                            "UPDATE applications SET application_code = REPLACE(application_code, '272', '262') WHERE admission_year_id = ?",
+                            year2026Id
+                        );
+                        jdbcTemplate.update(
+                            "UPDATE applications SET application_code = REPLACE(application_code, '273', '263') WHERE admission_year_id = ?",
+                            year2026Id
+                        );
+                    }
+                }
+            } catch (Exception e) {
+                System.err.println("[DB-MIGRATION] Failed to fix admission year IDs: " + e.getMessage());
+            }
+
             // Migration for old application codes (FPT% / APP%) to new format (SExxxxxx) and sync student codes
             try {
                 java.util.List<java.util.Map<String, Object>> appsToMigrate = jdbcTemplate.queryForList(

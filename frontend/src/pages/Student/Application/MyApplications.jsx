@@ -88,7 +88,135 @@ export default function MyApplications() {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in" style={{ padding: "8px 0" }}>
+    <>
+      {/* Detail Modal */}
+      <DetailModal show={showDetail} onClose={() => setShowDetail(false)} appDetail={selectedApp} loading={loadingDetail} />
+
+      {/* Dialog Xác nhận Đăng ký nguyện vọng */}
+      {showConfirmModal && (
+        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
+          <div style={{ background: "white", borderRadius: 24, width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden" }}>
+            {/* Modal Header */}
+            <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ color: "white", fontWeight: 900, fontSize: 16, letterSpacing: "0.5px" }}>Xác nhận nguyện vọng tuyển sinh</div>
+              <button onClick={() => setShowConfirmModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "white", cursor: "pointer", borderRadius: 8, padding: 6, display: "flex" }}>
+                <X size={18} />
+              </button>
+            </div>
+            {/* Modal Body */}
+            <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>NGÀY ĐĂNG KÝ</label>
+                <input
+                  type="date"
+                  value={confirmDate}
+                  onChange={e => setConfirmDate(e.target.value)}
+                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", transition: "border-color 0.2s" }}
+                  onFocus={e => e.target.style.borderColor = "#FF6B35"}
+                  onBlur={e => e.target.style.borderColor = "#E2E8F0"}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>THỨ TỰ NGUYỆN VỌNG BỘ GD&ĐT</label>
+                <select
+                  value={preferenceOrder}
+                  onChange={e => setPreferenceOrder(e.target.value)}
+                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", background: "#FAFBFC" }}
+                >
+                  <option value="1">Nguyện vọng 1 (Khuyến nghị)</option>
+                  <option value="2">Nguyện vọng 2</option>
+                  <option value="3">Nguyện vọng 3</option>
+                  <option value="4">Nguyện vọng 4</option>
+                  <option value="5">Nguyện vọng 5 hoặc thấp hơn</option>
+                </select>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>NGÀNH ĐÃ ĐĂNG KÝ BỘ</label>
+                <input
+                  type="text"
+                  value={confirmMajorName}
+                  onChange={e => setConfirmMajorName(e.target.value)}
+                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none" }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>MÃ NGÀNH</label>
+                <input
+                  type="text"
+                  value={confirmMajorCode}
+                  onChange={e => setConfirmMajorCode(e.target.value)}
+                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none" }}
+                />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>UPLOAD ẢNH MINH CHỨNG (KHÔNG BẮT BUỘC)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        setEvidenceImage(reader.result);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  style={{ fontSize: 12 }}
+                />
+                {evidenceImage && (
+                  <div style={{ marginTop: 6, border: "1px solid #E2E8F0", borderRadius: 6, overflow: "hidden", maxWidth: 120 }}>
+                    <img src={evidenceImage} alt="Minh chứng" style={{ width: "100%", height: "auto" }} />
+                  </div>
+                )}
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>GHI CHÚ</label>
+                <textarea
+                  value={confirmNote}
+                  onChange={e => setConfirmNote(e.target.value)}
+                  rows={2}
+                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", resize: "vertical" }}
+                  placeholder="Ghi chú thêm nếu có..."
+                />
+              </div>
+              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer", marginTop: 4 }}>
+                <input
+                  type="checkbox"
+                  checked={commitCheckbox}
+                  onChange={e => setCommitCheckbox(e.target.checked)}
+                  style={{ accentColor: "#FF6B35" }}
+                />
+                Tôi cam kết các thông tin trên là đúng.
+              </label>
+            </div>
+            {/* Modal Footer */}
+            <div style={{ padding: "16px 28px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowConfirmModal(false)} style={{ padding: "10px 18px", background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, cursor: "pointer", fontWeight: 600, color: "#64748B" }}>Hủy</button>
+              <button
+                disabled={!commitCheckbox || actionLoading}
+                onClick={handleConfirmModalSubmit}
+                style={{
+                  padding: "10px 22px",
+                  background: commitCheckbox ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "#CBD5E1",
+                  color: "white",
+                  border: "none",
+                  borderRadius: 10,
+                  fontSize: 13,
+                  fontWeight: 700,
+                  cursor: commitCheckbox ? "pointer" : "not-allowed",
+                  boxShadow: commitCheckbox ? "0 4px 12px rgba(255,107,53,0.3)" : "none"
+                }}
+              >
+                Xác nhận
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-6 animate-fade-in" style={{ padding: "8px 0" }}>
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Hồ sơ của tôi</h1>
@@ -216,131 +344,7 @@ export default function MyApplications() {
           })}
         </div>
       )}
-
-      {/* Detail Modal */}
-      <DetailModal show={showDetail} onClose={() => setShowDetail(false)} appDetail={selectedApp} loading={loadingDetail} />
-
-      {/* Dialog Xác nhận Đăng ký nguyện vọng */}
-      {showConfirmModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "white", borderRadius: 16, width: "100%", maxWidth: 480, display: "flex", flexDirection: "column", boxShadow: "0 20px 50px rgba(0,0,0,0.2)", overflow: "hidden" }}>
-            {/* Modal Header */}
-            <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "16px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ color: "white", fontWeight: 800, fontSize: 16 }}>Xác nhận nguyện vọng tuyển sinh</div>
-              <button onClick={() => setShowConfirmModal(false)} style={{ background: "transparent", border: "none", color: "white", cursor: "pointer" }}>
-                <X size={18} />
-              </button>
-            </div>
-            {/* Modal Body */}
-            <div style={{ padding: "20px", display: "flex", flexDirection: "column", gap: 14 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>NGÀY ĐĂNG KÝ</label>
-                <input
-                  type="date"
-                  value={confirmDate}
-                  onChange={e => setConfirmDate(e.target.value)}
-                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>THỨ TỰ NGUYỆN VỌNG</label>
-                <select
-                  value={preferenceOrder}
-                  onChange={e => setPreferenceOrder(e.target.value)}
-                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13, background: "white" }}
-                >
-                  <option value="1">Nguyện vọng 1 (Khuyến nghị)</option>
-                  <option value="2">Nguyện vọng 2</option>
-                  <option value="3">Nguyện vọng 3</option>
-                  <option value="4">Nguyện vọng 4</option>
-                  <option value="5">Nguyện vọng 5</option>
-                </select>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>NGÀNH ĐÃ ĐĂNG KÝ</label>
-                <input
-                  type="text"
-                  value={confirmMajorName}
-                  onChange={e => setConfirmMajorName(e.target.value)}
-                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>MÃ NGÀNH</label>
-                <input
-                  type="text"
-                  value={confirmMajorCode}
-                  onChange={e => setConfirmMajorCode(e.target.value)}
-                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13 }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>UPLOAD ẢNH MINH CHỨNG (KHÔNG BẮT BUỘC)</label>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={e => {
-                    const file = e.target.files[0];
-                    if (file) {
-                      const reader = new FileReader();
-                      reader.onloadend = () => {
-                        setEvidenceImage(reader.result);
-                      };
-                      reader.readAsDataURL(file);
-                    }
-                  }}
-                  style={{ fontSize: 12 }}
-                />
-                {evidenceImage && (
-                  <div style={{ marginTop: 6, border: "1px solid #E2E8F0", borderRadius: 6, overflow: "hidden", maxWidth: 120 }}>
-                    <img src={evidenceImage} alt="Minh chứng" style={{ width: "100%", height: "auto" }} />
-                  </div>
-                )}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#475569" }}>GHI CHÚ</label>
-                <textarea
-                  value={confirmNote}
-                  onChange={e => setConfirmNote(e.target.value)}
-                  rows={2}
-                  style={{ padding: "8px 12px", border: "1px solid #CBD5E1", borderRadius: 8, fontSize: 13, resize: "none" }}
-                  placeholder="Ghi chú thêm nếu có..."
-                />
-              </div>
-              <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer", marginTop: 4 }}>
-                <input
-                  type="checkbox"
-                  checked={commitCheckbox}
-                  onChange={e => setCommitCheckbox(e.target.checked)}
-                  style={{ accentColor: "#FF6B35" }}
-                />
-                Tôi cam kết các thông tin trên là đúng.
-              </label>
-            </div>
-            {/* Modal Footer */}
-            <div style={{ padding: "12px 20px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 8 }}>
-              <button onClick={() => setShowConfirmModal(false)} style={{ padding: "8px 16px", background: "white", border: "1px solid #E2E8F0", borderRadius: 8, fontSize: 12, cursor: "pointer", fontWeight: 600, color: "#64748B" }}>Hủy</button>
-              <button
-                disabled={!commitCheckbox || actionLoading}
-                onClick={handleConfirmModalSubmit}
-                style={{
-                  padding: "8px 18px",
-                  background: commitCheckbox ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "#CBD5E1",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 8,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  cursor: commitCheckbox ? "pointer" : "not-allowed",
-                  boxShadow: commitCheckbox ? "0 2px 6px rgba(255,107,53,0.2)" : "none"
-                }}
-              >
-                Xác nhận
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+      </div>
+  </>
+);
 }

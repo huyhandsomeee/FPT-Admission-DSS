@@ -78,14 +78,14 @@ export default function ApplicantList() {
   // Filters state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedMajor, setSelectedMajor] = useState("all");
-  const [selectedStatus, setSelectedStatus] = useState("all");
+  const [selectedStatus, setSelectedStatus] = useState("PENDING");
   const [selectedRisk, setSelectedRisk] = useState("all");
   
   const [activePipelineTab, setActivePipelineTab] = useState("all");
   
   const handleTabChange = (tab) => {
     setActivePipelineTab(tab);
-    setSelectedStatus("all");
+    setSelectedStatus(tab === "approved" ? "all" : "PENDING");
   };
 
   // Pagination inside the queue
@@ -204,6 +204,8 @@ export default function ApplicantList() {
 
     if (selectedStatus === "all") {
       // Không lọc theo status khi chọn "Tất cả" — hiển thị hết
+    } else if (selectedStatus === "PENDING") {
+      result = result.filter(app => app.status === "SUBMITTED" || app.status === "UNDER_REVIEW");
     } else {
       result = result.filter(app => app.status === selectedStatus);
     }
@@ -675,10 +677,11 @@ export default function ApplicantList() {
               </>
             ) : (
               <>
-                <option value="all">Trạng thái: Đang chờ duyệt</option>
+                <option value="PENDING">Trạng thái: Đang chờ duyệt</option>
+                <option value="all">Trạng thái: Tất cả</option>
                 <option value="SUBMITTED">Đã nộp</option>
                 <option value="UNDER_REVIEW">Đang xét</option>
-                <option value="APPROVED">Đủ điều kiện</option>
+                <option value="APPROVED">Đủ điều kiện (Đã duyệt)</option>
                 <option value="REGISTERED_MOET">Đã đăng ký NV Bộ</option>
                 <option value="WAITING_MOET">Chờ kết quả Bộ</option>
                 <option value="ACCEPTED_MOET">Trúng tuyển chính thức</option>

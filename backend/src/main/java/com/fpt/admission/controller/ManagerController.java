@@ -63,7 +63,7 @@ public class ManagerController {
         if (activeYear == null) return ResponseEntity.ok(List.of());
 
         String query = "SELECT m.name as name, " +
-                       "SUM(m.quota) as quota, " +
+                       "(SELECT SUM(m2.quota) FROM majors m2 WHERE m2.name = m.name AND m2.is_active = true) as quota, " +
                        "COUNT(a.id) as count, " +
                        "SUM(CASE WHEN a.status IN ('APPROVED', 'REGISTERED_MOET', 'WAITING_MOET', 'ACCEPTED_MOET', 'ENROLLED') THEN 1 ELSE 0 END) as approved_count " +
                        "FROM majors m " +
@@ -136,20 +136,20 @@ public class ManagerController {
                        "GROUP BY IFNULL(combination_code, 'D01') ORDER BY count DESC";
         java.util.List<Map<String, Object>> rows = jdbcTemplate.queryForList(query, activeYear.getId());
         
-        java.util.List<Map<String, Object>> result = rows.stream().map(row -> Map.of(
+        java.util.List<Map<String, Object>> result = rows.stream().map(row -> Map.<String, Object>of(
             "name", row.get("comb").toString(),
             "count", ((Number) row.get("count")).longValue()
         )).toList();
         
         if (result.isEmpty()) {
             result = List.of(
-                Map.of("name", "D01", "count", 450L),
-                Map.of("name", "A01", "count", 280L),
-                Map.of("name", "A00", "count", 150L),
-                Map.of("name", "F01", "count", 110L),
-                Map.of("name", "F03", "count", 90L),
-                Map.of("name", "F05", "count", 75L),
-                Map.of("name", "B00", "count", 40L)
+                Map.<String, Object>of("name", "D01", "count", 450L),
+                Map.<String, Object>of("name", "A01", "count", 280L),
+                Map.<String, Object>of("name", "A00", "count", 150L),
+                Map.<String, Object>of("name", "F01", "count", 110L),
+                Map.<String, Object>of("name", "F03", "count", 90L),
+                Map.<String, Object>of("name", "F05", "count", 75L),
+                Map.<String, Object>of("name", "B00", "count", 40L)
             );
         }
         
@@ -395,11 +395,10 @@ public class ManagerController {
             );
         }
 
-        String campusQuery = "SELECT c.name, SUM(m.quota) as quota, COUNT(a.id) as actual " +
-                             "FROM campuses c " +
-                             "LEFT JOIN majors m ON m.campus_id = c.id " +
-                             "LEFT JOIN applications a ON a.campus_id = c.id AND a.admission_year_id = ? " +
-                             "GROUP BY c.id, c.name";
+        String campusQuery = "SELECT c.name, " +
+                             "(SELECT SUM(m.quota) FROM majors m WHERE m.campus_id = c.id AND m.is_active = true) as quota, " +
+                             "(SELECT COUNT(a.id) FROM applications a WHERE a.campus_id = c.id AND a.admission_year_id = ? AND a.status != 'DRAFT') as actual " +
+                             "FROM campuses c";
         java.util.List<Map<String, Object>> campusRows = jdbcTemplate.queryForList(campusQuery, activeYear.getId());
         java.util.List<Map<String, Object>> campuses = new ArrayList<>();
         
