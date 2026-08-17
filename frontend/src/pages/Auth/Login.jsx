@@ -153,11 +153,11 @@ export default function Login() {
       <div className="grid grid-cols-2 gap-2 mb-4">
         <button
           type="button"
-          onClick={() => navigate("/portal")}
+          onClick={() => navigate("/candidate")}
           className="p-2.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-left text-xs transition-all"
         >
-          <div className="font-bold text-orange-900">🌐 Thí sinh</div>
-          <div className="text-[11px] text-orange-700">Nộp hồ sơ & tra cứu</div>
+          <div className="font-bold text-orange-900">🌐 Thí sinh (Candidate)</div>
+          <div className="text-[11px] text-orange-700">Nộp hồ sơ, NV & Lọc ảo Bộ</div>
         </button>
 
         <button
@@ -216,11 +216,32 @@ export default function Login() {
 
         <button
           type="button"
+          onClick={() => navigate("/officer/hr")}
+          className="p-2.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-rose-900">👥 NV Nhân sự (HR)</div>
+          <div className="text-[11px] text-rose-700">Định biên, tuyển dụng, KPI</div>
+        </button>
+
+        <button
+          type="button"
           onClick={() => navigate("/bod/dashboard")}
           className="p-2.5 rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-left text-xs transition-all"
         >
           <div className="font-bold text-slate-900">🏛️ Ban Giám Đốc</div>
-          <div className="text-[11px] text-slate-700">Chỉ thị & điều hành</div>
+          <div className="text-[11px] text-slate-700">DSS & Dự báo chiến lược</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/dwh")}
+          className="col-span-2 p-2.5 rounded-xl border border-orange-300 bg-gradient-to-r from-orange-50 to-amber-50 hover:from-orange-100 hover:to-amber-100 text-left text-xs transition-all flex items-center justify-between"
+        >
+          <div>
+            <div className="font-bold text-orange-950">🗄️ Kiến Trúc Kho Dữ Liệu Tập Trung (Data Warehouse)</div>
+            <div className="text-[11px] text-orange-800">Sơ đồ Star & Snowflake Schema 7 Fact + 14 Dimension Tables</div>
+          </div>
+          <span className="text-xs font-bold text-orange-700">Xem ngay →</span>
         </button>
       </div>
 

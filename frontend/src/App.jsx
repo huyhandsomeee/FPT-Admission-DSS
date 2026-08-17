@@ -15,8 +15,10 @@ const DataPortalHome = lazy(() => import("./pages/Public/DataPortalHome"));
 const AdmissionLookup = lazy(() => import("./pages/Public/AdmissionLookup"));
 const ScoreCalculator = lazy(() => import("./pages/Public/ScoreCalculator"));
 const OnlineApplication = lazy(() => import("./pages/Public/OnlineApplication"));
+const FPTCandidatePortal = lazy(() => import("./pages/Public/FPTCandidatePortal"));
 
 // ── Student Portal ──
+const FPTStudentPortal = lazy(() => import("./pages/Student/FPTStudentPortal"));
 const StudentLayout = lazy(() => import("./pages/Student/StudentLayout"));
 const StudentDashboard = lazy(() => import("./pages/Student/Dashboard"));
 const StudentDocuments = lazy(() => import("./pages/Student/Documents"));
@@ -42,6 +44,7 @@ const FinanceOfficerPortal = lazy(() => import("./pages/Officer/FinanceOfficerPo
 const AdmissionOfficerPortal = lazy(() => import("./pages/Officer/AdmissionOfficerPortal"));
 const AcademicOfficerPortal = lazy(() => import("./pages/Officer/AcademicOfficerPortal"));
 const StudentAffairsOfficerPortal = lazy(() => import("./pages/Officer/StudentAffairsOfficerPortal"));
+const HROfficerPortal = lazy(() => import("./pages/Officer/HROfficerPortal"));
 const DepartmentDashboard = lazy(() => import("./pages/Officer/DepartmentDashboard"));
 const StudentManagement = lazy(() => import("./pages/Officer/StudentManagement"));
 const AcademicReports = lazy(() => import("./pages/Officer/AcademicReports"));
@@ -62,6 +65,7 @@ const HRManagement = lazy(() => import("./pages/Manager/HRManagement"));
 const DataQualityMonitor = lazy(() => import("./pages/Manager/DataQualityMonitor"));
 
 // ── BOD Portal ──
+const BODExecutivePortal = lazy(() => import("./pages/BOD/BODExecutivePortal"));
 const BodLayout = lazy(() => import("./pages/BOD/BodLayout"));
 const BodDashboard = lazy(() => import("./pages/BOD/ExecutiveDashboard"));
 const BodForecast = lazy(() => import("./pages/BOD/ForecastReport"));
@@ -86,6 +90,7 @@ const AuditLog = lazy(() => import("./pages/Admin/AuditLog"));
 const DataCatalog = lazy(() => import("./pages/Admin/DataCatalog"));
 const ETLMonitor = lazy(() => import("./pages/Admin/ETLMonitor"));
 const DataGovernance = lazy(() => import("./pages/Admin/DataGovernance"));
+const DataWarehouseStudio = lazy(() => import("./pages/Admin/DataWarehouseStudio"));
 
 // Loading fallback
 const PageLoader = () => (
@@ -120,29 +125,25 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
 
         {/* ========================
-            PUBLIC PORTAL (Thí sinh — không cần đăng nhập)
+            PUBLIC & CANDIDATE PORTAL (Thí sinh)
             ======================== */}
         <Route path="/portal" element={<PublicLayout />}>
           <Route index element={<DataPortalHome />} />
-          <Route path="apply" element={<OnlineApplication />} />
+          <Route path="apply" element={<FPTCandidatePortal />} />
           <Route path="admission-lookup" element={<AdmissionLookup />} />
           <Route path="score-calculator" element={<ScoreCalculator />} />
         </Route>
 
+        <Route path="/candidate" element={<FPTCandidatePortal />} />
+        <Route path="/candidate/portal" element={<FPTCandidatePortal />} />
+        <Route path="/candidate/*" element={<FPTCandidatePortal />} />
+
         {/* ========================
             STUDENT PORTAL
             ======================== */}
-        <Route path="/student" element={<StudentLayout />}>
-          <Route index element={<Navigate to="/student/dashboard" replace />} />
-          <Route path="dashboard" element={<StudentDashboard />} />
-          <Route path="academic-records" element={<AcademicRecords />} />
-          <Route path="financial" element={<StudentFinancialInfo />} />
-          <Route path="learning-resources" element={<LearningResources />} />
-          <Route path="documents" element={<StudentDocuments />} />
-          <Route path="profile" element={<StudentProfile />} />
-          <Route path="notifications" element={<StudentNotifications />} />
-          <Route path="university-info" element={<UniversityInfo />} />
-        </Route>
+        <Route path="/student" element={<FPTStudentPortal />} />
+        <Route path="/student/dashboard" element={<FPTStudentPortal />} />
+        <Route path="/student/*" element={<FPTStudentPortal />} />
 
         {/* ========================
             OFFICER PORTAL
@@ -150,7 +151,6 @@ function App() {
         <Route path="/officer" element={<OfficerLayout />}>
           <Route index element={<Navigate to="/officer/dashboard" replace />} />
           <Route path="dashboard" element={<OfficerDashboard />} />
-          <Route path="student-affairs" element={<StudentAffairsOfficerPortal />} />
           <Route path="department" element={<DepartmentDashboard />} />
           <Route path="applicants" element={<ApplicantList />} />
           <Route path="applicants/:id" element={<ApplicationReview />} />
@@ -164,8 +164,12 @@ function App() {
 
         {/* Standalone portals — layout riêng, không dùng OfficerLayout */}
         <Route path="/officer/finance" element={<FinanceOfficerPortal />} />
+        <Route path="/staff/finance" element={<Navigate to="/officer/finance" replace />} />
         <Route path="/officer/admission" element={<AdmissionOfficerPortal />} />
         <Route path="/officer/academic" element={<AcademicOfficerPortal />} />
+        <Route path="/officer/student-affairs" element={<StudentAffairsOfficerPortal />} />
+        <Route path="/officer/hr" element={<HROfficerPortal />} />
+        <Route path="/staff/hr" element={<Navigate to="/officer/hr" replace />} />
 
         {/* ========================
             MANAGER PORTAL
@@ -188,22 +192,9 @@ function App() {
         {/* ========================
             BOD PORTAL
             ======================== */}
-        <Route path="/bod" element={<BodLayout />}>
-          <Route index element={<Navigate to="/bod/dashboard" replace />} />
-          <Route path="dashboard" element={<BodDashboard />} />
-          <Route path="departments" element={<DepartmentOverview />} />
-          <Route path="directives" element={<DirectivesManager />} />
-          <Route path="university-overview" element={<UniversityOverview />} />
-          <Route path="financial-analytics" element={<FinancialAnalytics />} />
-          <Route path="research" element={<ResearchAnalytics />} />
-          <Route path="data-lineage" element={<DataLineageView />} />
-          <Route path="analytics/majors" element={<MajorAnalysis />} />
-          <Route path="forecast" element={<BodForecast />} />
-          <Route path="risks" element={<RiskMonitor />} />
-          <Route path="recommendations" element={<BodRecommendations />} />
-          <Route path="export" element={<ExportReports />} />
-          <Route path="simulation" element={<WhatIfSimulation />} />
-        </Route>
+        <Route path="/bod" element={<BODExecutivePortal />} />
+        <Route path="/bod/dashboard" element={<BODExecutivePortal />} />
+        <Route path="/bod/*" element={<BODExecutivePortal />} />
 
         {/* ========================
             ADMIN PORTAL
@@ -218,7 +209,13 @@ function App() {
           <Route path="data-catalog" element={<DataCatalog />} />
           <Route path="etl-monitor" element={<ETLMonitor />} />
           <Route path="data-governance" element={<DataGovernance />} />
+          <Route path="data-warehouse" element={<DataWarehouseStudio />} />
         </Route>
+
+        {/* ========================
+             DATA WAREHOUSE STUDIO (DWH Schema & Data Lake)
+             ======================== */}
+        <Route path="/dwh" element={<DataWarehouseStudio />} />
 
         {/* 404 */}
         <Route path="*" element={<NotFoundPage />} />
