@@ -4,15 +4,20 @@ import { useState, useEffect } from "react";
 import api from "../../config/axiosConfig";
 import {
   LayoutDashboard, TrendingUp, BarChart2, Map, LineChart, Lightbulb,
-  Settings, HelpCircle, Bell, FileText, Search, LogOut, Layers
+  Settings, HelpCircle, Bell, FileText, Search, LogOut, Layers,
+  Database, DollarSign, Users, ShieldCheck
 } from "lucide-react";
 
 const navItems = [
   { to: "/manager/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+  { to: "/manager/data-warehouse", icon: Database, label: "Data Warehouse" },
   { to: "/manager/analytics/overview", icon: TrendingUp, label: "Xu hướng tuyển sinh" },
   { to: "/manager/analytics/majors", icon: BarChart2, label: "Phân tích theo ngành" },
   { to: "/manager/analytics/regional", icon: Map, label: "Phân tích theo vùng" },
   { to: "/manager/forecast", icon: LineChart, label: "Dự báo tuyển sinh" },
+  { to: "/manager/financial", icon: DollarSign, label: "Quản lý tài chính" },
+  { to: "/manager/human-resources", icon: Users, label: "Quản lý nhân sự" },
+  { to: "/manager/data-quality", icon: ShieldCheck, label: "Chất lượng dữ liệu" },
   { to: "/manager/recommendations", icon: Lightbulb, label: "Đề xuất AI" },
   { to: "/manager/simulation", icon: Layers, label: "Mô phỏng \"What-If\"" },
 ];

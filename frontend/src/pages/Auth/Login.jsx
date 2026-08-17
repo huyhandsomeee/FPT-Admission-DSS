@@ -143,7 +143,88 @@ export default function Login() {
         <GoogleIcon /> Đăng nhập với Google
       </button>
 
-      <p className="text-center text-sm text-[#584237] mt-5">
+      <div className="relative flex items-center my-4">
+        <div className="flex-grow border-t border-[#e0c0b2]" />
+        <span className="flex-shrink mx-3 text-xs font-bold text-[#f37021] uppercase tracking-wider">Demo Nhanh Từng Phân Hệ</span>
+        <div className="flex-grow border-t border-[#e0c0b2]" />
+      </div>
+
+      {/* Demo Roles Grid */}
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <button
+          type="button"
+          onClick={() => navigate("/portal")}
+          className="p-2.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-orange-900">🌐 Thí sinh</div>
+          <div className="text-[11px] text-orange-700">Nộp hồ sơ & tra cứu</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/student/dashboard")}
+          className="p-2.5 rounded-xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-blue-900">🎓 Sinh viên</div>
+          <div className="text-[11px] text-blue-700">Học tập, học phí, LMS</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/officer/finance")}
+          className="p-2.5 rounded-xl border border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-emerald-900">💰 NV Tài chính</div>
+          <div className="text-[11px] text-emerald-700">Công nợ, GD & học bổng</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/officer/admission")}
+          className="p-2.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-amber-900">🏢 NV Tuyển sinh</div>
+          <div className="text-[11px] text-amber-700">Thẩm định & giấy báo</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/officer/academic")}
+          className="p-2.5 rounded-xl border border-indigo-200 bg-indigo-50 hover:bg-indigo-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-indigo-900">📚 NV Đào tạo</div>
+          <div className="text-[11px] text-indigo-700">Sổ điểm & phúc khảo</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/officer/student-affairs")}
+          className="p-2.5 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-teal-900">🎓 NV Dịch vụ SV</div>
+          <div className="text-[11px] text-teal-700">KTX & giấy xác nhận</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/officer/department")}
+          className="p-2.5 rounded-xl border border-violet-200 bg-violet-50 hover:bg-violet-100 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-violet-900">👔 Trưởng phòng ban</div>
+          <div className="text-[11px] text-violet-700">Phê duyệt & KPI khoa</div>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => navigate("/bod/dashboard")}
+          className="p-2.5 rounded-xl border border-slate-300 bg-slate-100 hover:bg-slate-200 text-left text-xs transition-all"
+        >
+          <div className="font-bold text-slate-900">🏛️ Ban Giám Đốc</div>
+          <div className="text-[11px] text-slate-700">Chỉ thị & điều hành</div>
+        </button>
+      </div>
+
+      <p className="text-center text-sm text-[#584237] mt-3">
         Chưa có tài khoản?{" "}
         <Link to="/register" className="text-[#a04100] font-bold hover:underline">Đăng ký ngay</Link>
       </p>

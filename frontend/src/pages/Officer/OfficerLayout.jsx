@@ -5,14 +5,21 @@ import api from "../../config/axiosConfig";
 import {
   LayoutDashboard, Users, MessageSquare,
   Settings, LogOut, Bell, HelpCircle, Search,
-  PlusCircle, GraduationCap
+  PlusCircle, GraduationCap, Building2, FileText, BarChart3, BookOpen,
+  DollarSign, Landmark, UserCheck, Send, Home
 } from "lucide-react";
 
 const navItems = [
-  { to: "/officer/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
-  { to: "/officer/applicants", icon: Users, label: "Danh sách hồ sơ" },
-  { to: "/officer/enrollment", icon: GraduationCap, label: "Thông báo nhập học" },
-  { to: "/officer/communication", icon: MessageSquare, label: "Liên hệ sinh viên" },
+  { to: "/officer/dashboard", icon: LayoutDashboard, label: "Tổng quan chung" },
+  { to: "/officer/finance", icon: DollarSign, label: "💰 NV Tài chính" },
+  { to: "/officer/admission", icon: Users, label: "🏢 NV Tuyển sinh" },
+  { to: "/officer/academic", icon: BookOpen, label: "📚 NV Đào tạo & Khảo thí" },
+  { to: "/officer/student-affairs", icon: Home, label: "🎓 NV Dịch vụ SV & KTX" },
+  { to: "/officer/department", icon: Building2, label: "👔 Trưởng phòng ban" },
+  { to: "/officer/applicants", icon: FileText, label: "Danh sách hồ sơ TS" },
+  { to: "/officer/students", icon: GraduationCap, label: "Quản lý sinh viên" },
+  { to: "/officer/academic-reports", icon: BarChart3, label: "Báo cáo học vụ DWH" },
+  { to: "/officer/communication", icon: MessageSquare, label: "Hộp thư sinh viên" },
 ];
 
 const settingsItems = [

@@ -2,7 +2,8 @@ import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import { 
-  LayoutDashboard, Users, Settings, FileSpreadsheet, LogOut, ChevronLeft 
+  LayoutDashboard, Users, Settings, FileSpreadsheet, LogOut, ChevronLeft,
+  Database, Server, ShieldCheck
 } from "lucide-react";
 
 export default function AdminLayout() {
@@ -12,6 +13,9 @@ export default function AdminLayout() {
 
   const menuItems = [
     { path: "/admin/dashboard", label: "Tổng quan hệ thống", icon: LayoutDashboard },
+    { path: "/admin/data-catalog", label: "Data Catalog & Từ điển", icon: Database },
+    { path: "/admin/etl-monitor", label: "Giám sát ETL Pipeline", icon: Server },
+    { path: "/admin/data-governance", label: "Quản trị dữ liệu & PII", icon: ShieldCheck },
     { path: "/admin/users", label: "Quản lý người dùng", icon: Users },
     { path: "/admin/config", label: "Cấu hình hệ thống", icon: Settings },
     { path: "/admin/audit-logs", label: "Lịch sử tác vụ (Audit)", icon: FileSpreadsheet },

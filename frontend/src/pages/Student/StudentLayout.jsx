@@ -3,16 +3,18 @@ import { useAuth } from "../../context/AuthContext";
 import { useState } from "react";
 import {
   LayoutDashboard, FileText, FolderOpen, Bell, LogOut,
-  User, ChevronRight, Menu, GraduationCap
+  User, ChevronRight, Menu, GraduationCap, BookOpen, DollarSign, Video, UserCheck
 } from "lucide-react";
 
 const navItems = [
-  { to: "/student/dashboard", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/student/apply", icon: FileText, label: "Nộp hồ sơ" },
-  { to: "/student/applications", icon: FolderOpen, label: "Hồ sơ của tôi" },
-  { to: "/student/documents", icon: FileText, label: "Tài liệu" },
+  { to: "/student/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+  { to: "/student/academic-records", icon: BookOpen, label: "Kết quả học tập" },
+  { to: "/student/financial", icon: DollarSign, label: "Tài chính & Học phí" },
+  { to: "/student/learning-resources", icon: Video, label: "LMS & Thư viện" },
+  { to: "/student/documents", icon: FileText, label: "Biểu mẫu & Tài liệu" },
+  { to: "/student/profile", icon: UserCheck, label: "Hồ sơ sinh viên" },
   { to: "/student/notifications", icon: Bell, label: "Thông báo" },
-  { to: "/student/university-info", icon: GraduationCap, label: "Thông tin trường" },
+  { to: "/student/university-info", icon: GraduationCap, label: "Cẩm nang trường" },
 ];
 
 export default function StudentLayout() {

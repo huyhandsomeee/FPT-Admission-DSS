@@ -25,7 +25,7 @@ const authService = {
 
   async validateToken() {
     try {
-      const { data } = await api.post('/api/auth/validate');
+      const { data } = await api.post('/api/auth/validate', {}, { timeout: 3000 });
       return data.valid;
     } catch {
       return false;

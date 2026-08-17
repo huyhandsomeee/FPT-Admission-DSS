@@ -1,706 +1,308 @@
-import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import api from "../../config/axiosConfig";
 import {
-  FileText, CheckCircle, Clock, Bell, ArrowRight,
-  Calendar, GraduationCap, X, Info, Trophy, MessageSquare
+  GraduationCap, BookOpen, DollarSign, Video, Book, User,
+  Bell, Clock, Calendar, CheckCircle2, AlertTriangle, ArrowRight,
+  TrendingUp, Award, QrCode, Sparkles, Download, ShieldCheck,
+  ExternalLink, ChevronRight, FileText, Bookmark
 } from "lucide-react";
-import { STATUS_CONFIG, STEPS } from "../../utils/statusUtils";
-
-const NOTIF_TYPE_CONFIG = {
-  ADMISSION_UPDATE: { icon: Clock, color: "#2563EB", bg: "#DBEAFE" },
-  SYSTEM:           { icon: Info, color: "#64748B", bg: "#F1F5F9" },
-  RESULT:           { icon: Trophy, color: "#059669", bg: "#D1FAE5" },
-  REMINDER:         { icon: Bell, color: "#D97706", bg: "#FEF3C7" },
-  MESSAGE:          { icon: MessageSquare, color: "#7C3AED", bg: "#EDE9FE" },
-};
-
-const deadlines = [
-  { label: "Nộp hồ sơ đợt 1", date: "30/03/2026", urgent: false },
-  { label: "Nộp hồ sơ đợt 2", date: "30/04/2026", urgent: false },
-  { label: "Công bố kết quả", date: "15/07/2026", urgent: false },
-  { label: "Xác nhận nhập học", date: "30/08/2026", urgent: false },
-];
 
 export default function StudentDashboard() {
   const { user } = useAuth();
-  const [data, setData] = useState(null);
-  const [latestNotif, setLatestNotif] = useState(null);
-  const [showNotifModal, setShowNotifModal] = useState(false);
+  const navigate = useNavigate();
 
-  const [moetChecked, setMoetChecked] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
-  
-  // Preference confirmation modal states
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [confirmDate, setConfirmDate] = useState(new Date().toISOString().split("T")[0]);
-  const [preferenceOrder, setPreferenceOrder] = useState("1");
-  const [confirmMajorName, setConfirmMajorName] = useState("");
-  const [confirmMajorCode, setConfirmMajorCode] = useState("");
-  const [evidenceImage, setEvidenceImage] = useState("");
-  const [confirmNote, setConfirmNote] = useState("");
-  const [commitCheckbox, setCommitCheckbox] = useState(false);
-  const [checklistState, setChecklistState] = useState({
-    chkConfirmEnrollment: false,
-    chkPayFee: false,
-    chkDeclareInfo: false,
-    chkUploadCccd: false,
-    chkUploadPhoto: false,
-    chkRegisterDorm: false,
-    chkPrintLetter: false,
-  });
-  const [checklistProgress, setChecklistProgress] = useState(0);
-
-  const VISUAL_STEPS = ["SUBMITTED", "APPROVED", "REGISTERED_MOET", "WAITING_MOET", "ACCEPTED_MOET", "ENROLLED"];
-  const VISUAL_STEP_LABELS = {
-    SUBMITTED: "Nộp hồ sơ",
-    APPROVED: "Đủ điều kiện",
-    REGISTERED_MOET: "Sinh viên đã xác nhận đăng ký NV",
-    WAITING_MOET: "Chờ đồng bộ Bộ GDĐT",
-    ACCEPTED_MOET: "Trúng tuyển chính thức",
-    ENROLLED: "Nhập học",
+  // Mock Student DW Data
+  const studentInfo = {
+    name: user?.fullName || "Nguyễn Minh Khoa",
+    code: "HS172345",
+    major: "Kỹ thuật phần mềm (Software Engineering)",
+    faculty: "Khoa Công nghệ thông tin",
+    campus: "FPT Hà Nội (Hoà Lạc)",
+    classCode: "SE1715",
+    gpa: 3.67,
+    credits: "42 / 150",
+    status: "Đang theo học",
+    term: "Fall 2026 (Học kỳ 4)"
   };
 
-  const getVisualStepIdx = (status) => {
-    const mapping = {
-      DRAFT: -1,
-      SUBMITTED: 0,
-      UNDER_REVIEW: 0,
-      APPROVED: 1,
-      REGISTERED_MOET: 2,
-      WAITING_MOET: 3,
-      ACCEPTED_MOET: 4,
-      ENROLLED: 5,
-      REJECTED: -1,
-    };
-    return mapping[status] ?? -1;
+  const scheduleToday = [
+    { time: "07:30 - 09:50", subject: "Trí tuệ nhân tạo (AIB201)", room: "BE-302", lecturer: "TS. Nguyễn Hải Đăng", status: "Sắp diễn ra" },
+    { time: "10:00 - 12:20", subject: "Kiểm thử phần mềm (SWR302)", room: "AL-204", lecturer: "ThS. Trần Thị Bình", status: "Chưa bắt đầu" },
+    { time: "13:30 - 15:50", subject: "Internet of Things (IOT301)", room: "Lab IoT 02", lecturer: "Dr. Lê Minh Cường", status: "Chưa bắt đầu" }
+  ];
+
+  const financialSummary = {
+    tuitionTerm: "29.700.000 đ",
+    paid: "15.000.000 đ",
+    debt: "14.700.000 đ",
+    dueDate: "30/08/2026",
+    scholarship: "Học bổng 100% Thủ khoa kỳ Fall"
   };
 
-  useEffect(() => {
-    if (data && data.applications && data.applications[0]) {
-      const app = data.applications[0];
-      const initialChecklist = {
-        chkConfirmEnrollment: app.chkConfirmEnrollment || false,
-        chkPayFee: app.chkPayFee || false,
-        chkDeclareInfo: app.chkDeclareInfo || false,
-        chkUploadCccd: app.chkUploadCccd || false,
-        chkUploadPhoto: app.chkUploadPhoto || false,
-        chkRegisterDorm: app.chkRegisterDorm || false,
-        chkPrintLetter: app.chkPrintLetter || false,
-      };
-      setChecklistState(initialChecklist);
+  const lmsTasks = [
+    { task: "Nộp Assignment 2: CNN Image Classification", course: "AIB201", deadline: "23:59 Hôm nay", urgent: true },
+    { task: "Quiz 3: Test Automation with Selenium", course: "SWR302", deadline: "18/08/2026", urgent: false },
+    { task: "Báo cáo tiến độ Capstone Project 1", course: "CAP201", deadline: "22/08/2026", urgent: false }
+  ];
 
-      const checked = Object.values(initialChecklist).filter(Boolean).length;
-      setChecklistProgress(Math.round((checked / 7) * 100));
-    }
-  }, [data]);
-
-  const handleConfirmModalSubmit = () => {
-    if (!data.applications?.[0]) return;
-    if (!commitCheckbox) {
-      alert("Vui lòng tích chọn cam kết thông tin là đúng.");
-      return;
-    }
-    const currentApp = data.applications[0];
-    setActionLoading(true);
-    api.post(`/api/student/applications/${currentApp.id}/confirm-moet`, {
-      preferenceOrder: parseInt(preferenceOrder),
-      majorCode: confirmMajorCode,
-      majorName: confirmMajorName,
-      evidenceImage: evidenceImage || null,
-      note: confirmNote
-    })
-      .then(res => {
-        alert("Xác nhận đăng ký nguyện vọng Bộ thành công!");
-        setShowConfirmModal(false);
-        api.get("/api/student/dashboard").then(r => setData(r.data));
-      })
-      .catch(err => {
-        console.error(err);
-        alert(err.response?.data?.message || "Lỗi khi xác nhận nguyện vọng.");
-      })
-      .finally(() => setActionLoading(false));
-  };
-
-  const handleChecklistChange = (key, val) => {
-    const updated = { ...checklistState, [key]: val };
-    setChecklistState(updated);
-    const checked = Object.values(updated).filter(Boolean).length;
-    setChecklistProgress(Math.round((checked / 7) * 100));
-  };
-
-  const handleSaveChecklist = () => {
-    if (!data.applications?.[0]) return;
-    const currentApp = data.applications[0];
-    setActionLoading(true);
-    api.put(`/api/student/applications/${currentApp.id}/checklist`, checklistState)
-      .then(res => {
-        alert("Lưu tiến độ làm thủ tục thành công!");
-        api.get("/api/student/dashboard").then(r => setData(r.data));
-      })
-      .catch(err => {
-        console.error(err);
-        alert("Lỗi khi lưu checklist.");
-      })
-      .finally(() => setActionLoading(false));
-  };
-
-  useEffect(() => {
-    api.get("/api/student/dashboard")
-      .then(r => setData(r.data))
-      .catch(() => {
-        setData({
-          totalApplications: 0, hasProfile: false, unreadNotifications: 0, applications: [],
-          allowNewApplication: false, newApplicationRequest: "NONE"
-        });
-      });
-    // Load thông báo gần nhất
-    api.get("/api/student/notifications?page=0&size=1")
-      .then(r => {
-        const list = r.data?.content || r.data || [];
-        const first = Array.isArray(list) ? list[0] : null;
-        if (first && !first.isRead) {
-          setLatestNotif(first);
-          setShowNotifModal(true);
-        }
-      })
-      .catch(() => {});
-  }, []);
-
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
-      </div>
-    );
-  }
-
-  const currentApp = data.applications?.[0];
-  const currentStatus = currentApp ? STATUS_CONFIG[currentApp.status] : null;
-  const currentStepIdx = currentApp ? STEPS.indexOf(currentApp.status) : -1;
+  const libraryBooks = [
+    { title: "Clean Code: A Handbook of Agile Software", author: "Robert C. Martin", dueDate: "25/08/2026", isOverdue: false },
+    { title: "Artificial Intelligence: A Modern Approach", author: "Stuart Russell", dueDate: "15/08/2026", isOverdue: true }
+  ];
 
   return (
-    <>
-      {/* Modal thông báo gần nhất */}
-      {showNotifModal && latestNotif && (() => {
-        const cfg = NOTIF_TYPE_CONFIG[latestNotif.type] || NOTIF_TYPE_CONFIG.SYSTEM;
-        const Icon = cfg.icon;
-        return (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-            <div style={{ background: "white", borderRadius: 24, maxWidth: 480, width: "100%", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden", display: "flex", flexDirection: "column" }}>
-              <div style={{ background: `linear-gradient(135deg, ${cfg.color}, ${cfg.color}cc)`, padding: "20px 24px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <div style={{ width: 40, height: 40, borderRadius: 12, background: "rgba(255,255,255,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <Icon size={20} color="white" />
-                  </div>
-                  <div>
-                    <div style={{ color: "white", fontWeight: 700, fontSize: 15 }}>Thông báo mới</div>
-                    <div style={{ color: "rgba(255,255,255,0.75)", fontSize: 12 }}>{new Date(latestNotif.createdAt).toLocaleDateString("vi-VN")}</div>
-                  </div>
-                </div>
-                <button onClick={() => setShowNotifModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", borderRadius: 8, padding: 6, cursor: "pointer", color: "white", display: "flex" }}>
-                  <X size={18} />
-                </button>
-              </div>
-              <div style={{ padding: "28px 28px 20px" }}>
-                <h3 style={{ margin: "0 0 10px", fontSize: 18, fontWeight: 800, color: "#0F172A", lineHeight: 1.4 }}>{latestNotif.title}</h3>
-                <p style={{ margin: 0, fontSize: 14, color: "#475569", lineHeight: 1.8 }}>{latestNotif.message}</p>
-              </div>
-              <div style={{ padding: "0 28px 24px", display: "flex", gap: 10 }}>
-                <Link to="/student/notifications"
-                  onClick={() => setShowNotifModal(false)}
-                  style={{ flex: 1, padding: "11px", background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer", textAlign: "center", textDecoration: "none", boxShadow: "0 4px 12px rgba(255,107,53,0.3)" }}>
-                  Xem tất cả thông báo
-                </Link>
-                <button onClick={() => setShowNotifModal(false)}
-                  style={{ padding: "11px 20px", background: "#F1F5F9", color: "#475569", border: "none", borderRadius: 12, fontWeight: 700, fontSize: 13, cursor: "pointer", transition: "background 0.2s" }}
-                  onMouseOver={e => e.target.style.background = "#E2E8F0"}
-                  onMouseOut={e => e.target.style.background = "#F1F5F9"}
-                >
-                  Đóng
-                </button>
-              </div>
+    <div style={{ padding: "28px 24px", maxWidth: 1300, margin: "0 auto", fontFamily: "Inter, sans-serif" }}>
+      {/* ── Welcome Banner & Digital Student Card ── */}
+      <div style={{
+        background: "linear-gradient(135deg, #0d1b3e 0%, #1a3a6c 50%, #2b4c8c 100%)",
+        borderRadius: 24, padding: "28px 32px", color: "#fff", marginBottom: 28,
+        position: "relative", overflow: "hidden", boxShadow: "0 12px 30px rgba(13,27,62,0.25)"
+      }}>
+        <div style={{ position: "absolute", top: -40, right: -40, width: 220, height: 220, borderRadius: "50%", background: "radial-gradient(circle, rgba(255,107,53,0.3) 0%, transparent 70%)" }} />
+        
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 20, position: "relative" }}>
+          {/* Left Info */}
+          <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+            <div style={{
+              width: 76, height: 76, borderRadius: 20, background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900,
+              boxShadow: "0 6px 18px rgba(255,107,53,0.45)", border: "3px solid rgba(255,255,255,0.2)"
+            }}>
+              {studentInfo.name.split(" ").pop()[0]}
             </div>
-          </div>
-        );
-      })()}
-
-      {/* Dialog Xác nhận Đăng ký nguyện vọng */}
-      {showConfirmModal && (
-        <div style={{ position: "fixed", inset: 0, background: "rgba(15,23,42,0.45)", backdropFilter: "blur(6px)", zIndex: 1100, display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
-          <div style={{ background: "white", borderRadius: 24, width: "100%", maxWidth: 500, display: "flex", flexDirection: "column", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)", overflow: "hidden" }}>
-            {/* Modal Header */}
-            <div style={{ background: "linear-gradient(135deg, #FF6B35, #E85A2A)", padding: "20px 28px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <div style={{ color: "white", fontWeight: 900, fontSize: 16, letterSpacing: "0.5px" }}>Xác nhận nguyện vọng tuyển sinh</div>
-              <button onClick={() => setShowConfirmModal(false)} style={{ background: "rgba(255,255,255,0.2)", border: "none", color: "white", cursor: "pointer", borderRadius: 8, padding: 6, display: "flex" }}>
-                <X size={18} />
-              </button>
-            </div>
-            {/* Modal Body */}
-            <div style={{ padding: "28px", display: "flex", flexDirection: "column", gap: 16 }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>NGÀY ĐĂNG KÝ</label>
-                <input
-                  type="date"
-                  value={confirmDate}
-                  onChange={e => setConfirmDate(e.target.value)}
-                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", transition: "border-color 0.2s" }}
-                  onFocus={e => e.target.style.borderColor = "#FF6B35"}
-                  onBlur={e => e.target.style.borderColor = "#E2E8F0"}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>THỨ TỰ NGUYỆN VỌNG BỘ GD&ĐT</label>
-                <select
-                  value={preferenceOrder}
-                  onChange={e => setPreferenceOrder(e.target.value)}
-                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", background: "#FAFBFC" }}
-                >
-                  <option value="1">Nguyện vọng 1 (Ưu tiên cao nhất)</option>
-                  <option value="2">Nguyện vọng 2</option>
-                  <option value="3">Nguyện vọng 3</option>
-                  <option value="4">Nguyện vọng 4</option>
-                  <option value="5">Nguyện vọng 5 hoặc thấp hơn</option>
-                </select>
-              </div>
-              <div style={{ display: "flex", gap: 12 }}>
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>MÃ NGÀNH ĐÃ ĐĂNG KÝ BỘ</label>
-                  <input
-                    type="text"
-                    value={confirmMajorCode}
-                    onChange={e => setConfirmMajorCode(e.target.value)}
-                    placeholder="Ví dụ: 7480201"
-                    style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none" }}
-                  />
-                </div>
-                <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 6 }}>
-                  <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>TÊN NGÀNH ĐÃ ĐĂNG KÝ BỘ</label>
-                  <input
-                    type="text"
-                    value={confirmMajorName}
-                    onChange={e => setConfirmMajorName(e.target.value)}
-                    placeholder="Ví dụ: Công nghệ thông tin"
-                    style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none" }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>ĐƯỜNG DẪN ẢNH MINH CHỨNG (NẾU CÓ)</label>
-                <input
-                  type="text"
-                  value={evidenceImage}
-                  onChange={e => setEvidenceImage(e.target.value)}
-                  placeholder="https://example.com/screenshot.jpg"
-                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none" }}
-                />
-              </div>
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                <label style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: "0.5px" }}>GHI CHÚ</label>
-                <textarea
-                  value={confirmNote}
-                  onChange={e => setConfirmNote(e.target.value)}
-                  placeholder="Ghi chú thêm cho cán bộ tuyển sinh..."
-                  rows={2}
-                  style={{ padding: "10px 14px", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, outline: "none", resize: "vertical" }}
-                />
-              </div>
-              <label style={{ display: "flex", alignItems: "flex-start", gap: 8, cursor: "pointer", marginTop: 6 }}>
-                <input
-                  type="checkbox"
-                  checked={commitCheckbox}
-                  onChange={e => setCommitCheckbox(e.target.checked)}
-                  style={{ marginTop: 3, accentColor: "#FF6B35" }}
-                />
-                <span style={{ fontSize: 12, color: "#64748B", lineHeight: 1.5 }}>
-                  Tôi cam kết thông tin đăng ký nguyện vọng trên hệ thống của Bộ GD&ĐT khớp với thông tin đã nhập trên đây.
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+                <h1 style={{ fontSize: 24, fontWeight: 900, margin: 0, color: "#fff" }}>{studentInfo.name}</h1>
+                <span style={{ fontSize: 11.5, fontWeight: 700, padding: "3px 10px", borderRadius: 100, background: "#10B981", color: "#fff" }}>
+                  {studentInfo.status}
                 </span>
-              </label>
-            </div>
-            {/* Modal Footer */}
-            <div style={{ padding: "16px 28px", background: "#F8FAFC", borderTop: "1px solid #F1F5F9", display: "flex", justifyContent: "flex-end", gap: 10 }}>
-              <button onClick={() => setShowConfirmModal(false)} style={{ padding: "10px 18px", background: "white", border: "1.5px solid #E2E8F0", borderRadius: 10, fontSize: 13, cursor: "pointer", fontWeight: 600, color: "#64748B" }}>Hủy</button>
-              <button
-                disabled={!commitCheckbox || actionLoading}
-                onClick={handleConfirmModalSubmit}
-                style={{
-                  padding: "10px 22px",
-                  background: commitCheckbox ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "#CBD5E1",
-                  color: "white",
-                  border: "none",
-                  borderRadius: 10,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  cursor: commitCheckbox ? "pointer" : "not-allowed",
-                  boxShadow: commitCheckbox ? "0 4px 12px rgba(255,107,53,0.3)" : "none"
-                }}
-              >
-                Xác nhận
-              </button>
+              </div>
+              <p style={{ fontSize: 13.5, color: "rgba(255,255,255,0.8)", margin: "0 0 6px 0" }}>
+                MSSV: <strong style={{ color: "#FF8C5A" }}>{studentInfo.code}</strong> • Lớp: {studentInfo.classCode} • {studentInfo.campus}
+              </p>
+              <div style={{ fontSize: 12.5, color: "rgba(255,255,255,0.65)" }}>
+                {studentInfo.major} • {studentInfo.term}
+              </div>
             </div>
           </div>
-        </div>
-      )}
 
-      <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: "24px", padding: "8px 0" }}>
-
-      {/* Welcome Banner */}
-      <div className="student-banner">
-        <div className="absolute right-0 top-0 w-64 h-full opacity-10">
-          <div className="w-64 h-64 rounded-full bg-white absolute -right-16 -top-16"></div>
-          <div className="w-48 h-48 rounded-full bg-white absolute -right-8 bottom-0"></div>
-        </div>
-        <div className="relative z-10">
-          <p className="text-orange-200 text-sm font-medium mb-1" style={{ opacity: 0.9 }}>Xin chào 👋</p>
-          <h1 className="text-2xl font-bold text-white mb-2">{user?.fullName}</h1>
-          <p className="text-orange-100 text-sm mb-4" style={{ opacity: 0.85 }}>
-            Chào mừng đến với Cổng tuyển sinh FPT University 2026
-          </p>
-          {!data.hasProfile && (
-            <Link to="/student/apply"
-              style={{
-                backgroundColor: "white", color: "#E85A2A", padding: "10px 20px",
-                borderRadius: "12px", fontWeight: "600", fontSize: "14px",
-                display: "inline-flex", alignItems: "center", gap: "8px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)", textDecoration: "none"
-              }}
-            >
-              Bắt đầu nộp hồ sơ <ArrowRight size={16} />
-            </Link>
-          )}
+          {/* Quick Stats on Card */}
+          <div style={{ display: "flex", gap: 14 }}>
+            <div style={{ padding: "12px 18px", borderRadius: 14, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.15)", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", fontWeight: 700 }}>GPA Tích Lũy</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#38BDF8", marginTop: 2 }}>{studentInfo.gpa}</div>
+              <div style={{ fontSize: 10.5, color: "#4ADE80" }}>Hạng Giỏi (Top 5%)</div>
+            </div>
+            <div style={{ padding: "12px 18px", borderRadius: 14, background: "rgba(255,255,255,0.08)", backdropFilter: "blur(8px)", border: "1px solid rgba(255,255,255,0.15)", textAlign: "center" }}>
+              <div style={{ fontSize: 11, color: "rgba(255,255,255,0.6)", textTransform: "uppercase", fontWeight: 700 }}>Tín Chỉ Tích Lũy</div>
+              <div style={{ fontSize: 24, fontWeight: 900, color: "#FB923C", marginTop: 2 }}>{studentInfo.credits}</div>
+              <div style={{ fontSize: 10.5, color: "rgba(255,255,255,0.7)" }}>Tiến độ 28%</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="student-grid-4">
+      {/* ── 4 Quick Shortcuts to DW Features ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16, marginBottom: 28 }}>
         {[
-          { label: "Hồ sơ đã nộp", value: data.totalApplications, icon: FileText, textColor: "#F97316" },
-          { label: "Thông báo mới", value: data.unreadNotifications, icon: Bell, textColor: "#2563EB" },
-          { label: "Đợt xét tuyển", value: "2026", icon: Calendar, textColor: "#7C3AED" },
-          { label: "Trạng thái", value: currentStatus?.label || "Chưa nộp", icon: currentStatus?.icon || CheckCircle, textColor: "#059669" },
-        ].map((kpi) => (
-          <div key={kpi.label} className="student-card">
-            <div className="absolute top-0 right-0 w-20 h-20 rounded-full opacity-10"
-              style={{ background: kpi.textColor, transform: "translate(30%, -30%)" }}></div>
-            <div className="student-kpi-icon" style={{ background: `${kpi.textColor}15` }}>
-              <kpi.icon size={20} style={{ color: kpi.textColor }} />
+          { title: "Kết Quả Học Tập", desc: "Xem bảng điểm, GPA, lịch thi & chuyên cần", icon: BookOpen, path: "/student/academic-records", color: "#2563EB", bg: "#EFF6FF", fact: "FACT_LEARNING" },
+          { title: "Tài Chính & Học Phí", desc: "Hạn nộp học phí, học bổng & công nợ", icon: DollarSign, path: "/student/financial", color: "#16A34A", bg: "#F0FDF4", fact: "FACT_FINANCE" },
+          { title: "LMS & Thư Viện", desc: "Khóa học trực tuyến, bài tập & sách mượn", icon: Video, path: "/student/learning-resources", color: "#7C3AED", bg: "#F5F3FF", fact: "FACT_LMS / LIB" },
+          { title: "Hồ Sơ Sinh Viên", desc: "Thông tin định danh, văn bằng & bảo trợ", icon: User, path: "/student/profile", color: "#FF6B35", bg: "#FFF7F4", fact: "DIM_STUDENT" }
+        ].map((item, idx) => (
+          <div
+            key={idx}
+            onClick={() => navigate(item.path)}
+            style={{
+              background: item.bg, borderRadius: 18, padding: "20px 22px", border: `1.5px solid ${item.color}25`,
+              cursor: "pointer", transition: "all 0.25s ease", position: "relative"
+            }}
+            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-4px)"; e.currentTarget.style.boxShadow = `0 10px 24px ${item.color}25`; }}
+            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "none"; }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: item.color, display: "flex", alignItems: "center", justifyContent: "center", boxShadow: `0 4px 12px ${item.color}40` }}>
+                <item.icon size={22} color="#fff" />
+              </div>
+              <span style={{ fontSize: 10, fontWeight: 800, padding: "3px 8px", borderRadius: 6, background: "#fff", color: item.color, border: `1px solid ${item.color}30` }}>
+                {item.fact}
+              </span>
             </div>
-            <div className="text-2xl font-bold text-gray-900">{kpi.value}</div>
-            <div className="text-sm text-gray-500 mt-0.5">{kpi.label}</div>
+            <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: "0 0 4px 0" }}>{item.title}</h3>
+            <p style={{ fontSize: 12.5, color: "#64748B", margin: "0 0 12px 0", lineHeight: 1.4 }}>{item.desc}</p>
+            <div style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 12.5, fontWeight: 700, color: item.color }}>
+              Truy cập ngay <ArrowRight size={14} />
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Card Đăng ký nguyện vọng (nếu APPROVED) */}
-      {currentApp && currentApp.status === "APPROVED" && (
-        <div style={{
-          background: "linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%)",
-          borderRadius: "18px", padding: "24px 28px",
-          border: "1px solid #FFEDD5",
-          boxShadow: "0 10px 25px -5px rgba(253,186,116,0.2)",
-          position: "relative", overflow: "hidden",
-          animation: "slide-down 0.4s ease"
-        }}>
-          <div style={{ position: "absolute", right: "-20px", top: "-20px", width: "180px", height: "180px", background: "rgba(255,107,53,0.06)", borderRadius: "50%" }} />
-          <h3 style={{ margin: "0 0 12px", color: "#C2410C", fontWeight: "800", fontSize: "18px", display: "flex", alignItems: "center", gap: "8px" }}>
-            <span>🎉</span> Chúc mừng bạn đã Đủ Điều Kiện xét tuyển sơ bộ!
-          </h3>
-          <p style={{ margin: "0 0 16px", color: "#7C2D12", fontSize: "14px", lineHeight: "1.6" }}>
-            Hồ sơ của bạn đã vượt qua vòng thẩm định học bạ. Để hoàn tất quy trình tuyển sinh theo đúng quy chế của Bộ GD&ĐT, bạn vui lòng đăng ký nguyện vọng Đại học FPT trên cổng thông tin tuyển sinh của Bộ:
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", background: "white", padding: "16px", borderRadius: "12px", border: "1px solid #FED7AA", marginBottom: "20px" }}>
-            <div>
-              <span style={{ fontSize: "12px", color: "#9A3412", fontWeight: "600" }}>Mã trường:</span>
-              <div style={{ fontSize: "18px", fontWeight: "800", color: "#C2410C", marginTop: "2px" }}>FPT</div>
-            </div>
-            <div>
-              <span style={{ fontSize: "12px", color: "#9A3412", fontWeight: "600" }}>Mã ngành xét tuyển:</span>
-              <div style={{ fontSize: "18px", fontWeight: "800", color: "#C2410C", marginTop: "2px" }}>
-                {currentApp.majorCode || "7480101"}
+      {/* ── Main Content Grid: Schedule & LMS / Finance ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.4fr 1fr", gap: 24, alignItems: "start" }}>
+        {/* Left Column: Schedule Today & Learning Progress */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Schedule Today */}
+          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Calendar size={18} color="#2563EB" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>Lịch Học Hôm Nay (Thứ Hai, 17/08/2026)</h3>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>Hệ thống đào tạo FAP • Đồng bộ realtime</p>
+                </div>
               </div>
+              <span style={{ fontSize: 12, fontWeight: 700, color: "#2563EB", background: "#DBEAFE", padding: "4px 10px", borderRadius: 100 }}>
+                3 Ca học
+              </span>
             </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px", background: "#FFEDD5", padding: "10px 14px", borderRadius: "10px", borderLeft: "4px solid #FF6B35", fontSize: "13px", color: "#9A3412", fontWeight: "600", marginBottom: "20px" }}>
-            <span>💡</span> Khuyến nghị: Vui lòng đặt nguyện vọng này ở vị trí <strong>Nguyện vọng 1</strong> để đảm bảo khả năng trúng tuyển cao nhất! Hạn chót Bộ GDĐT khóa cổng là 30/07/2026.
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            <button
-              onClick={() => {
-                setConfirmMajorName(currentApp.majorName);
-                setConfirmMajorCode(currentApp.majorCode || "7480101");
-                setShowConfirmModal(true);
-              }}
-              style={{
-                alignSelf: "flex-start",
-                padding: "10px 24px",
-                background: "linear-gradient(135deg, #FF6B35, #E85A2A)",
-                color: "white",
-                border: "none",
-                borderRadius: "10px",
-                fontWeight: "700",
-                fontSize: "14px",
-                cursor: "pointer",
-                boxShadow: "0 4px 12px rgba(255,107,53,0.3)",
-                transition: "all 0.2s"
-              }}
-            >
-              Tôi đã đăng ký nguyện vọng
-            </button>
-          </div>
-        </div>
-      )}
 
-      {/* Checklist Nhập học (nếu ACCEPTED_MOET hoặc ENROLLED) */}
-      {currentApp && (currentApp.status === "ACCEPTED_MOET" || currentApp.status === "ENROLLED") && (
-        <div className="student-card" style={{ padding: "24px 28px", border: "1px solid #E8ECF1", background: "white" }}>
-          <h3 style={{ margin: "0 0 4px", fontSize: "18px", fontWeight: "800", color: "#1E293B" }}>
-            🎉 Chúc mừng! Bạn đã trúng tuyển chính thức.
-          </h3>
-          <p style={{ margin: "0 0 16px", fontSize: "13px", color: "#64748B" }}>
-            Chào mừng bạn đến với Đại học FPT! Vui lòng hoàn tất danh sách thủ tục dưới đây để chuẩn bị nhập học.
-          </p>
-
-          {/* Progress bar */}
-          <div style={{ marginBottom: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px", fontWeight: "700", color: "#FF6B35", marginBottom: "6px" }}>
-              <span>Tiến trình hoàn thành</span>
-              <span>{checklistProgress}%</span>
-            </div>
-            <div style={{ width: "100%", height: "8px", background: "#F1F5F9", borderRadius: "99px", overflow: "hidden" }}>
-              <div style={{ width: `${checklistProgress}%`, height: "100%", background: "linear-gradient(90deg, #FF6B35, #E85A2A)", borderRadius: "99px", transition: "width 0.4s ease" }} />
-            </div>
-          </div>
-
-          {/* Checklist items */}
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px", marginBottom: "20px" }}>
-            {[
-              { key: "chkConfirmEnrollment", label: "Xác nhận nhập học trực tuyến trên hệ thống Bộ GDĐT", desc: "Xác nhận nguyện vọng nhập học chính thức vào Đại học FPT." },
-              { key: "chkPayFee", label: "Nộp học phí kỳ đầu tiên (21.000.000 VNĐ)", desc: "Hoàn tất nộp phí giữ chỗ/học phí để nhận mã số sinh viên chính thức." },
-              { key: "chkDeclareInfo", label: "Khai báo lý lịch thông tin cá nhân", desc: "Cập nhật hồ sơ học viên trực tuyến." },
-              { key: "chkUploadCccd", label: "Tải lên bản sao công chứng CCCD/CMND", desc: "Cung cấp giấy tờ tùy thân hợp lệ." },
-              { key: "chkUploadPhoto", label: "Tải lên ảnh chân dung 3x4 làm thẻ sinh viên", desc: "Ảnh nền trắng rõ mặt, chụp trong vòng 6 tháng." },
-              { key: "chkRegisterDorm", label: "Đăng ký dịch vụ Ký túc xá (KTX) - Tùy chọn", desc: "Nếu bạn có nhu cầu đăng ký chỗ ở nội trú tại khu đô thị Đại học FPT." },
-              { key: "chkPrintLetter", label: "In giấy báo trúng tuyển & nhập học", desc: "Lưu trữ bản giấy làm thủ tục nhập học thực tế ngày hội quân." }
-            ].map(item => {
-              const checked = checklistState[item.key] || false;
-              return (
-                <label key={item.key} style={{
-                  display: "flex", alignItems: "flex-start", gap: "12px",
-                  padding: "12px 14px", borderRadius: "10px",
-                  border: checked ? "1px solid #FFEDD5" : "1px solid #F1F5F9",
-                  background: checked ? "#FFFDFB" : "#FAFAFA",
-                  cursor: "pointer", transition: "all 0.2s"
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {scheduleToday.map((slot, idx) => (
+                <div key={idx} style={{
+                  padding: "16px 18px", borderRadius: 14, background: idx === 0 ? "#FFF7F4" : "#F8FAFC",
+                  border: `1.5px solid ${idx === 0 ? "#FF6B35" : "#E2E8F0"}`, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10
                 }}>
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    onChange={(e) => handleChecklistChange(item.key, e.target.checked)}
-                    disabled={actionLoading}
-                    style={{ width: "18px", height: "18px", accentColor: "#FF6B35", marginTop: "2px", cursor: "pointer" }}
-                  />
                   <div>
-                    <div style={{ fontSize: "14px", fontWeight: "700", color: checked ? "#C2410C" : "#334155" }}>
-                      {item.label}
+                    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: idx === 0 ? "#FF6B35" : "#2563EB", background: "#fff", padding: "2px 8px", borderRadius: 6 }}>
+                        {slot.time}
+                      </span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>Phòng {slot.room}</span>
                     </div>
-                    <div style={{ fontSize: "12px", color: "#64748B", marginTop: "2px" }}>
-                      {item.desc}
-                    </div>
+                    <div style={{ fontSize: 14.5, fontWeight: 800, color: "#0F172A" }}>{slot.subject}</div>
+                    <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>GV: {slot.lecturer}</div>
                   </div>
-                </label>
-              );
-            })}
+
+                  <span style={{
+                    fontSize: 11.5, fontWeight: 700, padding: "4px 10px", borderRadius: 100,
+                    background: idx === 0 ? "#FFEDD5" : "#F1F5F9", color: idx === 0 ? "#C2410C" : "#64748B"
+                  }}>
+                    {slot.status}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <button
-            onClick={handleSaveChecklist}
-            disabled={actionLoading}
-            style={{
-              padding: "10px 20px",
-              background: "linear-gradient(135deg, #1E293B, #0F172A)",
-              color: "white",
-              border: "none",
-              borderRadius: "10px",
-              fontWeight: "700",
-              fontSize: "13px",
-              cursor: "pointer",
-              boxShadow: "0 4px 12px rgba(15,23,42,0.15)",
-              transition: "all 0.2s"
-            }}
-          >
-            {actionLoading ? "Đang lưu..." : "Lưu tiến độ làm thủ tục"}
-          </button>
-        </div>
-      )}
-
-      {/* Main Sections Grid */}
-      <div className="student-grid-3">
-        {/* Application Progress */}
-        <div>
-          <div className="student-card" style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-            <div className="flex items-center justify-between mb-6" style={{ borderBottom: "1px solid #F1F5F9", paddingBottom: "16px" }}>
-              <h3 className="font-semibold text-gray-900 text-lg">Tiến trình hồ sơ</h3>
-              <Link to="/student/applications" className="text-sm text-orange-500 font-medium flex items-center gap-1" style={{ textDecoration: "none" }}>
-                Xem tất cả <ArrowRight size={14} />
+          {/* Outstanding Learning Tasks (FACT_LMS) */}
+          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#F5F3FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bookmark size={18} color="#7C3AED" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>Nhiệm Vụ Học Tập LMS Cần Hoàn Thành</h3>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>Khai thác từ FACT_LMS & Coursera FPT</p>
+                </div>
+              </div>
+              <Link to="/student/learning-resources" style={{ fontSize: 12.5, fontWeight: 700, color: "#7C3AED", textDecoration: "none" }}>
+                Xem tất cả →
               </Link>
             </div>
-            <div style={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-              {currentApp ? (
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {lmsTasks.map((t, idx) => (
+                <div key={idx} style={{ padding: "14px 16px", borderRadius: 12, background: "#F8FAFC", border: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <div>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>{t.task}</div>
+                    <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>Môn học: <strong>{t.course}</strong></div>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 700, color: t.urgent ? "#DC2626" : "#475569", background: t.urgent ? "#FEF2F2" : "#F1F5F9", padding: "3px 8px", borderRadius: 6 }}>
+                      {t.deadline}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Column: Financial Alert & Library Books */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          {/* Financial Box (FACT_FINANCE) */}
+          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#DCFCE7", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <DollarSign size={18} color="#16A34A" />
+                </div>
                 <div>
-                  <div className="student-step-container" style={{ display: "flex", justifyContent: "space-between", position: "relative", marginBottom: "24px", padding: "0 8px" }}>
-                    <div className="student-step-line" style={{ position: "absolute", top: "15px", left: "24px", right: "24px", height: "3px", backgroundColor: "#E2E8F0", zIndex: 0 }}>
-                      <div style={{ width: getVisualStepIdx(currentApp.status) >= 0 ? `${(getVisualStepIdx(currentApp.status) / (VISUAL_STEPS.length - 1)) * 100}%` : "0%", height: "100%", background: "linear-gradient(90deg, #FF6B35, #E85A2A)", transition: "width 0.5s ease" }} />
-                    </div>
-                    {VISUAL_STEPS.map((step, idx) => {
-                      const isDone = idx <= getVisualStepIdx(currentApp.status);
-                      const isCurrent = idx === getVisualStepIdx(currentApp.status);
-                      return (
-                        <div key={step} className="student-step-node" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", position: "relative", zIndex: 1, flex: 1 }}>
-                          <div className="student-step-circle" style={{
-                            width: "32px", height: "32px", borderRadius: "50%",
-                            display: "flex", alignItems: "center", justifyContent: "center", fontSize: "11px", fontWeight: "800",
-                            background: isDone ? "linear-gradient(135deg, #FF6B35, #E85A2A)" : "white",
-                            color: isDone ? "white" : "#94A3B8",
-                            border: isDone ? "none" : "2px solid #E2E8F0",
-                            boxShadow: isDone ? "0 4px 12px rgba(255,107,53,0.25)" : "none",
-                            transition: "all 0.3s ease"
-                          }}>
-                            {isDone && !isCurrent ? "✓" : idx + 1}
-                          </div>
-                          <span style={{ fontSize: "10px", fontWeight: "700", color: isCurrent ? "#E85A2A" : isDone ? "#FF6B35" : "#94A3B8", textAlign: "center", maxWidth: "80px" }}>
-                            {VISUAL_STEP_LABELS[step]}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div style={{ background: "#FFF7F4", borderRadius: "14px", padding: "16px", border: "1px solid #FFEDD5", marginTop: "24px" }}>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <div className="text-base font-semibold text-gray-900">{currentApp.majorName}</div>
-                        <div className="text-xs text-gray-500 mt-1">{currentApp.campusName}</div>
-                        <div className="text-xs text-gray-400 mt-1">Mã HS: {currentApp.code}</div>
-                      </div>
-                      <span className={`badge ${currentStatus?.badge}`} style={{ borderRadius: "20px", padding: "6px 12px" }}>
-                        {currentStatus?.label}
-                      </span>
-                    </div>
-                  </div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>Học Phí & Học Bổng (FACT_FINANCE)</h3>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>Học kỳ Fall 2026</p>
                 </div>
-              ) : (
-                <div className="text-center py-6">
-                  <div className="w-16 h-16 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-4" style={{ color: "#FF6B35" }}>
-                    <FileText size={28} />
-                  </div>
-                  <h4 className="font-semibold text-gray-900 mb-1">Bạn chưa có hồ sơ nào</h4>
-                  <p className="text-sm text-gray-500 mb-4">Bắt đầu hành trình vào FPT University ngay hôm nay!</p>
-                  <Link to="/student/apply" className="student-btn-primary">Nộp hồ sơ ngay</Link>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Important Deadlines */}
-        <div className="student-card">
-          <div className="flex items-center mb-6" style={{ borderBottom: "1px solid #F1F5F9", paddingBottom: "16px" }}>
-            <h3 className="font-semibold text-gray-900 text-lg">Lịch quan trọng</h3>
-          </div>
-          <div className="space-y-3">
-            {deadlines.map((d) => (
-              <div key={d.label}
-                style={{ display: "flex", alignItems: "center", padding: "12px", borderRadius: "12px", backgroundColor: "#F8FAFC" }}
-                className="hover:bg-orange-50"
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flex: 1 }}>
-                  <div style={{ width: "8px", height: "8px", borderRadius: "50%", backgroundColor: d.urgent ? "#EF4444" : "#FF6B35" }}></div>
-                  <span style={{ fontSize: "13px", fontWeight: "500", color: "#334155" }}>{d.label}</span>
-                </div>
-                <span style={{ fontSize: "11px", fontWeight: "600", color: "#64748B" }}>{d.date}</span>
               </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Quick Actions Grid */}
-      <div className="student-action-grid">
-        {[
-          { to: "/student/apply", icon: "📝", label: "Nộp hồ sơ", desc: "Tạo hồ sơ mới" },
-          { to: "/student/applications", icon: "📋", label: "Hồ sơ của tôi", desc: "Xem trạng thái" },
-          { to: "/student/documents", icon: "📁", label: "Tài liệu", desc: "Upload giấy tờ" },
-          { to: "/student/notifications", icon: "🔔", label: "Thông báo", desc: "Xem tin nhắn" },
-        ].map((action) => (
-          <Link key={action.to} to={action.to} className="student-action-card">
-            <div style={{ fontSize: "28px", marginBottom: "12px" }}>{action.icon}</div>
-            <div style={{ fontWeight: "600", color: "#1E293B", fontSize: "14px" }}>{action.label}</div>
-            <div style={{ fontSize: "12px", color: "#64748B", marginTop: "4px" }}>{action.desc}</div>
-          </Link>
-        ))}
-      </div>
-
-      {/* FPT University Info — đặt trước Quick Actions */}
-      <div style={{
-        background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
-        borderRadius: "18px", padding: "24px 28px",
-        display: "flex", alignItems: "center", gap: "20px",
-        position: "relative", overflow: "hidden",
-        boxShadow: "0 4px 16px rgba(15,23,42,0.15)"
-      }}>
-        <div style={{ position: "absolute", right: "-10px", top: "-20px", width: "160px", height: "160px", background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
-        <div style={{ position: "absolute", right: "80px", bottom: "-30px", width: "100px", height: "100px", background: "rgba(255,107,53,0.05)", borderRadius: "50%" }} />
-        <div style={{ width: "52px", height: "52px", background: "rgba(255,107,53,0.15)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
-          <GraduationCap size={26} color="#FF6B35" />
-        </div>
-        <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
-          <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>
-            Thông tin tuyển sinh FPT University 2026
-          </div>
-          <div style={{ color: "rgba(148,163,184,1)", fontSize: "13px" }}>
-            Giới thiệu trường • Phương thức xét tuyển • Ngành học • Học phí • Học bổng
-          </div>
-        </div>
-        <Link to="/student/university-info" style={{
-          display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "12px",
-          background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", fontWeight: "600", fontSize: "13px",
-          flexShrink: 0, zIndex: 1, boxShadow: "0 4px 12px rgba(232,90,42,0.35)", textDecoration: "none"
-        }}>
-          Khám phá <ArrowRight size={15} />
-        </Link>
-      </div>
-
-      {/* FPT Info Promo Card (bottom) */}
-      <Link to="/student/university-info" style={{ textDecoration: "none" }}>
-        <div style={{
-          background: "linear-gradient(135deg, #1E293B 0%, #0F172A 100%)",
-          borderRadius: "18px", padding: "24px 28px",
-          display: "flex", alignItems: "center", gap: "20px",
-          position: "relative", overflow: "hidden", cursor: "pointer",
-          boxShadow: "0 4px 16px rgba(15,23,42,0.15)"
-        }}>
-          <div style={{ position: "absolute", right: "-10px", top: "-20px", width: "160px", height: "160px", background: "rgba(255,107,53,0.08)", borderRadius: "50%" }} />
-          <div style={{ position: "absolute", right: "80px", bottom: "-30px", width: "100px", height: "100px", background: "rgba(255,107,53,0.05)", borderRadius: "50%" }} />
-          <div style={{ width: "52px", height: "52px", background: "rgba(255,107,53,0.15)", borderRadius: "14px", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, zIndex: 1 }}>
-            <GraduationCap size={26} color="#FF6B35" />
-          </div>
-          <div style={{ flex: 1, position: "relative", zIndex: 1 }}>
-            <div style={{ color: "white", fontWeight: "700", fontSize: "16px", marginBottom: "4px" }}>
-              Thông tin tuyển sinh FPT University 2026
             </div>
-            <div style={{ color: "rgba(148,163,184,1)", fontSize: "13px" }}>
-              Giới thiệu trường • Phương thức xét tuyển • Ngành học • Học phí • Học bổng
+
+            <div style={{ padding: 16, background: "#FFFBEB", borderRadius: 14, border: "1px solid #FDE68A", marginBottom: 16 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: 13, color: "#92400E", marginBottom: 4 }}>
+                <span>Còn cần thanh toán đợt 2:</span>
+                <strong style={{ fontSize: 16, color: "#B45309" }}>{financialSummary.debt}</strong>
+              </div>
+              <div style={{ fontSize: 12, color: "#B45309" }}>Hạn chót: <strong>{financialSummary.dueDate}</strong></div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 13, marginBottom: 18 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
+                <span>Học phí cả kỳ:</span>
+                <strong style={{ color: "#0F172A" }}>{financialSummary.tuitionTerm}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
+                <span>Đã nộp đợt 1:</span>
+                <strong style={{ color: "#16A34A" }}>{financialSummary.paid}</strong>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", color: "#64748B" }}>
+                <span>Học bổng áp dụng:</span>
+                <strong style={{ color: "#7C3AED" }}>{financialSummary.scholarship}</strong>
+              </div>
+            </div>
+
+            <button
+              onClick={() => navigate("/student/financial")}
+              style={{
+                width: "100%", padding: "11px", borderRadius: 12, background: "linear-gradient(135deg, #16A34A, #15803D)",
+                color: "#fff", border: "none", fontWeight: 700, fontSize: 13.5, cursor: "pointer", boxShadow: "0 4px 12px rgba(22,163,74,0.3)"
+              }}
+            >
+              Thanh Toán Học Phí Trực Tuyến
+            </button>
+          </div>
+
+          {/* Library Borrowing (FACT_LIBRARY) */}
+          <div style={{ background: "#fff", borderRadius: 20, border: "1px solid #E2E8F0", padding: 24, boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: "#EFF6FF", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Book size={18} color="#2563EB" />
+                </div>
+                <div>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>Thư Viện Số (FACT_LIBRARY)</h3>
+                  <p style={{ fontSize: 12, color: "#64748B", margin: 0 }}>Sách đang mượn & CSDL trực tuyến</p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {libraryBooks.map((b, idx) => (
+                <div key={idx} style={{ padding: "12px 14px", borderRadius: 12, background: b.isOverdue ? "#FEF2F2" : "#F8FAFC", border: `1px solid ${b.isOverdue ? "#FCA5A5" : "#E2E8F0"}` }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{b.title}</div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4, fontSize: 11.5 }}>
+                    <span style={{ color: "#64748B" }}>{b.author}</span>
+                    <span style={{ fontWeight: 700, color: b.isOverdue ? "#DC2626" : "#16A34A" }}>
+                      {b.isOverdue ? `⚠️ Quá hạn (${b.dueDate})` : `Hạn: ${b.dueDate}`}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-          <div style={{
-            display: "flex", alignItems: "center", gap: "6px", padding: "10px 18px", borderRadius: "12px",
-            background: "linear-gradient(135deg, #FF6B35, #E85A2A)", color: "white", fontWeight: "600", fontSize: "13px",
-            flexShrink: 0, zIndex: 1, boxShadow: "0 4px 12px rgba(232,90,42,0.35)"
-          }}>
-            Khám phá <ArrowRight size={15} />
-          </div>
         </div>
-      </Link>
+      </div>
     </div>
-  </>
-);
+  );
 }

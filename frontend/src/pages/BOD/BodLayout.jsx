@@ -2,12 +2,18 @@ import { Outlet, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import { useState, useEffect } from "react";
 import api from "../../config/axiosConfig";
-import { LayoutDashboard, TrendingUp, AlertTriangle, Lightbulb, Download, Settings, LogOut, Bell, User, Layers, BarChart2 } from "lucide-react";
+import { LayoutDashboard, TrendingUp, AlertTriangle, Lightbulb, Download, Settings, LogOut, Bell, User, Layers, BarChart2, GraduationCap, DollarSign, BookOpen, GitBranch, Building2, Send } from "lucide-react";
 
 const navItems = [
   { to: "/bod/dashboard", icon: LayoutDashboard, label: "Bảng điều khiển" },
+  { to: "/bod/departments", icon: Building2, label: "Giám sát phòng ban" },
+  { to: "/bod/directives", icon: Send, label: "Giao chỉ thị cán bộ" },
+  { to: "/bod/university-overview", icon: GraduationCap, label: "Toàn cảnh ĐH FPT" },
   { to: "/bod/analytics/majors", icon: BarChart2, label: "Phân tích theo ngành" },
   { to: "/bod/forecast", icon: TrendingUp, label: "Báo cáo dự báo" },
+  { to: "/bod/financial-analytics", icon: DollarSign, label: "Tài chính chiến lược" },
+  { to: "/bod/research", icon: BookOpen, label: "Nghiên cứu & Sáng tạo" },
+  { to: "/bod/data-lineage", icon: GitBranch, label: "Data Lineage DWH" },
   { to: "/bod/risks", icon: AlertTriangle, label: "Giám sát rủi ro" },
   { to: "/bod/recommendations", icon: Lightbulb, label: "Đề xuất chiến lược" },
   { to: "/bod/simulation", icon: Layers, label: "Mô phỏng kịch bản" },
