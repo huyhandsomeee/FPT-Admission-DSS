@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, ReferenceArea
@@ -133,8 +133,8 @@ export default function ForecastReport() {
             />
             <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0" }} formatter={v => v?.toLocaleString() ?? "N/A"} />
             {/* shade the forecast area */}
-            <ReferenceArea x1="2025" x2="2028" fill="#FFF7ED" fillOpacity={0.6} />
-            <ReferenceLine x="2025" stroke="#E2E8F0" strokeDasharray="4 3" />
+            <ReferenceArea x1="2026" x2="2028" fill="#FFF7ED" fillOpacity={0.6} />
+            <ReferenceLine x="2026" stroke="#E2E8F0" strokeDasharray="4 3" />
             <Line type="monotone" dataKey="actual" stroke="#1E293B" strokeWidth={2.5}
               dot={{ r: 6, fill: "white", stroke: "#1E293B", strokeWidth: 2 }} connectNulls={false} name="Thực tế" />
             <Line type="monotone" dataKey="predicted" stroke="#FF6B35" strokeWidth={2}

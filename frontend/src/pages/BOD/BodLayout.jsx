@@ -21,23 +21,23 @@ const navItems = [
 ];
 
 const PAGE_TITLES = {
-  "/bod/dashboard": "Executive Decision Portal",
+  "/bod/dashboard": "Cổng Ra Quyết Định Điều Hành",
   "/bod/analytics/majors": "Phân tích theo ngành",
-  "/bod/forecast": "Executive Dashboard",
-  "/bod/risks": "Executive Dashboard",
-  "/bod/recommendations": "Chi Tiết Đề xuất",
-  "/bod/simulation": "Bảng mô phỏng giả định What-If",
-  "/bod/export": "Xuất báo cáo",
+  "/bod/forecast": "Bảng Điều Hành Lãnh Đạo",
+  "/bod/risks": "Bảng Điều Hành Lãnh Đạo",
+  "/bod/recommendations": "Chi Tiết Đề Xuất Chiến Lược",
+  "/bod/simulation": "Mô Phỏng Kịch Bản What-If",
+  "/bod/export": "Xuất Báo Cáo",
 };
 
 const PAGE_SUBTITLES = {
-  "/bod/dashboard": "FPT University • 2026 Admissions Cycle",
-  "/bod/analytics/majors": "Phân tích trạng thái chỉ tiêu tuyển sinh • FPT University",
-  "/bod/forecast": "Board of Directors Portal • FPT University",
-  "/bod/risks": "Board of Directors Portal • FPT University",
-  "/bod/recommendations": "Board of Directors Portal • FPT University",
-  "/bod/simulation": "Executive Sandbox • FPT University",
-  "/bod/export": "Board of Directors Portal • FPT University",
+  "/bod/dashboard": "Đại học FPT • Chu kỳ Tuyển sinh 2026",
+  "/bod/analytics/majors": "Phân tích trạng thái chỉ tiêu tuyển sinh • Đại học FPT",
+  "/bod/forecast": "Cổng Hội đồng Quản trị • Đại học FPT",
+  "/bod/risks": "Cổng Hội đồng Quản trị • Đại học FPT",
+  "/bod/recommendations": "Cổng Hội đồng Quản trị • Đại học FPT",
+  "/bod/simulation": "Khu vực Mô phỏng Chiến lược • Đại học FPT",
+  "/bod/export": "Cổng Hội đồng Quản trị • Đại học FPT",
 };
 
 export default function BodLayout() {
@@ -111,10 +111,10 @@ export default function BodLayout() {
 
         {/* Session identity */}
         <div style={{ margin: "14px 14px 6px", padding: "12px 14px", background: "rgba(255,255,255,0.04)", borderRadius: 10, border: "1px solid rgba(255,255,255,0.07)" }}>
-          <div style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(148,163,184,0.6)", letterSpacing: "0.6px", marginBottom: 5 }}>SESSION IDENTITY</div>
+          <div style={{ fontSize: 9.5, fontWeight: 700, color: "rgba(148,163,184,0.6)", letterSpacing: "0.6px", marginBottom: 5 }}>PHIÊN LÀM VIỆC</div>
           <div style={{ display: "flex", alignItems: "center", gap: 5 }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: "#22C55E" }} />
-            <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>Quản lý cấp cao</span>
+            <span style={{ color: "white", fontSize: 12, fontWeight: 600 }}>Ban Giám Hiệu</span>
           </div>
         </div>
 
@@ -250,8 +250,8 @@ export default function BodLayout() {
             </button>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>Admin Executive</div>
-                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.3px" }}>SUPER USER</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>{user?.fullName || "Ban Giám Hiệu"}</div>
+                <div style={{ fontSize: 10, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.3px" }}>LÃNH ĐẠO CẤP CAO</div>
               </div>
               <div style={{
                 width: 34, height: 34, borderRadius: "50%",

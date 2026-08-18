@@ -1,10 +1,10 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { BookOpen, TrendingUp, Award, ChevronDown, Calendar, Star, AlertCircle, CheckCircle, Download } from "lucide-react";
 
 /* ── Mock data từ FACT_LEARNING + DIM tables ── */
 const SEMESTERS = [
   {
-    id: "FA25", label: "FA25 (Thu 2025)", status: "completed",
+    id: "TH26", label: "TH26 (Thu 2026)", status: "completed",
     gpa: 3.7, credits: 15,
     courses: [
       { code: "MAE101", name: "Mathematics for Engineering", credits: 3, grade: "A", point: 4.0, midterm: 9.2, final: 9.5, attend: 95 },
@@ -15,7 +15,7 @@ const SEMESTERS = [
     ]
   },
   {
-    id: "SP25", label: "SP25 (Spring 2025)", status: "completed",
+    id: "XU26", label: "XU26 (Xuan 2026)", status: "completed",
     gpa: 3.5, credits: 15,
     courses: [
       { code: "MAD101", name: "Discrete Mathematics", credits: 3, grade: "A", point: 4.0, midterm: 9.0, final: 9.3, attend: 96 },
@@ -26,7 +26,7 @@ const SEMESTERS = [
     ]
   },
   {
-    id: "SU25", label: "SU25 (Summer 2025)", status: "completed",
+    id: "HE26", label: "HE26 (He 2026)", status: "completed",
     gpa: 3.8, credits: 12,
     courses: [
       { code: "WED201", name: "Web Development", credits: 3, grade: "A+", point: 4.0, midterm: 9.7, final: 9.8, attend: 100 },
@@ -49,7 +49,7 @@ const SEMESTERS = [
 ];
 
 const GRADE_COLOR = { "A+": "#16A34A", "A": "#16A34A", "A-": "#059669", "B+": "#2563EB", "B": "#2563EB", "B-": "#7C3AED", "C+": "#D97706", "C": "#D97706", null: "#9CA3AF" };
-const GPA_DATA = [{ sem: "SP25", gpa: 3.5 }, { sem: "SU25", gpa: 3.8 }, { sem: "FA25", gpa: 3.7 }];
+const GPA_DATA = [{ sem: "XU26", gpa: 3.5 }, { sem: "HE26", gpa: 3.8 }, { sem: "TH26", gpa: 3.7 }];
 const cumulativeGpa = 3.67;
 const totalCredits = 42;
 const completedCredits = 42;

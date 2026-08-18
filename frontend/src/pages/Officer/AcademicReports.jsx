@@ -1,8 +1,8 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { BarChart3, Download, Filter, TrendingUp, TrendingDown, Award, AlertCircle, CheckCircle, Users, BookOpen, Calendar } from "lucide-react";
 
 /* ── Mock data từ FACT_LEARNING aggregated ── */
-const SEMESTER = "SU25";
+const SEMESTER = "HE26";
 
 const OVERVIEW = {
   totalStudents: 2847, passRate: 87.3, avgGpa: 3.24, failRate: 5.2,
@@ -60,7 +60,7 @@ export default function AcademicReports() {
         </div>
         <div style={{ display: "flex", gap: 10 }}>
           <select value={semFilter} onChange={e => setSemFilter(e.target.value)} style={{ padding: "9px 14px", borderRadius: 10, border: "1.5px solid #E5E7EB", fontSize: 13, background: "#fff", cursor: "pointer" }}>
-            {["SU25", "SP25", "FA25", "SU24"].map(s => <option key={s}>{s}</option>)}
+            {["HE26", "XU26", "TH26", "SU24"].map(s => <option key={s}>{s}</option>)}
           </select>
           <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", background: "#ECFDF5", border: "1.5px solid #A7F3D0", borderRadius: 10, color: "#059669", fontWeight: 600, fontSize: 13, cursor: "pointer" }}>
             <Download size={14} /> Xuất báo cáo

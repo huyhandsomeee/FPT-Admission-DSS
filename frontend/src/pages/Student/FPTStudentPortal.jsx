@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, Calendar, GraduationCap, BookOpen, DollarSign,
@@ -637,7 +637,7 @@ export default function FPTStudentPortal() {
                     Chào buổi sáng, <span style={{ color: "#9A3412" }}>Nguyễn Văn A 👋</span>
                   </h1>
                   <p style={{ fontSize: 13.5, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Chúc bạn một ngày học tập và làm việc hiệu quả. Kỳ Fall 2024 đã đi được nửa chặng đường.
+                    Chúc bạn một ngày học tập và làm việc hiệu quả. Kỳ Thu 2026 đã đi được nửa chặng đường.
                   </p>
                 </div>
 
@@ -647,7 +647,7 @@ export default function FPTStudentPortal() {
                 </div>
               </div>
 
-              {/* Hàng 1: Lịch học hôm nay + Deadlines sắp tới + Học phí Kỳ Fall 2024 (Ảnh 1) */}
+              {/* Hàng 1: Lịch học hôm nay + Deadlines sắp tới + Học phí Kỳ Thu 2026 (Ảnh 1) */}
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.15fr", gap: 18, marginBottom: 24 }}>
 
                 {/* Card 1: Lịch học hôm nay */}
@@ -732,12 +732,12 @@ export default function FPTStudentPortal() {
                   </div>
                 </div>
 
-                {/* Card 3: Học phí Kỳ Fall 2024 (Card xanh đen đậm chuẩn Ảnh 1) */}
+                {/* Card 3: Học phí Kỳ Thu 2026 (Card xanh đen đậm chuẩn Ảnh 1) */}
                 <div style={{ background: "#0F172A", borderRadius: 16, padding: "22px 24px", color: "#FFFFFF", display: "flex", flexDirection: "column", justifyContent: "space-between", boxShadow: "0 4px 14px rgba(15,23,42,0.15)" }}>
                   <div>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800 }}>
-                        <CreditCard size={17} color="#38BDF8" /> Học phí Kỳ Fall 2024
+                        <CreditCard size={17} color="#38BDF8" /> Học phí Kỳ Thu 2026
                       </div>
                       <span style={{ fontSize: 11, fontWeight: 700, background: "rgba(16,185,129,0.2)", color: "#34D399", padding: "3px 8px", borderRadius: 6, display: "flex", alignItems: "center", gap: 4 }}>
                         <Check size={12} /> Đã hoàn thành
@@ -1369,10 +1369,10 @@ export default function FPTStudentPortal() {
               {/* Hàng 1: Học phí cần đóng + Thông tin học bổng (Ảnh 5) */}
               <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 20, marginBottom: 24 }}>
 
-                {/* Khối 1: Học phí cần đóng kỳ Fall 2024 */}
+                {/* Khối 1: Học phí cần đóng kỳ Thu 2026 */}
                 <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: "24px 26px", boxShadow: "0 2px 8px rgba(0,0,0,0.02)" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, fontWeight: 800, color: "#9A3412", marginBottom: 10 }}>
-                    <CreditCard size={17} /> Học phí cần đóng kỳ Fall 2024
+                    <CreditCard size={17} /> Học phí cần đóng kỳ Thu 2026
                   </div>
 
                   <div style={{ fontSize: 36, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.6px", marginBottom: 6 }}>
@@ -1392,7 +1392,7 @@ export default function FPTStudentPortal() {
                     </button>
 
                     <button
-                      onClick={() => showToast("Đang tải hóa đơn điện tử học phí kỳ Fall 2024")}
+                      onClick={() => showToast("Đang tải hóa đơn điện tử học phí kỳ Thu 2026")}
                       style={{ display: "flex", alignItems: "center", gap: 8, padding: "11px 20px", borderRadius: 10, background: "#FFFFFF", color: "#2563EB", border: "1.5px solid #CBD5E1", fontWeight: 700, fontSize: 13.5, cursor: "pointer" }}
                     >
                       <Receipt size={16} /> Xem chi tiết hóa đơn
@@ -2063,7 +2063,7 @@ export default function FPTStudentPortal() {
             <div style={{ padding: "14px 16px", background: "#F8FAFC", borderRadius: 10, border: "1px solid #E2E8F0", marginBottom: 16, fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ color: "#64748B" }}>Học kỳ:</span>
-                <strong>Fall 2024</strong>
+                <strong>Thu 2026</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
                 <span style={{ color: "#64748B" }}>Học phí gốc:</span>

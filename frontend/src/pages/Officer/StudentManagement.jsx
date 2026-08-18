@@ -1,9 +1,9 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { Users, Search, Filter, Download, ChevronDown, Eye, Mail, Phone, AlertCircle, GraduationCap, ChevronLeft, ChevronRight } from "lucide-react";
 
 /* ── Mock data — DIM_STUDENT + FACT_LEARNING ── */
 const PROGRAMS = ["Tất cả", "Công nghệ thông tin", "Quản trị kinh doanh", "Ngôn ngữ Anh", "Thiết kế đồ họa", "Kỹ thuật phần mềm"];
-const SEMESTERS = ["Tất cả", "FA26", "SU25", "SP25"];
+const SEMESTERS = ["Tất cả", "FA26", "HE26", "XU26"];
 const STATUSES = ["Tất cả", "Đang học", "Bảo lưu", "Thôi học", "Tốt nghiệp"];
 
 const STUDENTS = Array.from({ length: 48 }, (_, i) => ({

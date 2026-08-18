@@ -1,26 +1,26 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { DollarSign, CreditCard, Award, AlertCircle, CheckCircle, Clock, Download, ChevronDown, Filter } from "lucide-react";
 
 /* ── Mock data từ FACT_FINANCE ── */
 const TUITION_SCHEDULE = [
-  { semester: "FA25 (Thu 2025)", dueDate: "15/09/2025", amount: 28500000, paid: 28500000, status: "paid", method: "Chuyển khoản ngân hàng", txId: "TXN20250915-001" },
-  { semester: "SP25 (Spring 2025)", dueDate: "15/02/2025", amount: 28500000, paid: 28500000, status: "paid", method: "Cổng thanh toán VNPay", txId: "TXN20250215-002" },
-  { semester: "SU25 (Summer 2025)", dueDate: "15/06/2025", amount: 22800000, paid: 22800000, status: "paid", method: "Chuyển khoản ngân hàng", txId: "TXN20250615-003" },
+  { semester: "TH26 (Thu 2026)", dueDate: "15/09/2026", amount: 28500000, paid: 28500000, status: "paid", method: "Chuyển khoản ngân hàng", txId: "TXN20260915-001" },
+  { semester: "XU26 (Xuan 2026)", dueDate: "15/02/2026", amount: 28500000, paid: 28500000, status: "paid", method: "Cổng thanh toán VNPay", txId: "TXN20260215-002" },
+  { semester: "HE26 (He 2026)", dueDate: "15/06/2026", amount: 22800000, paid: 22800000, status: "paid", method: "Chuyển khoản ngân hàng", txId: "TXN20260615-003" },
   { semester: "FA26 (Thu 2026)", dueDate: "30/08/2026", amount: 29700000, paid: 15000000, status: "partial", method: null, txId: null },
 ];
 
 const SCHOLARSHIPS = [
-  { name: "Học bổng Thủ khoa", type: "academic", amount: 100, unit: "%", sem: "FA25", status: "received", total: 28500000, desc: "GPA 4.0 - Thủ khoa học kỳ" },
-  { name: "Học bổng Khuyến khích học tập", type: "academic", amount: 30, unit: "%", sem: "SP25", status: "received", total: 8550000, desc: "GPA >= 3.5" },
+  { name: "Học bổng Thủ khoa", type: "academic", amount: 100, unit: "%", sem: "TH26", status: "received", total: 28500000, desc: "GPA 4.0 - Thủ khoa học kỳ" },
+  { name: "Học bổng Khuyến khích học tập", type: "academic", amount: 30, unit: "%", sem: "XU26", status: "received", total: 8550000, desc: "GPA >= 3.5" },
   { name: "Học bổng Doanh nghiệp FPT", type: "enterprise", amount: 50, unit: "%", sem: "FA26", status: "pending", total: 14850000, desc: "Đang xét duyệt" },
 ];
 
 const PAYMENT_HISTORY = [
-  { date: "15/09/2025", desc: "Học phí FA25", amount: -28500000, type: "tuition", ref: "TXN20250915-001" },
-  { date: "15/09/2025", desc: "Học bổng Thủ khoa FA25", amount: 28500000, type: "scholarship", ref: "SCH-2025-001" },
-  { date: "15/02/2025", desc: "Học phí SP25", amount: -28500000, type: "tuition", ref: "TXN20250215-002" },
-  { date: "20/02/2025", desc: "Học bổng Khuyến khích SP25", amount: 8550000, type: "scholarship", ref: "SCH-2025-002" },
-  { date: "15/06/2025", desc: "Học phí SU25", amount: -22800000, type: "tuition", ref: "TXN20250615-003" },
+  { date: "15/09/2026", desc: "Học phí FA25", amount: -28500000, type: "tuition", ref: "TXN20260915-001" },
+  { date: "15/09/2026", desc: "Học bổng Thủ khoa FA25", amount: 28500000, type: "scholarship", ref: "SCH-2026-001" },
+  { date: "15/02/2026", desc: "Học phí SP25", amount: -28500000, type: "tuition", ref: "TXN20260215-002" },
+  { date: "20/02/2026", desc: "Học bổng Khuyến khích SP25", amount: 8550000, type: "scholarship", ref: "SCH-2026-002" },
+  { date: "15/06/2026", desc: "Học phí SU25", amount: -22800000, type: "tuition", ref: "TXN20260615-003" },
   { date: "01/08/2026", desc: "Thanh toán một phần FA26", amount: -15000000, type: "tuition", ref: "TXN20260801-001" },
 ];
 

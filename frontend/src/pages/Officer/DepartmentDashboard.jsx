@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Building2, Users, CheckCircle2, Clock, BarChart3, TrendingUp,
@@ -21,7 +21,7 @@ export default function DepartmentDashboard() {
 
   // Selected Department / Faculty Key
   const [selectedDept, setSelectedDept] = useState("PHONG_TUYEN_SINH");
-  const [selectedSemester, setSelectedSemester] = useState("Fall 2024");
+  const [selectedSemester, setSelectedSemester] = useState("Thu 2026");
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg, type = "success") => {
@@ -72,7 +72,7 @@ export default function DepartmentDashboard() {
       staffCount: 22,
       connectedFact: "FACT_LEARNING",
       kpis: [
-        { label: "Tiến độ chuẩn hóa điểm học kỳ", val: "98.8%", target: "Học kỳ Fall 2024", color: "#16A34A", bg: "#DCFCE7", change: "+3.2% so với Summer" },
+        { label: "Tiến độ chuẩn hóa điểm học kỳ", val: "98.8%", target: "Học kỳ Thu 2026", color: "#16A34A", bg: "#DCFCE7", change: "+3.2% so với Summer" },
         { label: "Đơn phúc khảo & Học vụ chờ duyệt", val: "12 Hồ sơ", target: "Toán & Lập trình C", color: "#EA580C", bg: "#FFEDD5", change: "Xử lý trong 24h" },
         { label: "Tỷ lệ sinh viên đạt chuẩn tiến độ", val: "91.8%", target: "Chỉ tiêu > 90.0%", color: "#2563EB", bg: "#EFF6FF", change: "Đạt chuẩn kiểm định" },
         { label: "Độ sẵn sàng dữ liệu DWH", val: "100%", target: "FACT_LEARNING", color: "#7C3AED", bg: "#F5F3FF", change: "480 Môn học kích hoạt" }
@@ -242,9 +242,9 @@ export default function DepartmentDashboard() {
               }}
               style={{ border: "none", background: "transparent", fontSize: 12, fontWeight: 700, color: "#0F172A", cursor: "pointer", outline: "none" }}
             >
-              <option value="Fall 2024">Kỳ Thu 2024 (Fall 2024)</option>
-              <option value="Spring 2025">Kỳ Xuân 2025 (Spring 2025)</option>
-              <option value="Fall 2025">Kỳ Thu 2025 (Fall 2025)</option>
+              <option value="Thu 2026">Kỳ Thu 2024 (Thu 2026)</option>
+              <option value="Xuan 2026">Kỳ Xuân 2025 (Xuan 2026)</option>
+              <option value="Thu 2026">Kỳ Thu 2025 (Thu 2026)</option>
             </select>
           </div>
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine
@@ -272,7 +272,7 @@ export default function ManagerForecast() {
               <XAxis dataKey="year" tick={{ fontSize: 12, fill: "#94A3B8" }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fontSize: 11, fill: "#94A3B8" }} axisLine={false} tickLine={false} tickFormatter={v => `${v / 1000}k`} />
               <Tooltip contentStyle={{ borderRadius: 10, border: "1px solid #E2E8F0" }} formatter={v => v?.toLocaleString() ?? "N/A"} />
-              <ReferenceLine x="2025" stroke="#E2E8F0" strokeDasharray="5 3" />
+              <ReferenceLine x="2026" stroke="#E2E8F0" strokeDasharray="5 3" />
               <Line type="monotone" dataKey="actual" stroke="#1D4ED8" strokeWidth={2.5}
                 dot={{ r: 5, fill: "#1D4ED8", strokeWidth: 0 }} connectNulls={false} name="Thực tế" />
               <Line type="monotone" dataKey="predicted" stroke="#D97706" strokeWidth={2}

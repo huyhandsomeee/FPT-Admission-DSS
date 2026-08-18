@@ -232,8 +232,8 @@ export default function ManagerLayout() {
             {/* Profile info */}
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
               <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>Alex Thompson</div>
-                <div style={{ fontSize: 10.5, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.3px", marginTop: 1 }}>QUẢN TRỊ VIÊN CHÍNH</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: "#1E293B" }}>{user?.fullName || "Quản lý Tuyển sinh"}</div>
+                <div style={{ fontSize: 10.5, color: "#94A3B8", fontWeight: 600, letterSpacing: "0.3px", marginTop: 1 }}>QUẢN LÝ TUYỂN SINH</div>
               </div>
               <div style={{
                 width: 36, height: 36, borderRadius: "50%",

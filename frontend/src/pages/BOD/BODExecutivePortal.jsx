@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, GraduationCap, Database, TrendingUp,
@@ -39,7 +39,7 @@ export default function BODExecutivePortal() {
   const [activeTab, setActiveTab] = useState("dss_forecast");
 
   // Global Filter: Kỳ học / Năm học tuyển sinh
-  const [selectedSemester, setSelectedSemester] = useState("Fall 2024");
+  const [selectedSemester, setSelectedSemester] = useState("Thu 2026");
   const [selectedCampus, setSelectedCampus] = useState("all");
 
   // State cho Mô phỏng Kịch bản Ngân sách (What-If Simulation)
@@ -280,9 +280,9 @@ export default function BODExecutivePortal() {
                 }}
                 style={{ border: "none", background: "transparent", fontSize: 12, fontWeight: 700, color: "#0F172A", cursor: "pointer", outline: "none" }}
               >
-                <option value="Fall 2024">Kỳ Thu 2024 (Fall 2024)</option>
-                <option value="Spring 2025">Kỳ Xuân 2025 (Spring 2025)</option>
-                <option value="Fall 2025">Dự phóng Kỳ Thu 2025 (Fall 2025)</option>
+                <option value="Thu 2026">Kỳ Thu 2024 (Thu 2026)</option>
+                <option value="Xuan 2026">Kỳ Xuân 2025 (Xuan 2026)</option>
+                <option value="Thu 2026">Dự phóng Kỳ Thu 2025 (Thu 2026)</option>
               </select>
             </div>
 
@@ -1041,7 +1041,7 @@ export default function BODExecutivePortal() {
                     Phân tích Xu hướng & Thị trường Lao động
                   </h1>
                   <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Dữ liệu hỗ trợ quyết định chiến lược mở ngành mới năm học 2024-2025
+                    Dữ liệu hỗ trợ quyết định chiến lược mở ngành mới năm học 2025-2026
                   </p>
                 </div>
 
@@ -1944,9 +1944,9 @@ export default function BODExecutivePortal() {
               <div>
                 <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 4 }}>KỲ DỰ BÁO MỤC TIÊU</label>
                 <select style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 13, background: "#FFF" }}>
-                  <option>Kỳ Thu 2024 (Fall 2024)</option>
-                  <option>Kỳ Xuân 2025 (Spring 2025)</option>
-                  <option>Kỳ Thu 2025 (Fall 2025)</option>
+                  <option>Kỳ Thu 2024 (Thu 2026)</option>
+                  <option>Kỳ Xuân 2025 (Xuan 2026)</option>
+                  <option>Kỳ Thu 2025 (Thu 2026)</option>
                 </select>
               </div>
             </div>

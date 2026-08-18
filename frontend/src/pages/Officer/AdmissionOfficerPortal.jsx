@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, GraduationCap, Database, TrendingUp,
@@ -575,7 +575,7 @@ export default function AdmissionOfficerPortal() {
                     Recruitment Performance
                   </h1>
                   <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Academic Year 2024-2025 • Đánh giá hiệu suất chuyển đổi toàn kênh
+                    Nam hoc 2025-2026 • Đánh giá hiệu suất chuyển đổi toàn kênh
                   </p>
                 </div>
 
