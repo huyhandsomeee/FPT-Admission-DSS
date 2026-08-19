@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, GraduationCap, Database, TrendingUp,
@@ -20,6 +20,10 @@ import {
   PieChart as RechartsPieChart, Pie
 } from "recharts";
 import * as XLSX from "xlsx";
+
+import {
+  logAuditEvent, pushCandidateNotification
+} from "../../services/candidateAdmissionEngine";
 
 export default function BODExecutivePortal() {
   const navigate = useNavigate();
@@ -53,6 +57,10 @@ export default function BODExecutivePortal() {
   const [showNotificationModal, setShowNotificationModal] = useState(false);
   const [showRunModelModal, setShowRunModelModal] = useState(false);
   const [showCampusMapModal, setShowCampusMapModal] = useState(false);
+  const [selectedBODDirective, setSelectedBODDirective] = useState(null);
+  const [showNewMajorProposalModal, setShowNewMajorProposalModal] = useState(false);
+  const [showRiskConfigModal, setShowRiskConfigModal] = useState(false);
+  const [activeUrgeDept, setActiveUrgeDept] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
 
   const showToast = (msg, type = "success") => {
@@ -816,8 +824,8 @@ export default function BODExecutivePortal() {
                           {rec.desc}
                         </p>
                         <button
-                          onClick={() => showToast(`Ban Giám Hiệu đã phê duyệt chỉ thị: "${rec.actionText}"!`)}
-                          style={{ padding: "5px 10px", borderRadius: 5, background: "#0F172A", color: "#FFFFFF", border: "none", fontSize: 11, fontWeight: 700, cursor: "pointer" }}
+                          onClick={() => setSelectedBODDirective(rec)}
+                          style={{ padding: "6px 12px", borderRadius: 6, background: "#0F172A", color: "#FFFFFF", border: "none", fontSize: 11, fontWeight: 800, cursor: "pointer", boxShadow: "0 2px 6px rgba(15,23,42,0.2)" }}
                         >
                           Phê duyệt chỉ thị
                         </button>
@@ -1053,7 +1061,7 @@ export default function BODExecutivePortal() {
                     <Download size={14} /> Xuất Báo Cáo
                   </button>
                   <button
-                    onClick={() => showToast("Đang mở biểu mẫu Tạo Đề Xuất Mở Ngành Mới cho BGH")}
+                    onClick={() => setShowNewMajorProposalModal(true)}
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
                   >
                     + Tạo Đề Xuất
@@ -1347,7 +1355,7 @@ export default function BODExecutivePortal() {
                     <Download size={14} /> Xuất báo cáo
                   </button>
                   <button
-                    onClick={() => showToast("Đã kích hoạt cảnh báo rủi ro toàn hệ thống!")}
+                    onClick={() => setShowRiskConfigModal(true)}
                     style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#EA580C", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
                   >
                     <Bell size={14} /> Thiết lập cảnh báo
@@ -1379,7 +1387,10 @@ export default function BODExecutivePortal() {
                       </p>
                       <div style={{ display: "flex", gap: 12, fontSize: 11, fontWeight: 700 }}>
                         <span onClick={() => showToast("Đang mở chi tiết phân tích hồ sơ ảo Miền Tây")} style={{ color: "#9A3412", cursor: "pointer" }}>Chi tiết</span>
-                        <span onClick={() => showToast("Đã gửi chỉ thị tới Giám đốc Tuyển sinh")} style={{ color: "#2563EB", cursor: "pointer" }}>Gửi GĐ Tuyển sinh</span>
+                        <span onClick={() => {
+                          logAuditEvent("BOD_DISPATCH_RISK_ALERT", "BGH chuyển lệnh cảnh báo Rủi ro Hồ sơ ảo Miền Tây (+15%) tới Giám đốc Tuyển sinh & Cán bộ thẩm định.", "BOD Executive Council");
+                          showToast("⚡ Đã gửi chỉ thị cảnh báo rủi ro tới Giám đốc Tuyển sinh!");
+                        }} style={{ color: "#2563EB", cursor: "pointer" }}>Gửi GĐ Tuyển sinh</span>
                       </div>
                     </div>
 
@@ -1674,8 +1685,14 @@ export default function BODExecutivePortal() {
                         <td style={{ padding: "12px", textAlign: "center", color: "#DC2626", fontWeight: 700 }}>{row.pending}</td>
                         <td style={{ padding: "12px", textAlign: "center", fontWeight: 800, color: row.slaColor }}>{row.sla}</td>
                         <td style={{ padding: "12px", textAlign: "right" }}>
-                          <button onClick={() => showToast(`Gửi thông báo đốc thúc tới Trưởng ${row.name}`)} style={{ padding: "4px 10px", borderRadius: 5, background: "#F1F5F9", color: "#0F172A", border: "1px solid #CBD5E1", fontSize: 11.5, fontWeight: 700, cursor: "pointer" }}>
-                            Đốc thúc
+                          <button
+                            onClick={() => {
+                              logAuditEvent("BOD_URGE_SLA_COMPLIANCE", `BGH phát lệnh Đốc thúc SLA khẩn cấp tới ${row.name} (Tồn đọng ${row.pending} hồ sơ / SLA ${row.sla})`, "BOD Executive Council");
+                              showToast(`⚡ Đã phát lệnh Đốc thúc SLA khẩn cấp tới Trưởng ${row.name}!`);
+                            }}
+                            style={{ padding: "5px 12px", borderRadius: 6, background: "#0F172A", color: "#FFFFFF", border: "none", fontSize: 11.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 5px rgba(0,0,0,0.15)" }}
+                          >
+                            ⚡ Đốc thúc
                           </button>
                         </td>
                       </tr>
