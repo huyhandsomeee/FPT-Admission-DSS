@@ -41,6 +41,10 @@ export default function FinanceOfficerPortal() {
   const [showDetailModal, setShowDetailModal] = useState(null); // staff object
   const [showTeachingHrsModal, setShowTeachingHrsModal] = useState(null); // staff object for inputting pending hours
   const [showViewAllExpenditures, setShowViewAllExpenditures] = useState(false);
+  const [showTuitionReminderModal, setShowTuitionReminderModal] = useState(null);
+  const [showScholarshipApproveModal, setShowScholarshipApproveModal] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
 
   // ─── TRANSACTIONS / SALARY & PAYROLL STATE (IMAGE 1) ───
   const [payrollCycle, setPayrollCycle] = useState("Tháng 10/2023");
@@ -126,19 +130,19 @@ export default function FinanceOfficerPortal() {
   const [tuitionYear, setTuitionYear] = useState("2026 - 2027");
   const [tuitionTerm, setTuitionTerm] = useState("Kỳ Thu 2026");
   const [tuitionStatus, setTuitionStatus] = useState("ALL");
-  const tuitionDebts = [
+  const [tuitionDebts, setTuitionDebts] = useState([
     { id: "DEBT-01", name: "Nguyễn Văn A", code: "HE150123", amount: "25,500,000", deadline: "15/09/2026", status: "Quá hạn", color: "#DC2626", bg: "#FEE2E2" },
     { id: "DEBT-02", name: "Trần Thị B", code: "SS160456", amount: "12,000,000", deadline: "20/09/2026", status: "Đã nhắc nợ", color: "#2563EB", bg: "#DBEAFE" },
     { id: "DEBT-03", name: "Lê Văn C", code: "SE170789", amount: "5,500,000", deadline: "30/09/2026", status: "Chờ xử lý", color: "#D97706", bg: "#FEF3C7" },
     { id: "DEBT-04", name: "Hoàng Minh D", code: "SE180234", amount: "18,200,000", deadline: "25/09/2026", status: "Đã nhắc nợ", color: "#2563EB", bg: "#DBEAFE" },
     { id: "DEBT-05", name: "Đỗ Thu E", code: "GD170990", amount: "29,700,000", deadline: "10/09/2026", status: "Quá hạn", color: "#DC2626", bg: "#FEE2E2" }
-  ];
+  ]);
 
-  const scholarshipsData = [
-    { name: "Nguyễn Văn A", code: "SE150123", major: "CNTT", type: "Tài năng", rate: "100%", amount: "25.000.000đ", remaining: "0đ", status: "Đủ điều kiện", gpa: 9.2, gpaReq: 8.5, conduct: "Tốt", conductReq: "Tốt", discipline: "Không" },
-    { name: "Trần Thị B", code: "IA150456", major: "ATTT", type: "Khuyến khích", rate: "50%", amount: "12.500.000đ", remaining: "12.500.000đ", status: "Chờ duyệt", gpa: 8.5, gpaReq: 8.0, conduct: "Khá", conductReq: "Tốt", discipline: "Không" },
-    { name: "Lê Hoàng C", code: "SS150789", major: "QTKD", type: "Hỗ trợ TC", rate: "—", amount: "10.000.000đ", remaining: "10.000.000đ", status: "Vi phạm", gpa: 7.2, gpaReq: 7.5, conduct: "Trung bình", conductReq: "Khá", discipline: "Cảnh cáo" }
-  ];
+  const [scholarshipsData, setScholarshipsData] = useState([
+    { id: "SCH-01", name: "Nguyễn Văn A", code: "SE150123", major: "CNTT", type: "Tài năng", rate: "100%", amount: "25.000.000đ", remaining: "0đ", status: "Đủ điều kiện", gpa: 9.2, gpaReq: 8.5, conduct: "Tốt", conductReq: "Tốt", discipline: "Không" },
+    { id: "SCH-02", name: "Trần Thị B", code: "IA150456", major: "ATTT", type: "Khuyến khích", rate: "50%", amount: "12.500.000đ", remaining: "12.500.000đ", status: "Chờ duyệt", gpa: 8.5, gpaReq: 8.0, conduct: "Khá", conductReq: "Tốt", discipline: "Không" },
+    { id: "SCH-03", name: "Lê Hoàng C", code: "SS150789", major: "QTKD", type: "Hỗ trợ TC", rate: "—", amount: "10.000.000đ", remaining: "10.000.000đ", status: "Vi phạm", gpa: 7.2, gpaReq: 7.5, conduct: "Trung bình", conductReq: "Khá", discipline: "Cảnh cáo" }
+  ]);
 
   // ─── ACTION HANDLERS ───
   const handleSelectAll = (e) => {
@@ -345,7 +349,7 @@ export default function FinanceOfficerPortal() {
 
           <div style={{ padding: "0 12px", display: "flex", flexDirection: "column", gap: 2 }}>
             <button
-              onClick={() => showToast("Đã mở cấu hình tham số thuế & phụ cấp")}
+              onClick={() => setShowSettingsModal(true)}
               style={{
                 width: "100%", display: "flex", alignItems: "center", gap: 12,
                 padding: "9px 16px", borderRadius: 8, fontSize: 13, fontWeight: 500,
@@ -715,7 +719,7 @@ export default function FinanceOfficerPortal() {
                   </div>
 
                   <button
-                    onClick={() => showToast("Đã kích hoạt bộ lọc phòng ban và mức lương")}
+                    onClick={() => setShowFilterModal(true)}
                     style={{
                       width: 32, height: 32, borderRadius: 8, border: "1px solid #E2E8F0",
                       background: "#FFFFFF", display: "flex", alignItems: "center",
@@ -1282,10 +1286,10 @@ export default function FinanceOfficerPortal() {
                   <p style={{ fontSize: 13, color: "#64748B", margin: "3px 0 0" }}>Theo dõi và xử lý các khoản nợ học phí của sinh viên</p>
                 </div>
                 <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={() => showToast("Đã gửi email nhắc nợ tự động tới 5 sinh viên quá hạn")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  <button onClick={() => setShowTuitionReminderModal("ALL")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                     <Mail size={15} /> Gửi Email Nhắc nợ
                   </button>
-                  <button onClick={() => showToast("Đã xuất danh sách công nợ ra file Excel")} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
+                  <button onClick={() => { showToast("Đang chuẩn bị file Excel..."); setTimeout(() => showToast("Đã xuất danh sách công nợ ra file Excel thành công!"), 1500); }} style={{ display: "flex", alignItems: "center", gap: 6, padding: "9px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
                     <Download size={15} /> Xuất Danh sách
                   </button>
                 </div>
@@ -1319,8 +1323,8 @@ export default function FinanceOfficerPortal() {
                           </span>
                         </td>
                         <td style={{ padding: "14px 18px" }}>
-                          <button onClick={() => showToast(`Đã gửi thông báo nhắc nợ tới ${item.name}`)} style={{ padding: "5px 12px", borderRadius: 6, background: "#EFF6FF", color: "#2563EB", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                            Nhắc nợ
+                          <button onClick={() => setShowTuitionReminderModal(item)} disabled={item.status === "Đã nhắc nợ"} style={{ padding: "5px 12px", borderRadius: 6, background: "#EFF6FF", color: "#2563EB", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                            {item.status === "Đã nhắc nợ" ? "Đã nhắc" : "Nhắc nợ"}
                           </button>
                         </td>
                       </tr>
@@ -1375,8 +1379,8 @@ export default function FinanceOfficerPortal() {
                           </span>
                         </td>
                         <td style={{ padding: "14px 18px" }}>
-                          <button onClick={() => showToast(`Đã duyệt giải ngân học bổng cho sinh viên ${s.name}`)} style={{ padding: "6px 12px", borderRadius: 6, background: "#10B981", color: "#FFFFFF", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
-                            Duyệt
+                          <button onClick={() => setShowScholarshipApproveModal(s)} disabled={s.status !== "Chờ duyệt" && s.status !== "Đủ điều kiện"} style={{ padding: "6px 12px", borderRadius: 6, background: "#10B981", color: "#FFFFFF", border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+                            {s.status === "Đã giải ngân" ? "Đã duyệt" : s.status === "Vi phạm" ? "Từ chối" : "Duyệt"}
                           </button>
                         </td>
                       </tr>
