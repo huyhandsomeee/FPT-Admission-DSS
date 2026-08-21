@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   LayoutDashboard, UserPlus, GraduationCap, Database, TrendingUp,
@@ -12,7 +12,9 @@ import {
   Percent, BarChart2, Award, Star, Crosshair, Radio, Cpu,
   MessageSquare, ThumbsUp, ThumbsDown, Hash, Bookmark,
   Sliders, Calendar, Map, Maximize2, Briefcase, Mail,
-  CreditCard, Grid, Search, Smile, ChevronDown, CheckSquare
+  CreditCard, Grid, Search, Smile, ChevronDown, CheckSquare,
+  ArrowRight, CornerDownRight, ListCheck, History, Send, Share2, Flame,
+  TrendingUp as TrendingUpIcon, Award as AwardIcon, CheckSquare as CheckSquareIcon
 } from "lucide-react";
 import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis,
@@ -21,54 +23,119 @@ import {
 } from "recharts";
 import * as XLSX from "xlsx";
 
-import {
-  logAuditEvent, pushCandidateNotification
-} from "../../services/candidateAdmissionEngine";
+import { bodEngine } from "../../services/bodDecisionEngine";
 
 export default function BODExecutivePortal() {
   const navigate = useNavigate();
 
-  // Active Tab State (Được phân nhóm khoa học theo luồng Ra Quyết Định DSS Tuyển sinh):
+  // Active Tab State:
+  // ── NHÓM TRỌNG TÂM: TRUNG TÂM RA QUYẾT ĐỊNH & ĐIỀU HÀNH ──
+  // 1. "decision_center": Trung tâm Quyết định & Phê duyệt Đề xuất (Decision Hub)
+  // 2. "decision_history": Lịch sử Quyết định & Audit Trail
+  //
   // ── NHÓM 1: HỆ THỐNG HỖ TRỢ RA QUYẾT ĐỊNH TUYỂN SINH (DSS CORE) ──
-  // 1. "dss_forecast": Dự báo & Mô phỏng Kịch bản Ngân sách (What-If Simulation)
-  // 2. "dss_funnel": Phân tích Phễu Tuyển sinh & Khuyến nghị AI
-  // 3. "dss_marketing": Hiệu quả Marketing, Phân bổ Kênh & Bản đồ nhiệt
-  // 4. "dss_trends": Xu hướng Khối ngành & Chiến lược Mở ngành mới
+  // 3. "dss_forecast": Dự báo & Mô phỏng Kịch bản Ngân sách (What-If Simulation)
+  // 4. "dss_funnel": Phân tích Phễu Tuyển sinh & Khuyến nghị AI
+  // 5. "dss_marketing": Hiệu quả Marketing, Phân bổ Kênh & Bản đồ nhiệt
+  // 6. "dss_trends": Xu hướng Khối ngành & Chiến lược Mở ngành mới
   //
   // ── NHÓM 2: GIÁM SÁT CHIẾN LƯỢC & VẬN HÀNH TOÀN KHỐI (GOVERNANCE & RISK) ──
-  // 5. "gov_strategic": Tổng quan Chiến lược & KPI 5 Phân hiệu
-  // 6. "gov_risk": Cảnh báo Rủi ro Sớm & Kiểm soát Chỉ tiêu Năm
-  // 7. "gov_crossdept": Giám sát Hoạt động & SLA Liên Phòng ban
-  // 8. "gov_finance": Kế hoạch Tài chính Dài hạn & Đầu tư Hạ tầng
-  const [activeTab, setActiveTab] = useState("dss_forecast");
+  // 7. "gov_strategic": Tổng quan Chiến lược & KPI 5 Phân hiệu
+  // 8. "gov_risk": Cảnh báo Rủi ro Sớm & Kiểm soát Chỉ tiêu Năm (Risk Center)
+  // 9. "gov_crossdept": Giám sát Hoạt động & SLA Liên Phòng ban
+  // 10. "gov_finance": Kế hoạch Tài chính Dài hạn & Đầu tư Hạ tầng
+  const [activeTab, setActiveTab] = useState("gov_strategic");
 
-  // Global Filter: Kỳ học / Năm học tuyển sinh
+  // Global Engine State
+  const [proposals, setProposals] = useState(() => bodEngine.getProposals());
+  const [tasks, setTasks] = useState(() => bodEngine.getTasks());
+  const [risks, setRisks] = useState(() => bodEngine.getRisks());
+  const [notifications, setNotifications] = useState(() => bodEngine.getNotifications());
+  const [auditLogs, setAuditLogs] = useState(() => bodEngine.getAuditLogs());
+  const departmentSLAs = useMemo(() => bodEngine.getDepartmentSLAs(), []);
+
+  // Global Filters
   const [selectedSemester, setSelectedSemester] = useState("Thu 2026");
   const [selectedCampus, setSelectedCampus] = useState("all");
+  const [proposalCategoryFilter, setProposalCategoryFilter] = useState("all");
 
-  // State cho Mô phỏng Kịch bản Ngân sách (What-If Simulation)
+  // What-If Simulation State
   const [tuitionIncrease, setTuitionIncrease] = useState(5); // 0% - 15%
   const [scholarshipRate, setScholarshipRate] = useState(12); // 5% - 25%
   const [marketingBudgetMode, setMarketingBudgetMode] = useState("attack"); // attack, normal, saving
-  const [longTermMetric, setLongTermMetric] = useState("students"); // "students" hoặc "revenue"
-  const [selectedIndustryField, setSelectedIndustryField] = useState("all");
 
-  // Modals & Notifications
-  const [showNotificationModal, setShowNotificationModal] = useState(false);
-  const [showRunModelModal, setShowRunModelModal] = useState(false);
-  const [showCampusMapModal, setShowCampusMapModal] = useState(false);
-  const [selectedBODDirective, setSelectedBODDirective] = useState(null);
-  const [showNewMajorProposalModal, setShowNewMajorProposalModal] = useState(false);
-  const [showRiskConfigModal, setShowRiskConfigModal] = useState(false);
-  const [activeUrgeDept, setActiveUrgeDept] = useState(null);
+  // Interactive Modals & Drawers
+  const [selectedProposalForApproval, setSelectedProposalForApproval] = useState(null);
+  const [approvalComment, setApprovalComment] = useState("");
+  const [isConditionalApproval, setIsConditionalApproval] = useState(false);
+  const [conditionalParams, setConditionalParams] = useState({
+    conditions: "Duy trì CPA dưới 450k/lead và nghiệm thu theo tuần",
+    deadline: "2026-08-25",
+    maxBudget: "8.8 Tỷ VND",
+    kpiCommitment: "+150 SV nhập học"
+  });
+
+  const [selectedKPIDetail, setSelectedKPIDetail] = useState(null);
+  const [selectedRiskForAction, setSelectedRiskForAction] = useState(null);
+  const [riskActionPlan, setRiskActionPlan] = useState("");
+  const [riskAssignedDept, setRiskAssignedDept] = useState("");
+  const [riskAssignee, setRiskAssignee] = useState("");
+  const [riskDeadline, setRiskDeadline] = useState("2026-08-23 17:00");
+
+  const [selectedDepartmentDetail, setSelectedDepartmentDetail] = useState(null);
+  const [selectedDecisionForHistory, setSelectedDecisionForHistory] = useState(null);
+  const [showNewMajorModal, setShowNewMajorModal] = useState(false);
+  const [newMajorForm, setNewMajorForm] = useState({
+    name: "Kỹ thuật Thiết kế Vi mạch Bán dẫn (Semiconductor & IC Design)",
+    code: "7480201SC",
+    faculty: "Khoa Công nghệ Thông tin & Điện tử",
+    firstYearQuota: 350,
+    capex: "15.0 Tỷ VND",
+    opexYear: "5.5 Tỷ VND/năm",
+    breakEven: "2.5 Năm",
+    facultyCount: "4 Tiến sĩ & 6 Thạc sĩ Vi mạch",
+    expectedTuition: "38 Triệu/học kỳ",
+    strategicPartner: "FPT Semiconductor & Viện Nghiên cứu Bán dẫn Quốc tế"
+  });
+
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [commandQuery, setCommandQuery] = useState("");
+  const [showNotificationDrawer, setShowNotificationDrawer] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Sync state helper
+  const reloadEngineData = () => {
+    setProposals(bodEngine.getProposals());
+    setTasks(bodEngine.getTasks());
+    setRisks(bodEngine.getRisks());
+    setNotifications(bodEngine.getNotifications());
+    setAuditLogs(bodEngine.getAuditLogs());
+  };
 
   const showToast = (msg, type = "success") => {
     setToastMessage({ text: msg, type });
-    setTimeout(() => setToastMessage(null), 3500);
+    setTimeout(() => setToastMessage(null), 4000);
   };
 
-  // Dữ liệu mô phỏng What-If Analysis
+  // Unread notification count
+  const unreadNotifsCount = useMemo(() => {
+    return notifications.filter(n => !n.isRead).length;
+  }, [notifications]);
+
+  // Pending Proposals count for BOD
+  const pendingProposalsCount = useMemo(() => {
+    return proposals.filter(p => p.status === "WAITING_APPROVAL" || p.status === "UNDER_REVIEW").length;
+  }, [proposals]);
+
+  const highRisksCount = useMemo(() => {
+    return risks.filter(r => (r.severity === "HIGH" || r.severity === "CRITICAL") && r.status !== "CLOSED").length;
+  }, [risks]);
+
+  const overdueTasksCount = useMemo(() => {
+    return tasks.filter(t => t.isOverdue && t.status !== "COMPLETED").length;
+  }, [tasks]);
+
+  // What-If Dynamic Calculation
   const simulatedForecastData = useMemo(() => {
     const factor = 1 + (tuitionIncrease - 5) * 0.03 - (scholarshipRate - 12) * 0.02 + (marketingBudgetMode === "attack" ? 0.1 : marketingBudgetMode === "saving" ? -0.08 : 0);
     return [
@@ -79,115 +146,274 @@ export default function BODExecutivePortal() {
     ];
   }, [tuitionIncrease, scholarshipRate, marketingBudgetMode]);
 
-  // Export Báo cáo DSS Toàn diện
+  // Handle Approve Action
+  const handleApproveProposal = (proposal) => {
+    const res = bodEngine.approveProposal(
+      proposal.id,
+      approvalComment,
+      isConditionalApproval,
+      isConditionalApproval ? conditionalParams : null
+    );
+    if (res.success) {
+      showToast(`✓ Đã phê duyệt Quyết định ${res.decisionId}. Tự động tạo ${res.tasksGenerated} nhiệm vụ liên phòng ban!`);
+      setSelectedProposalForApproval(null);
+      setApprovalComment("");
+      setIsConditionalApproval(false);
+      reloadEngineData();
+    } else {
+      showToast(res.message, "error");
+    }
+  };
+
+  // Handle Reject Action
+  const handleRejectProposal = (proposal) => {
+    const res = bodEngine.rejectProposal(proposal.id, approvalComment || "Chưa phù hợp với định hướng tài chính.");
+    if (res.success) {
+      showToast("✕ Đã từ chối đề xuất và thông báo cho phòng ban.", "info");
+      setSelectedProposalForApproval(null);
+      setApprovalComment("");
+      reloadEngineData();
+    }
+  };
+
+  // Handle Request More Info
+  const handleRequestMoreInfo = (proposal) => {
+    const res = bodEngine.requestMoreInfo(proposal.id, approvalComment || "Yêu cầu làm rõ ROI và cam kết số lượng sinh viên.");
+    if (res.success) {
+      showToast("⚠ Đã gửi yêu cầu bổ sung thông tin tới phòng ban.", "info");
+      setSelectedProposalForApproval(null);
+      setApprovalComment("");
+      reloadEngineData();
+    }
+  };
+
+  // Handle Create Proposal from What-If Simulation
+  const handleCreateProposalFromWhatIf = () => {
+    const res = bodEngine.createProposalFromWhatIf({
+      tuitionIncrease,
+      scholarshipRate,
+      marketingBudgetMode
+    });
+    if (res.success) {
+      showToast(`✓ Đã tạo đề xuất quyết định ${res.proposalId} từ mô phỏng DSS!`);
+      reloadEngineData();
+      setActiveTab("decision_center");
+    }
+  };
+
+  // Handle Risk -> Action Workflow
+  const handleCreateActionFromRisk = () => {
+    if (!selectedRiskForAction) return;
+    const res = bodEngine.createActionFromRisk(
+      selectedRiskForAction.id,
+      riskActionPlan,
+      riskAssignedDept || selectedRiskForAction.department,
+      riskAssignee || selectedRiskForAction.owner,
+      riskDeadline
+    );
+    if (res.success) {
+      showToast(`✓ ${res.message}`);
+      setSelectedRiskForAction(null);
+      setRiskActionPlan("");
+      reloadEngineData();
+    }
+  };
+
+  // Handle Mitigate Risk
+  const handleMitigateRisk = (riskId) => {
+    const res = bodEngine.mitigateRisk(riskId, "Đã hoàn thành các biện pháp kiểm soát và giảm thiểu rủi ro.");
+    if (res.success) {
+      showToast(`✓ ${res.message}`);
+      reloadEngineData();
+    }
+  };
+
+  // Handle Urge Department
+  const handleUrgeDepartment = (deptId) => {
+    const res = bodEngine.urgeDepartment(deptId, "BOD yêu cầu xử lý dứt điểm các hồ sơ tồn đọng trong 24h.");
+    if (res.success) {
+      showToast(`✓ ${res.message}`);
+      reloadEngineData();
+    }
+  };
+
+  // Handle New Major Submission
+  const handleApproveNewMajor = () => {
+    const propId = `PROP-2026-${Math.floor(100 + Math.random() * 900)}`;
+    const decId = `DEC-2026-${Math.floor(10000 + Math.random() * 90000)}`;
+    bodEngine.proposals.unshift({
+      id: propId,
+      decisionId: decId,
+      title: `Phê duyệt mở mới chuyên ngành: ${newMajorForm.name}`,
+      department: newMajorForm.faculty,
+      proposedBy: "Hội đồng Khoa học & Đào tạo",
+      category: "Mở ngành mới",
+      priority: "HIGH",
+      currentBudget: 0,
+      proposedBudget: 15000000000,
+      budgetDelta: 15000000000,
+      currency: "VND",
+      deadline: "2026-08-30",
+      urgency: "Tháng này",
+      status: "APPROVED",
+      reason: `Chiến lược đào tạo ${newMajorForm.firstYearQuota} kỹ sư vi mạch bán dẫn K21. Hợp tác với ${newMajorForm.strategicPartner}.`,
+      impacts: {
+        leads: "+3,500 leads",
+        applicants: "+600 hồ sơ",
+        enrollment: `${newMajorForm.firstYearQuota} SV K21`,
+        revenue: "+22 Tỷ VND/năm",
+        roi: "2.8x (Hòa vốn 2.5 năm)",
+        riskLevel: "Medium"
+      },
+      decisionScore: { strategic: 10, financial: 8, enrollment: 9, risk: 4, urgency: 8, overall: 8.8, aiConfidence: 92 },
+      aiRecommendation: { status: "APPROVED", headline: "ĐÃ PHÊ DUYỆT MỞ NGÀNH BÁN DẪN" },
+      createdDate: new Date().toLocaleString("vi-VN"),
+      workflowTasks: []
+    });
+    reloadEngineData();
+    setShowNewMajorModal(false);
+    showToast(`✓ Đã phê duyệt đề xuất mở ngành ${newMajorForm.name} (Quyết định ${decId})!`);
+  };
+
+  // Export Comprehensive Excel Report
   const handleExportComprehensiveReport = () => {
     const wsData = [
-      ["CỔNG DỮ LIỆU ĐẠI HỌC FPT - HỆ THỐNG HỖ TRỢ RA QUYẾT ĐỊNH TUYỂN SINH (DSS)"],
-      ["BÁO CÁO CHIẾN LƯỢC DÀNH CHO BAN GIÁM HIỆU / BAN GIÁM ĐỐC"],
+      ["CỔNG DỮ LIỆU ĐẠI HỌC FPT - TRUNG TÂM RA QUYẾT ĐỊNH & ĐIỀU HÀNH BAN GIÁM HIỆU (BOD)"],
+      ["BÁO CÁO CHIẾN LƯỢC TOÀN DIỆN & DANH MỤC QUYẾT ĐỊNH"],
       ["Thời gian xuất:", new Date().toLocaleString("vi-VN")],
       ["Kỳ tuyển sinh mục tiêu:", selectedSemester],
       ["Người phê duyệt:", "Hội đồng Tuyển sinh & Ban Giám Hiệu FPT University"],
       [],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["PHẦN 1: DỰ PHÓNG CHỈ TIÊU & MÔ PHỎNG KỊCH BẢN (DSS WHAT-IF)"],
+      ["1. DANH SÁCH QUYẾT ĐỊNH ĐÃ PHÊ DUYỆT (DECISIONS IN PROGRESS)"],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["Dự báo Doanh thu (FY25)", "2,450 Tỷ VND", "+12.5% vs Mục tiêu 2,200 Tỷ VND"],
-      ["Dự báo Tân Sinh viên Nhập học (K21)", "15,200 SV", "+8.2% vs Chỉ tiêu 14,500 SV"],
-      ["Tỷ lệ Tăng trưởng Lợi nhuận", "14.8%", "Biên an toàn 12.0%"],
-      ["Tham số mô phỏng đang áp dụng", `Tăng học phí: ${tuitionIncrease}%`, `Học bổng: ${scholarshipRate}% | Chiến dịch MKT: ${marketingBudgetMode === "attack" ? "Tấn công (+10%)" : "Cơ bản"}`],
+      ["Mã Quyết Định", "Tên Đề Xuất", "Phòng Ban", "Ngân Sách (VND)", "Trạng Thái", "Điểm Đánh Giá", "SLA Tasks"],
+      ...proposals.map(p => [
+        p.decisionId,
+        p.title,
+        p.department,
+        p.proposedBudget ? (p.proposedBudget / 1e9).toFixed(2) + " Tỷ" : "0",
+        p.status,
+        p.decisionScore ? `${p.decisionScore.overall}/10` : "N/A",
+        p.workflowTasks ? `${p.workflowTasks.length} nhiệm vụ` : "0"
+      ]),
       [],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["PHẦN 2: PHÂN TÍCH PHỄU CHUYỂN ĐỔI & HIỆU QUẢ MARKETING"],
+      ["2. DANH MỤC RỦI RO & TIẾN ĐỘ XỬ LÝ (RISK MATRIX)"],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["1. Tổng Leads Đăng ký", "24,500 Thí sinh", "+12% so với kỳ trước"],
-      ["2. Hồ sơ Xét tuyển (Applicants)", "8,200 Thí sinh", "Tỷ lệ chuyển đổi: 33.4% | Dự báo rớt: 15%"],
-      ["3. Đủ điều kiện Trúng tuyển (Admits)", "5,100 Thí sinh", "Tỷ lệ chuyển đổi: 62.1%"],
-      ["4. Nhập học chính thức (Enrolled)", "3,850 Tân SV", "Tỷ lệ Yield: 75.4%"],
-      ["Chi phí chuyển đổi/SV (CAC)", "2.4 Triệu VNĐ", "Giảm 5% vs kỳ trước"],
-      ["Ngân sách Marketing K20 dự kiến", "15.2 Tỷ VNĐ", "Phân bổ: FB Ads 40%, THPT 30%, TikTok 20%, Referral 10%"],
+      ["Mã Rủi Ro", "Tên Rủi Ro", "Mức Độ", "Xác Suất", "Tác Động Tài Chính", "Phòng Ban Chịu Trách Nhiệm", "Trạng Thái"],
+      ...risks.map(r => [
+        r.id,
+        r.title,
+        r.severity,
+        `${r.probability}%`,
+        r.financialImpact,
+        r.department,
+        r.status
+      ]),
       [],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["PHẦN 3: MA TRẬN RỦI RO & KIỂM SOÁT VẬN HÀNH"],
+      ["3. HIỆU SUẤT & SLA LIÊN PHÒNG BAN"],
       ["═══════════════════════════════════════════════════════════════════"],
-      ["Rủi ro Nghiêm trọng (Mức Cao)", "4 Hạng mục", "Tỷ lệ hồ sơ ảo Miền Tây (+15%), Tỷ lệ bỏ học K1"],
-      ["Rủi ro Cần theo dõi (Mức TB)", "12 Hạng mục", "Ngân sách Marketing ngành CNTT đạt ngưỡng 90%"],
-      ["Hạng mục Kiểm soát Tốt", "48 Hạng mục", "SLA Tuyển sinh đạt 98.3%, Thu học phí kỳ Fall đạt 95.2%"],
+      ["Phòng Ban", "Tổng Yêu Cầu", "Đã Xử Lý", "Tồn Đọng", "Quá Hạn", "Tỷ Lệ SLA", "Điểm Nghẽn Chính"],
+      ...departmentSLAs.map(d => [
+        d.name,
+        d.totalRequests,
+        d.processed,
+        d.pending,
+        d.overdue,
+        `${d.slaRate}%`,
+        d.topBottleneck
+      ])
     ];
     const ws = XLSX.utils.aoa_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "FPT_DSS_BOD_Report");
-    XLSX.writeFile(wb, `BOD_Admission_DSS_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
-    showToast("Đã xuất báo cáo chiến lược DSS Tuyển sinh thành công (Excel)!");
+    XLSX.utils.book_append_sheet(wb, ws, "BOD_Decisions_Operations");
+    XLSX.writeFile(wb, `BOD_Decision_Operations_Report_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    showToast("Đã xuất báo cáo chiến lược điều hành & quyết định BOD thành công (Excel)!");
   };
 
-  // Cấu trúc Sidebar phân nhóm chuẩn DSS
+  // Navigation Groups in Sidebar
   const navigationGroups = [
     {
-      groupTitle: "HỖ TRỢ RA QUYẾT ĐỊNH (DSS CORE)",
+      groupTitle: "TRUNG TÂM ĐIỀU HÀNH & QUYẾT ĐỊNH",
       items: [
-        { id: "dss_forecast", icon: Sliders, label: "Dự báo & Mô phỏng", desc: "Mô phỏng ngân sách & chỉ tiêu tuyển sinh (What-If)" },
-        { id: "dss_funnel", icon: UserPlus, label: "DSS Phễu Tuyển sinh", desc: "Hệ thống hỗ trợ ra quyết định & AI Recommendations" },
-        { id: "dss_marketing", icon: Megaphone, label: "Nguồn & ROI Marketing", desc: "Phân bổ kênh, chi phí CAC & Bản đồ nhiệt thí sinh" },
-        { id: "dss_trends", icon: Globe, label: "Xu hướng & Mở ngành", desc: "AI Insights thị trường lao động & Đề xuất ngành mới" },
+        { id: "decision_center", icon: Zap, label: "Trung tâm Quyết định", desc: "8 Đề xuất chờ duyệt & Workflow liên phòng ban", badge: pendingProposalsCount > 0 ? `${pendingProposalsCount}` : null, badgeColor: "#EA580C" },
+        { id: "gov_strategic", icon: Activity, label: "Tổng quan Chiến lược", desc: "Executive KPI, Portfolio 5 Phân hiệu & Action Center" },
+        { id: "decision_history", icon: History, label: "Lịch sử Quyết định", desc: "Timeline thực thi, Audit Trail & Kết quả" },
       ]
     },
     {
-      groupTitle: "GIÁM SÁT CHIẾN LƯỢC & VẬN HÀNH",
+      groupTitle: "HỆ THỐNG RA QUYẾT ĐỊNH (DSS CORE)",
       items: [
-        { id: "gov_strategic", icon: Activity, label: "Tổng quan Chiến lược", desc: "Chỉ số toàn khối & Theo dõi KPI 5 Phân hiệu" },
-        { id: "gov_risk", icon: ShieldAlert, label: "Cảnh báo Rủi ro & Chỉ tiêu", desc: "Cảnh báo sớm, ma trận rủi ro & Dashboard chỉ tiêu năm" },
-        { id: "gov_crossdept", icon: TrendingUp, label: "SLA Liên Phòng ban", desc: "Giám sát hiệu suất phối hợp Tuyển sinh, Đào tạo, Tài chính" },
-        { id: "gov_finance", icon: Wallet, label: "Kế hoạch Tài chính Dài hạn", desc: "Tăng trưởng doanh thu 5 năm & Đầu tư hạ tầng trọng điểm" },
+        { id: "dss_forecast", icon: Sliders, label: "Dự báo & Mô phỏng", desc: "What-If Simulation & Tạo quyết định từ kịch bản" },
+        { id: "dss_funnel", icon: UserPlus, label: "DSS Phễu Tuyển sinh", desc: "Leads -> Applicants -> Admits -> Yield & AI Insights" },
+        { id: "dss_marketing", icon: Megaphone, label: "Nguồn & ROI Marketing", desc: "Hiệu quả kênh, CAC, Bản đồ nhiệt & Phân bổ ngân sách" },
+        { id: "dss_trends", icon: Globe, label: "Xu hướng & Mở ngành", desc: "Nhu cầu thị trường lao động, Vi mạch AI & Feasibility" },
+      ]
+    },
+    {
+      groupTitle: "GIÁM SÁT RỦI RO & LIÊN PHÒNG BAN",
+      items: [
+        { id: "gov_risk", icon: ShieldAlert, label: "Cảnh báo Rủi ro Sớm", desc: "Cảnh báo chỉ tiêu, hồ sơ ảo & Giao việc xử lý", badge: highRisksCount > 0 ? `${highRisksCount}` : null, badgeColor: "#DC2626" },
+        { id: "gov_crossdept", icon: TrendingUp, label: "SLA Liên Phòng ban", desc: "Giám sát hiệu suất Tuyển sinh, Tài chính, Đào tạo", badge: overdueTasksCount > 0 ? `${overdueTasksCount}` : null, badgeColor: "#F59E0B" },
+        { id: "gov_finance", icon: Wallet, label: "Kế hoạch Tài chính", desc: "Doanh thu 5 năm, CAPEX hạ tầng & Ngân sách dài hạn" },
       ]
     }
   ];
 
   return (
-    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#F8FAFC", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
+    <div style={{ display: "flex", height: "100vh", overflow: "hidden", background: "#F1F5F9", fontFamily: "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" }}>
 
       {/* ── TOAST NOTIFICATION ── */}
       {toastMessage && (
         <div style={{
           position: "fixed", top: 20, right: 28, zIndex: 9999,
-          background: toastMessage.type === "success" ? "#0F172A" : "#B91C1C",
-          color: "#FFFFFF", padding: "12px 20px", borderRadius: 10,
-          boxShadow: "0 10px 25px rgba(0,0,0,0.2)", display: "flex",
-          alignItems: "center", gap: 10, fontSize: 13, fontWeight: 600
+          background: toastMessage.type === "error" ? "#991B1B" : toastMessage.type === "info" ? "#1E3A8A" : "#0F172A",
+          color: "#FFFFFF", padding: "14px 22px", borderRadius: 12,
+          boxShadow: "0 14px 35px rgba(0,0,0,0.3)", display: "flex",
+          alignItems: "center", gap: 12, fontSize: 13.5, fontWeight: 600,
+          border: "1px solid rgba(255,255,255,0.15)",
+          animation: "fadeIn 0.2s ease-out"
         }}>
-          <CheckCircle size={17} color={toastMessage.type === "success" ? "#4ADE80" : "#F87171"} />
-          {toastMessage.text}
+          {toastMessage.type === "error" ? <AlertCircle size={18} color="#F87171" /> : <CheckCircle size={18} color="#4ADE80" />}
+          <span>{toastMessage.text}</span>
         </div>
       )}
 
-      {/* ── SIDEBAR ĐỒNG BỘ CHO BAN GIÁM HIỆU (BOD) ── */}
+      {/* ── SIDEBAR ── */}
       <aside style={{
-        width: 250, background: "#FFFFFF", borderRight: "1px solid #E2E8F0",
+        width: 260, background: "#FFFFFF", borderRight: "1px solid #E2E8F0",
         display: "flex", flexDirection: "column", justifyContent: "space-between",
         flexShrink: 0, zIndex: 30, overflowY: "auto"
       }}>
         <div>
           {/* Logo & Brand Identity */}
-          <div style={{ padding: "18px 18px 14px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid #F1F5F9" }}>
+          <div style={{ padding: "18px 18px 14px", display: "flex", alignItems: "center", gap: 12, borderBottom: "1px solid #F1F5F9" }}>
             <div style={{
-              width: 38, height: 38, borderRadius: 10,
-              background: "#EA580C", display: "flex", alignItems: "center",
-              justifyContent: "center", color: "#FFFFFF", fontWeight: 900,
-              fontSize: 16, boxShadow: "0 4px 12px rgba(234,88,12,0.3)"
+              width: 40, height: 40, borderRadius: 10,
+              background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#FFFFFF", fontWeight: 900, fontSize: 18,
+              boxShadow: "0 4px 12px rgba(234,88,12,0.35)"
             }}>
-              FP
+              FPT
             </div>
             <div>
               <div style={{ fontSize: 16, fontWeight: 900, color: "#9A3412", letterSpacing: "-0.3px", lineHeight: 1.15 }}>
-                FPT University
+                ĐẠI HỌC FPT
               </div>
-              <div style={{ fontSize: 11, color: "#64748B", fontWeight: 600, marginTop: 2 }}>
-                Admission DSS Portal <span style={{ fontSize: 9.5, background: "#FFEDD5", color: "#C2410C", padding: "1px 5px", borderRadius: 4, fontWeight: 800 }}>BOD</span>
+              <div style={{ fontSize: 11, color: "#64748B", fontWeight: 600, marginTop: 2, display: "flex", alignItems: "center", gap: 6 }}>
+                <span>Executive DSS</span>
+                <span style={{ fontSize: 9.5, background: "#FFEDD5", color: "#C2410C", padding: "1px 6px", borderRadius: 4, fontWeight: 800 }}>
+                  BOD
+                </span>
               </div>
             </div>
           </div>
 
-          {/* Danh mục Chức năng Sidebar phân nhóm */}
-          <nav style={{ padding: "12px 10px", display: "flex", flexDirection: "column", gap: 14 }}>
+          {/* Navigation Groups */}
+          <nav style={{ padding: "14px 10px", display: "flex", flexDirection: "column", gap: 16 }}>
             {navigationGroups.map((group, gIdx) => (
               <div key={gIdx}>
                 <div style={{ fontSize: 9.5, fontWeight: 800, color: "#94A3B8", letterSpacing: "0.6px", padding: "0 10px 6px", textTransform: "uppercase" }}>
@@ -200,20 +426,31 @@ export default function BODExecutivePortal() {
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
-                        title={tab.desc}
                         style={{
-                          width: "100%", display: "flex", alignItems: "center", gap: 10,
-                          padding: "9px 12px", borderRadius: 8, fontSize: 12.5,
-                          fontWeight: isActive ? 800 : 600,
-                          color: isActive ? "#FFFFFF" : "#475569",
-                          background: isActive ? "#EA580C" : "transparent",
-                          border: "none", cursor: "pointer", textAlign: "left",
-                          transition: "all 0.15s ease",
-                          boxShadow: isActive ? "0 3px 10px rgba(234,88,12,0.25)" : "none"
+                          width: "100%", textAlign: "left",
+                          padding: "9px 12px", borderRadius: 10,
+                          background: isActive ? "linear-gradient(90deg, #FFF7ED 0%, #FFEDD5 100%)" : "transparent",
+                          border: isActive ? "1px solid #FDBA74" : "1px solid transparent",
+                          color: isActive ? "#C2410C" : "#475569",
+                          fontWeight: isActive ? 700 : 500,
+                          fontSize: 13, display: "flex", alignItems: "center", gap: 10,
+                          cursor: "pointer", transition: "all 0.15s ease"
                         }}
                       >
-                        <tab.icon size={16} strokeWidth={isActive ? 2.5 : 2} color={isActive ? "#FFFFFF" : "#64748B"} />
-                        <span style={{ lineHeight: 1.2 }}>{tab.label}</span>
+                        <tab.icon size={17} color={isActive ? "#EA580C" : "#64748B"} />
+                        <span style={{ flex: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {tab.label}
+                        </span>
+                        {tab.badge && (
+                          <span style={{
+                            fontSize: 10, fontWeight: 800,
+                            background: tab.badgeColor || "#EA580C",
+                            color: "#FFFFFF", padding: "2px 6px",
+                            borderRadius: 100, lineHeight: 1
+                          }}>
+                            {tab.badge}
+                          </span>
+                        )}
                       </button>
                     );
                   })}
@@ -223,428 +460,914 @@ export default function BODExecutivePortal() {
           </nav>
         </div>
 
-        {/* Sidebar Footer: User Member Info */}
-        <div style={{ padding: "12px 14px", borderTop: "1px solid #E2E8F0", background: "#FAFBFD" }}>
-          <div style={{
-            background: "#FFFFFF", borderRadius: 10, border: "1px solid #E2E8F0",
-            padding: "10px 12px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8
-          }}>
-            <div style={{
-              width: 34, height: 34, borderRadius: "50%",
-              background: "#0F172A", color: "#FFFFFF", display: "flex",
-              alignItems: "center", justifyContent: "center", fontWeight: 800,
-              fontSize: 11
-            }}>
-              BOD
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 800, color: "#0F172A", lineHeight: 1.2 }}>Admin User</div>
-              <div style={{ fontSize: 10.5, color: "#64748B" }}>Hội đồng Tuyển sinh BGH</div>
+        {/* User Account / Sign out */}
+        <div style={{ padding: "14px", borderTop: "1px solid #F1F5F9", background: "#FAFAFA" }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <div style={{ width: 34, height: 34, borderRadius: "50%", background: "#0F172A", color: "#FFF", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 800 }}>
+                BOD
+              </div>
+              <div>
+                <div style={{ fontSize: 12.5, fontWeight: 700, color: "#1E293B" }}>Ban Giám Hiệu</div>
+                <div style={{ fontSize: 11, color: "#64748B" }}>TS. Hoàng Việt Hà</div>
+              </div>
             </div>
             <button
               onClick={() => navigate("/login")}
               title="Đăng xuất"
-              style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8" }}
+              style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer", padding: 6 }}
             >
-              <LogOut size={15} />
+              <LogOut size={16} />
             </button>
-          </div>
-          <div style={{ fontSize: 10, color: "#94A3B8", textAlign: "center", fontWeight: 500 }}>
-            Hệ thống Ra Quyết định DSS • v2.0.4
           </div>
         </div>
       </aside>
 
-      {/* ── MAIN CONTENT CONTAINER ── */}
-      <main style={{ flex: 1, height: "100vh", overflowY: "auto", display: "flex", flexDirection: "column" }}>
-
-        {/* ── TOP HEADER ĐỒNG BỘ ── */}
+      {/* ── MAIN CONTENT AREA ── */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", overflow: "hidden", minWidth: 0 }}>
+        
+        {/* ── TOP HEADER / EXECUTIVE COMMAND BAR ── */}
         <header style={{
-          height: 60, background: "#FFFFFF", borderBottom: "1px solid #E2E8F0",
-          padding: "0 28px", display: "flex", alignItems: "center",
-          justifyContent: "space-between", flexShrink: 0, position: "sticky", top: 0, zIndex: 20
+          height: 68, background: "#FFFFFF", borderBottom: "1px solid #E2E8F0",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0 24px", flexShrink: 0, zIndex: 20
         }}>
-          {/* Tiêu đề & Breadcrumb */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 16, fontWeight: 900, color: "#9A3412", letterSpacing: "-0.2px" }}>
-              <Building size={18} /> Cổng Dữ Liệu Đại Học FPT
-            </div>
-            <span style={{ color: "#CBD5E1" }}>|</span>
-            <span style={{ fontSize: 12, background: "#EFF6FF", color: "#1D4ED8", padding: "3px 9px", borderRadius: 100, fontWeight: 700 }}>
-              Hệ Thống Ra Quyết Định Tuyển Sinh (DSS)
-            </span>
-          </div>
-
-          {/* Bộ lọc Toàn Cục & Thao tác BGH */}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {/* Bộ lọc Kỳ Tuyển sinh */}
-            <div style={{ display: "flex", alignItems: "center", gap: 6, background: "#F8FAFC", border: "1px solid #CBD5E1", borderRadius: 8, padding: "5px 10px" }}>
-              <Calendar size={13} color="#64748B" />
-              <select
-                value={selectedSemester}
-                onChange={(e) => {
-                  setSelectedSemester(e.target.value);
-                  showToast(`Đã đồng bộ dữ liệu DSS cho kỳ: ${e.target.value}`);
-                }}
-                style={{ border: "none", background: "transparent", fontSize: 12, fontWeight: 700, color: "#0F172A", cursor: "pointer", outline: "none" }}
-              >
-                <option value="Thu 2026">Kỳ Thu 2024 (Thu 2026)</option>
-                <option value="Xuan 2026">Kỳ Xuân 2025 (Xuan 2026)</option>
-                <option value="Thu 2026">Dự phóng Kỳ Thu 2025 (Thu 2026)</option>
-              </select>
-            </div>
-
-            {/* Nút Xuất Báo Cáo Excel Tổng Thể */}
+          {/* Left: Global Command Center Trigger & Title */}
+          <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
             <button
-              onClick={handleExportComprehensiveReport}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12, fontWeight: 700, color: "#334155", cursor: "pointer" }}
+              onClick={() => setShowCommandPalette(true)}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, padding: "8px 16px",
+                background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10,
+                color: "#475569", fontSize: 13, fontWeight: 600, cursor: "pointer",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.05)"
+              }}
             >
-              <Download size={14} /> Xuất Báo Cáo DSS
+              <Zap size={15} color="#EA580C" />
+              <span>⚡ BOD Command Center</span>
+              <span style={{ fontSize: 10.5, padding: "2px 6px", background: "#E2E8F0", borderRadius: 4, color: "#64748B", fontFamily: "monospace" }}>
+                Ctrl + K
+              </span>
             </button>
 
-            {/* Nút Huấn Luyện AI DSS */}
+            {/* Quick Filter: Semester & Campus */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <select
+                value={selectedSemester}
+                onChange={e => setSelectedSemester(e.target.value)}
+                style={{
+                  padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1",
+                  fontSize: 12.5, fontWeight: 600, color: "#1E293B", background: "#FFF", cursor: "pointer"
+                }}
+              >
+                <option value="Thu 2026">Kỳ Thu 2026 (Chính)</option>
+                <option value="Hè 2026">Kỳ Hè 2026</option>
+                <option value="Xuân 2026">Kỳ Xuân 2026</option>
+              </select>
+
+              <select
+                value={selectedCampus}
+                onChange={e => setSelectedCampus(e.target.value)}
+                style={{
+                  padding: "7px 12px", borderRadius: 8, border: "1px solid #CBD5E1",
+                  fontSize: 12.5, fontWeight: 600, color: "#1E293B", background: "#FFF", cursor: "pointer"
+                }}
+              >
+                <option value="all">Toàn bộ 5 Cơ sở</option>
+                <option value="HN">Hà Nội (Hòa Lạc)</option>
+                <option value="HCM">TP. Hồ Chí Minh</option>
+                <option value="DN">Đà Nẵng</option>
+                <option value="CT">Cần Thơ</option>
+                <option value="QN">Quy Nhơn</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Right: Quick Action Buttons, Notifications & Export */}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            
+            {/* Quick Action: Open Decision Center */}
             <button
-              onClick={() => setShowRunModelModal(true)}
-              style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 8, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer", boxShadow: "0 2px 6px rgba(154,52,18,0.25)" }}
+              onClick={() => setActiveTab("decision_center")}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+                background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 9,
+                color: "#C2410C", fontSize: 13, fontWeight: 700, cursor: "pointer"
+              }}
             >
-              <Bot size={14} /> Chạy Mô Hình DSS
+              <CheckSquare size={15} color="#EA580C" />
+              <span>Phê duyệt ({pendingProposalsCount})</span>
+            </button>
+
+            {/* Quick Action: Open Risk Center */}
+            <button
+              onClick={() => setActiveTab("gov_risk")}
+              style={{
+                display: "flex", alignItems: "center", gap: 6, padding: "8px 14px",
+                background: highRisksCount > 0 ? "#FEF2F2" : "#F8FAFC",
+                border: highRisksCount > 0 ? "1px solid #FCA5A5" : "1px solid #E2E8F0",
+                borderRadius: 9,
+                color: highRisksCount > 0 ? "#B91C1C" : "#475569",
+                fontSize: 13, fontWeight: 600, cursor: "pointer"
+              }}
+            >
+              <ShieldAlert size={15} color={highRisksCount > 0 ? "#DC2626" : "#64748B"} />
+              <span>Rủi ro ({highRisksCount})</span>
             </button>
 
             {/* Notification Bell */}
             <div style={{ position: "relative" }}>
               <button
-                onClick={() => setShowNotificationModal(!showNotificationModal)}
+                onClick={() => setShowNotificationDrawer(!showNotificationDrawer)}
                 style={{
-                  width: 34, height: 34, borderRadius: "50%", border: "1px solid #E2E8F0",
-                  background: "#FFFFFF", display: "flex", alignItems: "center",
-                  justifyContent: "center", cursor: "pointer", color: "#475569"
+                  width: 38, height: 38, borderRadius: 10,
+                  background: showNotificationDrawer ? "#EFF6FF" : "#F8FAFC",
+                  border: "1px solid #E2E8F0", display: "flex",
+                  alignItems: "center", justifyContent: "center", cursor: "pointer",
+                  color: "#475569", position: "relative"
                 }}
               >
-                <Bell size={15} />
-                <span style={{ position: "absolute", top: 6, right: 6, width: 6, height: 6, borderRadius: "50%", background: "#DC2626" }} />
+                <Bell size={18} />
+                {unreadNotifsCount > 0 && (
+                  <span style={{
+                    position: "absolute", top: -3, right: -3,
+                    background: "#DC2626", color: "#FFF", fontSize: 10,
+                    fontWeight: 900, width: 18, height: 18, borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    boxShadow: "0 0 8px rgba(220,38,38,0.5)"
+                  }}>
+                    {unreadNotifsCount}
+                  </span>
+                )}
               </button>
 
-              {showNotificationModal && (
+              {/* Notification Drawer Dropdown */}
+              {showNotificationDrawer && (
                 <div style={{
-                  position: "absolute", top: 42, right: 0, width: 320,
-                  background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0",
-                  boxShadow: "0 10px 25px rgba(0,0,0,0.12)", padding: "14px 16px", zIndex: 100
+                  position: "absolute", top: "calc(100% + 8px)", right: 0,
+                  width: 380, background: "#FFFFFF", borderRadius: 16,
+                  boxShadow: "0 20px 45px rgba(0,0,0,0.18)",
+                  border: "1px solid #E2E8F0", zIndex: 100, overflow: "hidden"
                 }}>
-                  <div style={{ fontWeight: 800, fontSize: 13, color: "#0F172A", marginBottom: 8 }}>Chỉ thị Ban Giám Hiệu & Cảnh báo DSS</div>
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
-                    <div style={{ padding: "8px", background: "#FEE2E2", borderRadius: 6, color: "#991B1B" }}>
-                      ⚠️ <strong>Cảnh báo:</strong> Tỷ lệ hồ sơ ảo khu vực Miền Tây tăng 15% so với cùng kỳ.
+                  <div style={{ padding: "14px 18px", borderBottom: "1px solid #F1F5F9", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#F8FAFC" }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: "#0F172A" }}>
+                      Thông báo Chỉ đạo & SLA ({unreadNotifsCount} chưa đọc)
                     </div>
-                    <div style={{ padding: "8px", background: "#EFF6FF", borderRadius: 6, color: "#1E40AF" }}>
-                      📈 <strong>Dự báo:</strong> Tân sinh viên nhập học K21 dự kiến đạt 15,200 SV (+8.2%).
-                    </div>
+                    <button
+                      onClick={() => {
+                        notifications.forEach(n => bodEngine.markNotificationAsRead(n.id));
+                        reloadEngineData();
+                      }}
+                      style={{ background: "none", border: "none", color: "#2563EB", fontSize: 11.5, fontWeight: 600, cursor: "pointer" }}
+                    >
+                      Đọc tất cả
+                    </button>
+                  </div>
+
+                  <div style={{ maxHeight: 360, overflowY: "auto", padding: "8px 0" }}>
+                    {notifications.map(n => (
+                      <div
+                        key={n.id}
+                        onClick={() => {
+                          bodEngine.markNotificationAsRead(n.id);
+                          reloadEngineData();
+                          setShowNotificationDrawer(false);
+                          if (n.targetType === "proposal") setActiveTab("decision_center");
+                          else if (n.targetType === "risk") setActiveTab("gov_risk");
+                          else if (n.targetType === "task" || n.targetType === "department") setActiveTab("gov_crossdept");
+                        }}
+                        style={{
+                          padding: "12px 18px",
+                          borderBottom: "1px solid #F1F5F9",
+                          background: n.isRead ? "#FFFFFF" : "#FFF7ED",
+                          cursor: "pointer", transition: "background 0.15s"
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
+                          <span style={{
+                            fontSize: 10.5, fontWeight: 700, textTransform: "uppercase",
+                            color: n.severity === "CRITICAL" ? "#DC2626" : n.severity === "HIGH" ? "#EA580C" : "#2563EB"
+                          }}>
+                            {n.title}
+                          </span>
+                          <span style={{ fontSize: 10.5, color: "#94A3B8" }}>{n.timestamp}</span>
+                        </div>
+                        <p style={{ fontSize: 12.5, color: "#334155", margin: 0, lineHeight: 1.45 }}>
+                          {n.content}
+                        </p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
             </div>
 
+            {/* Export Comprehensive Excel Report */}
+            <button
+              onClick={handleExportComprehensiveReport}
+              style={{
+                display: "flex", alignItems: "center", gap: 7, padding: "8px 16px",
+                background: "linear-gradient(135deg, #0F172A 0%, #1E293B 100%)",
+                border: "none", borderRadius: 9, color: "#FFFFFF",
+                fontSize: 13, fontWeight: 600, cursor: "pointer",
+                boxShadow: "0 2px 6px rgba(15,23,42,0.25)"
+              }}
+            >
+              <Download size={15} />
+              <span>Xuất Báo Cáo BOD (Excel)</span>
+            </button>
           </div>
         </header>
 
-        {/* ── MAIN BODY CONTENT (RENDER 8 MÀN HÌNH CHUẨN) ── */}
-        <div style={{ flex: 1, padding: "24px 28px 48px", maxWidth: 1440, width: "100%", margin: "0 auto", boxSizing: "border-box" }}>
-
+        {/* ── TAB CONTENT RENDERER ── */}
+        <main style={{ flex: 1, overflowY: "auto", padding: "24px 28px" }}>
+          
           {/* =========================================================================
-              MÀN HÌNH 1: DỰ BÁO TÀI CHÍNH & MÔ PHỎNG KỊCH BẢN (WHAT-IF SIMULATION)
-             ========================================================================= */}
-          {activeTab === "dss_forecast" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+              TAB 1: TRUNG TÂM RA QUYẾT ĐỊNH (DECISION CENTER - P0 CORE)
+              ========================================================================= */}
+          {activeTab === "decision_center" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              
+              {/* Section Header with Stats */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
                 <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.3px" }}>
-                    Hệ thống Dự báo Tài chính & Tuyển sinh
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                    <span style={{ padding: "3px 8px", borderRadius: 6, background: "#FFEDD5", color: "#C2410C", fontSize: 11, fontWeight: 800 }}>
+                      WORKFLOW & APPROVAL HUB
+                    </span>
+                    <span style={{ fontSize: 12, color: "#64748B" }}>Đồng bộ thời gian thực với Ban Tài chính, Tuyển sinh, Marketing</span>
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: 0 }}>
+                    Trung Tâm Phê Duyệt & Ra Quyết Định BOD
                   </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Báo cáo dự phóng năm học 2025 - 2026 • Phân tích độ nhạy biến số ngân sách
-                  </p>
                 </div>
 
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={handleExportComprehensiveReport}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, border: "1px solid #1D4ED8", background: "#FFFFFF", color: "#1D4ED8", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Download size={14} /> Xuất Báo Cáo
-                  </button>
-                  <button
-                    onClick={() => showToast("Đã kích hoạt mô hình tối ưu hóa đa mục tiêu")}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Filter size={14} /> Bộ Lọc DSS
-                  </button>
-                </div>
-              </div>
-
-              {/* 3 Thẻ KPI chính */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.2fr 1fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ color: "#DC2626" }}><CreditCard size={17} /></div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Dự báo Doanh thu (FY25)</span>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "2px 6px", borderRadius: 4 }}>
-                      ↗ +12.5%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px", margin: "4px 0" }}>
-                    2,450 Tỷ VND
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                      <div style={{ width: "88%", height: "100%", background: "#9A3412" }} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginTop: 4, fontWeight: 600 }}>
-                      <span>Mục tiêu</span>
-                      <span>2,200 Tỷ VND</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ color: "#2563EB" }}><Users size={17} /></div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Dự báo Nhập học (Khóa 21)</span>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "2px 6px", borderRadius: 4 }}>
-                      ↗ +8.2%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px", margin: "4px 0" }}>
-                    15,200 SV
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                      <div style={{ width: "95%", height: "100%", background: "#2563EB" }} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginTop: 4, fontWeight: 600 }}>
-                      <span>Chỉ tiêu</span>
-                      <span>14,500 SV</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ color: "#0284C7" }}><PieChart size={17} /></div>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: "#334155" }}>Tỷ lệ Tăng trưởng Lợi nhuận</span>
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#D97706", background: "#FEF3C7", padding: "2px 6px", borderRadius: 4 }}>
-                      → Ổn định
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px", margin: "4px 0" }}>
-                    14.8%
-                  </div>
-                  <div style={{ marginTop: 8 }}>
-                    <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                      <div style={{ width: "82%", height: "100%", background: "#EA580C" }} />
-                    </div>
-                    <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#64748B", marginTop: 4, fontWeight: 600 }}>
-                      <span>Biên an toàn</span>
-                      <span>12.0%</span>
-                    </div>
-                  </div>
+                {/* Filter Pills */}
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  {[
+                    { id: "all", label: "Tất cả đề xuất" },
+                    { id: "Marketing / Tuyển sinh", label: "Marketing / Tuyển sinh" },
+                    { id: "Học bổng & Chỉ tiêu", label: "Học bổng & Chỉ tiêu" },
+                    { id: "Mở ngành mới", label: "Mở ngành mới" },
+                    { id: "Đầu tư / CAPEX", label: "Đầu tư / Hạ tầng" },
+                  ].map(cat => (
+                    <button
+                      key={cat.id}
+                      onClick={() => setProposalCategoryFilter(cat.id)}
+                      style={{
+                        padding: "7px 14px", borderRadius: 8, fontSize: 12.5, fontWeight: 600,
+                        border: proposalCategoryFilter === cat.id ? "1px solid #EA580C" : "1px solid #E2E8F0",
+                        background: proposalCategoryFilter === cat.id ? "#FFF7ED" : "#FFFFFF",
+                        color: proposalCategoryFilter === cat.id ? "#EA580C" : "#64748B",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
-              {/* Mô phỏng kịch bản What-If + Khuyến nghị AI */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                        <div style={{ color: "#EA580C" }}><Sliders size={16} /></div>
-                        Mô phỏng Kịch bản Ngân sách (What-If Analysis)
-                      </div>
-                      <p style={{ fontSize: 11.5, color: "#64748B", margin: "2px 0 0" }}>
-                        Kéo thanh trượt để mô phỏng tác động tức thì tới dòng tiền và chỉ tiêu nhập học
-                      </p>
-                    </div>
-                  </div>
+              {/* Proposals Action Grid */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 20 }}>
+                {proposals
+                  .filter(p => proposalCategoryFilter === "all" || p.category === proposalCategoryFilter)
+                  .map(prop => {
+                    const isPending = prop.status === "WAITING_APPROVAL" || prop.status === "UNDER_REVIEW";
+                    const isApproved = prop.status === "APPROVED" || prop.status === "CONDITIONAL_APPROVED";
+                    const isRejected = prop.status === "REJECTED";
 
-                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1.2fr", gap: 14, background: "#FAFAFA", padding: "12px 14px", borderRadius: 8, border: "1px solid #F1F5F9", marginBottom: 14 }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
-                        <span>Tăng Học phí (%)</span>
-                        <span style={{ color: "#9A3412", fontWeight: 800 }}>{tuitionIncrease}%</span>
-                      </div>
-                      <input
-                        type="range" min="0" max="15" value={tuitionIncrease}
-                        onChange={(e) => setTuitionIncrease(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "#9A3412", cursor: "pointer" }}
-                      />
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: "#94A3B8", marginTop: 2 }}>
-                        <span>0%</span>
-                        <span>15%</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
-                        <span>Tỷ lệ Học bổng (%)</span>
-                        <span style={{ color: "#2563EB", fontWeight: 800 }}>{scholarshipRate}%</span>
-                      </div>
-                      <input
-                        type="range" min="5" max="25" value={scholarshipRate}
-                        onChange={(e) => setScholarshipRate(Number(e.target.value))}
-                        style={{ width: "100%", accentColor: "#2563EB", cursor: "pointer" }}
-                      />
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 9.5, color: "#94A3B8", marginTop: 2 }}>
-                        <span>5%</span>
-                        <span>25%</span>
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ display: "block", fontSize: 11.5, fontWeight: 700, color: "#334155", marginBottom: 4 }}>
-                        Chi phí Marketing
-                      </label>
-                      <select
-                        value={marketingBudgetMode}
-                        onChange={(e) => setMarketingBudgetMode(e.target.value)}
-                        style={{ width: "100%", padding: "5px 8px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 11.5, background: "#FFFFFF", fontWeight: 600, color: "#0F172A" }}
+                    return (
+                      <div
+                        key={prop.id}
+                        style={{
+                          background: "#FFFFFF",
+                          border: isPending ? "1.5px solid #FDBA74" : isApproved ? "1.5px solid #86EFAC" : "1px solid #E2E8F0",
+                          borderRadius: 16,
+                          padding: 22,
+                          display: "flex",
+                          flexDirection: "column",
+                          boxShadow: isPending ? "0 8px 24px rgba(234,88,12,0.12)" : "0 2px 8px rgba(0,0,0,0.04)",
+                          position: "relative"
+                        }}
                       >
-                        <option value="attack">Tăng 10% (Tấn công)</option>
-                        <option value="normal">Giữ nguyên ngân sách</option>
-                        <option value="saving">Cắt giảm 10% (Thận trọng)</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div style={{ width: "100%", height: 190 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={simulatedForecastData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis dataKey="quarter" fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <YAxis fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <Tooltip />
-                        <Area type="monotone" dataKey="sim" stroke="#78350F" fill="#FDE68A" strokeWidth={3} fillOpacity={0.4} name="Dự phóng mô phỏng" />
-                        <Line type="monotone" dataKey="base" stroke="#1E3A8A" strokeWidth={2} strokeDasharray="4 4" dot={false} name="Kế hoạch cơ sở" />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                {/* Khuyến nghị AI */}
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 14 }}>
-                    <div style={{ color: "#3B82F6" }}><Sparkles size={16} /></div>
-                    Khuyến nghị AI
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #E2E8F0", background: "#FFFFFF" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: "#FFEDD5", color: "#C2410C", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Cpu size={13} />
+                        {/* Card Header: Category, Priority, Status */}
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                          <div>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                              {prop.category}
+                            </span>
+                            <div style={{ fontSize: 12, color: "#94A3B8", marginTop: 2 }}>
+                              Đề xuất bởi: <strong style={{ color: "#334155" }}>{prop.proposedBy}</strong>
+                            </div>
+                          </div>
+                          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 100,
+                              background: prop.priority === "HIGH" ? "#FEE2E2" : "#FEF3C7",
+                              color: prop.priority === "HIGH" ? "#DC2626" : "#D97706"
+                            }}>
+                              {prop.priority}
+                            </span>
+                            <span style={{
+                              fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 100,
+                              background: isApproved ? "#DCFCE7" : isPending ? "#FFEDD5" : isRejected ? "#FEE2E2" : "#F1F5F9",
+                              color: isApproved ? "#15803D" : isPending ? "#C2410C" : isRejected ? "#B91C1C" : "#475569"
+                            }}>
+                              {prop.status}
+                            </span>
+                          </div>
                         </div>
-                        <strong style={{ fontSize: 12.5, color: "#0F172A" }}>Tăng ngân sách ngành AI & Robotics</strong>
-                      </div>
-                      <p style={{ fontSize: 11.5, color: "#475569", margin: "0 0 6px", lineHeight: 1.4 }}>
-                        Dữ liệu thị trường cho thấy nhu cầu nhân lực tăng 25%. Đề xuất tăng 15% học bổng thu hút nhân tài.
-                      </p>
-                      <div style={{ display: "flex", gap: 6 }}>
-                        <span style={{ fontSize: 10, background: "#F1F5F9", padding: "2px 6px", borderRadius: 4, color: "#475569" }}>Tác động: <strong>Cao</strong></span>
-                        <span style={{ fontSize: 10, background: "#F1F5F9", padding: "2px 6px", borderRadius: 4, color: "#475569" }}>Rủi ro: <strong>Thấp</strong></span>
-                      </div>
-                    </div>
 
-                    <div style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #E2E8F0", background: "#FFFFFF" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: "#DBEAFE", color: "#1D4ED8", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Building size={13} />
-                        </div>
-                        <strong style={{ fontSize: 12.5, color: "#0F172A" }}>Mở rộng Campus tại Đà Nẵng</strong>
-                      </div>
-                      <p style={{ fontSize: 11.5, color: "#475569", margin: "0 0 6px", lineHeight: 1.4 }}>
-                        Dự báo quá tải cơ sở hạ tầng hiện tại vào năm 2026. Cần khởi động giai đoạn 2 xây dựng.
-                      </p>
-                    </div>
+                        {/* Title */}
+                        <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", lineHeight: 1.35, marginBottom: 10 }}>
+                          {prop.title}
+                        </h3>
 
-                    <div style={{ padding: "12px 14px", borderRadius: 8, border: "1px solid #E2E8F0", background: "#FFFFFF" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
-                        <div style={{ width: 22, height: 22, borderRadius: 6, background: "#E0F2FE", color: "#0284C7", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                          <Megaphone size={13} />
+                        {/* Reason / Context */}
+                        <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.55, marginBottom: 16, flex: 1 }}>
+                          {prop.reason}
+                        </p>
+
+                        {/* Decision Score & Impact Matrix Pill */}
+                        <div style={{
+                          background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12,
+                          padding: "12px 14px", marginBottom: 16, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10
+                        }}>
+                          <div>
+                            <div style={{ fontSize: 11, color: "#64748B" }}>Ngân sách đề xuất:</div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "#0F172A" }}>
+                              {prop.budgetDelta > 0 ? `+${(prop.budgetDelta / 1e6).toLocaleString()} Triệu` : "0 phát sinh"}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#94A3B8" }}>Tổng: {(prop.proposedBudget / 1e9).toFixed(1)} Tỷ VND</div>
+                          </div>
+
+                          <div>
+                            <div style={{ fontSize: 11, color: "#64748B" }}>Tác động Tuyển sinh:</div>
+                            <div style={{ fontSize: 14, fontWeight: 800, color: "#16A34A" }}>
+                              {prop.impacts?.enrollment || "+0 SV"}
+                            </div>
+                            <div style={{ fontSize: 11, color: "#64748B" }}>Doanh thu: <strong style={{ color: "#2563EB" }}>{prop.impacts?.revenue || "0"}</strong></div>
+                          </div>
                         </div>
-                        <strong style={{ fontSize: 12.5, color: "#0F172A" }}>Tối ưu chi phí Marketing Digital</strong>
+
+                        {/* AI Recommendation Summary */}
+                        {prop.aiRecommendation && (
+                          <div style={{
+                            background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 10,
+                            padding: "10px 12px", marginBottom: 18, display: "flex", alignItems: "flex-start", gap: 8
+                          }}>
+                            <Bot size={16} color="#D97706" style={{ flexShrink: 0, marginTop: 2 }} />
+                            <div>
+                              <div style={{ fontSize: 11.5, fontWeight: 800, color: "#B45309" }}>
+                                AI SCORE: {prop.decisionScore?.overall}/10 • {prop.aiRecommendation.headline}
+                              </div>
+                              <div style={{ fontSize: 11.5, color: "#78350F", marginTop: 2 }}>
+                                {prop.aiRecommendation.evidence?.[0]}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* 4 Standard Action Buttons */}
+                        <div style={{ display: "flex", gap: 8, alignItems: "center", borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
+                          {isPending ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setSelectedProposalForApproval(prop);
+                                  setIsConditionalApproval(false);
+                                }}
+                                style={{
+                                  flex: 1, padding: "9px 14px", borderRadius: 9,
+                                  background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+                                  border: "none", color: "#FFFFFF", fontSize: 13, fontWeight: 700,
+                                  cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                                  boxShadow: "0 2px 8px rgba(234,88,12,0.3)"
+                                }}
+                              >
+                                <Check size={15} /> Phê duyệt ngay
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelectedProposalForApproval(prop);
+                                  setIsConditionalApproval(true);
+                                }}
+                                style={{
+                                  padding: "9px 12px", borderRadius: 9,
+                                  background: "#FFF7ED", border: "1px solid #FDBA74",
+                                  color: "#C2410C", fontSize: 12.5, fontWeight: 600,
+                                  cursor: "pointer"
+                                }}
+                                title="Phê duyệt có điều kiện"
+                              >
+                                Điều kiện
+                              </button>
+
+                              <button
+                                onClick={() => handleRejectProposal(prop)}
+                                style={{
+                                  padding: "9px 12px", borderRadius: 9,
+                                  background: "#FEF2F2", border: "1px solid #FCA5A5",
+                                  color: "#DC2626", fontSize: 12.5, fontWeight: 600,
+                                  cursor: "pointer"
+                                }}
+                                title="Từ chối"
+                              >
+                                <X size={15} />
+                              </button>
+                            </>
+                          ) : (
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+                              <span style={{ fontSize: 12, color: "#16A34A", fontWeight: 700, display: "flex", alignItems: "center", gap: 4 }}>
+                                <CheckCircle size={14} /> Quyết định: {prop.decisionId}
+                              </span>
+                              <button
+                                onClick={() => setSelectedDecisionForHistory(prop)}
+                                style={{
+                                  padding: "6px 12px", borderRadius: 8,
+                                  background: "#F1F5F9", border: "1px solid #CBD5E1",
+                                  fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer"
+                                }}
+                              >
+                                Xem Workflow Tasks & Timeline
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <p style={{ fontSize: 11.5, color: "#475569", margin: 0, lineHeight: 1.4 }}>
-                        CAC đang tăng. Cần chuyển dịch 20% ngân sách sang Kênh trường THPT.
-                      </p>
-                    </div>
-                  </div>
-                </div>
+                    );
+                  })}
               </div>
 
-              {/* Xu hướng 10 năm */}
-              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 24px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              {/* Multi-Department Linked Tasks Overview */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
                   <div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                      <TrendingUp size={16} /> Phân tích Xu hướng Dài hạn (10 Năm)
-                    </div>
-                    <p style={{ fontSize: 11.5, color: "#64748B", margin: "2px 0 0" }}>
-                      So sánh dữ liệu lịch sử (5 năm qua) và dự phóng (5 năm tới)
+                    <h3 style={{ fontSize: 18, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                      Nhiệm Vụ Thực Thi Liên Phòng Ban (Cross-Department Tasks)
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: "#64748B", margin: "3px 0 0" }}>
+                      Tự động phân rã từ các quyết định đã phê duyệt của BOD, giám sát tiến độ theo SLA thời gian thực
                     </p>
                   </div>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: "#EA580C", background: "#FFEDD5", padding: "4px 10px", borderRadius: 100 }}>
+                    {tasks.filter(t => t.status === "IN_PROGRESS").length} Nhiệm vụ đang triển khai
+                  </span>
+                </div>
 
-                  <div style={{ display: "flex", background: "#F1F5F9", borderRadius: 6, padding: 2 }}>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", color: "#64748B", borderBottom: "1px solid #E2E8F0", fontSize: 12, textTransform: "uppercase" }}>
+                        <th style={{ padding: "12px 16px" }}>Mã Task</th>
+                        <th style={{ padding: "12px 16px" }}>Mã Quyết Định</th>
+                        <th style={{ padding: "12px 16px" }}>Nội Dung Nhiệm Vụ</th>
+                        <th style={{ padding: "12px 16px" }}>Phòng Ban Phụ Trách</th>
+                        <th style={{ padding: "12px 16px" }}>Người Thực Hiện</th>
+                        <th style={{ padding: "12px 16px" }}>Hạn Chót / SLA</th>
+                        <th style={{ padding: "12px 16px" }}>Trạng Thái</th>
+                        <th style={{ padding: "12px 16px", textAlign: "right" }}>Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {tasks.map((task, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "14px 16px", fontFamily: "monospace", fontWeight: 700, color: "#2563EB" }}>
+                            {task.id}
+                          </td>
+                          <td style={{ padding: "14px 16px", fontFamily: "monospace", color: "#64748B" }}>
+                            {task.decisionId}
+                          </td>
+                          <td style={{ padding: "14px 16px", fontWeight: 600, color: "#0F172A", maxWidth: 300 }}>
+                            {task.title}
+                          </td>
+                          <td style={{ padding: "14px 16px", color: "#334155" }}>
+                            {task.department}
+                          </td>
+                          <td style={{ padding: "14px 16px", color: "#475569" }}>
+                            {task.assignee}
+                          </td>
+                          <td style={{ padding: "14px 16px" }}>
+                            <span style={{
+                              fontSize: 11.5, fontWeight: 700,
+                              color: task.isOverdue ? "#DC2626" : "#D97706"
+                            }}>
+                              {task.isOverdue ? `🚨 ${task.slaRemaining}` : `⏳ ${task.slaRemaining}`}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 16px" }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 100,
+                              background: task.status === "COMPLETED" ? "#DCFCE7" : task.status === "ESCALATED" ? "#FEE2E2" : "#EFF6FF",
+                              color: task.status === "COMPLETED" ? "#15803D" : task.status === "ESCALATED" ? "#B91C1C" : "#2563EB"
+                            }}>
+                              {task.status}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 16px", textAlign: "right" }}>
+                            <button
+                              onClick={() => {
+                                handleUrgeDepartment(task.department);
+                              }}
+                              style={{
+                                padding: "5px 10px", borderRadius: 6,
+                                background: "#FFF7ED", border: "1px solid #FDBA74",
+                                color: "#C2410C", fontSize: 11.5, fontWeight: 700, cursor: "pointer"
+                              }}
+                            >
+                              Đốc thúc
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 2: TỔNG QUAN CHIẾN LƯỢC (GOV_STRATEGIC) - WITH ACTIONABLE DRILL-DOWNS
+              ========================================================================= */}
+          {activeTab === "gov_strategic" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              
+              {/* Executive Top Cards (Clickable to open Drill-Down Drawer) */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+                {[
+                  {
+                    id: "kpi_enrollment",
+                    title: "DỰ BÁO NHẬP HỌC K21",
+                    value: "14,250 SV",
+                    target: "15,000 SV (Đạt 95.0%)",
+                    gap: "-750 SV",
+                    trend: "↓ -2.3% YoY",
+                    color: "#EA580C",
+                    causes: [
+                      "Tỷ lệ chuyển đổi Admit → Enrolled khu vực Miền Tây giảm 8.2%",
+                      "Cạnh tranh gay gắt từ các trường công lập mở thêm chỉ tiêu ngành CNTT",
+                      "Chi phí thu hút thí sinh (CAC) tăng ở kênh tìm kiếm"
+                    ],
+                    aiAction: "Tăng ngân sách Digital Miền Tây +800M và bổ sung 200 suất học bổng Talent ngành AI."
+                  },
+                  {
+                    id: "kpi_revenue",
+                    title: "DOANH THU HỌC PHÍ DỰ PHÓNG",
+                    value: "2,450 Tỷ VND",
+                    target: "2,200 Tỷ VND (+11.3%)",
+                    gap: "+250 Tỷ VND",
+                    trend: "↑ +14.8% YoY",
+                    color: "#16A34A",
+                    causes: [
+                      "Doanh thu các ngành chất lượng cao và AI tăng trưởng vượt kỳ vọng",
+                      "Tỷ lệ sinh viên đóng học phí đúng hạn đạt 95.2%"
+                    ],
+                    aiAction: "Tiếp tục duy trì chính sách học phí ổn định và phân bổ 15 Tỷ đầu tư phòng Lab AI."
+                  },
+                  {
+                    id: "kpi_marketing",
+                    title: "HIỆU SUẤT MARKETING (CAC)",
+                    value: "2.4 Triệu/SV",
+                    target: "Dưới 2.6 Triệu/SV",
+                    gap: "Tiết kiệm 8%",
+                    trend: "↓ Tối ưu tốt",
+                    color: "#2563EB",
+                    causes: [
+                      "Kênh TikTok Video và Open Day trường THPT có ROI vượt trội 3.4x",
+                      "Chi phí Lead chuyển đổi giảm nhờ hệ thống AI Telesales"
+                    ],
+                    aiAction: "Tái cơ cấu 20% ngân sách từ Google Search sang TikTok Ads."
+                  },
+                  {
+                    id: "kpi_sla",
+                    title: "TỶ LỆ ĐÁP ỨNG SLA LIÊN PHÒNG",
+                    value: "97.8%",
+                    target: "Mục tiêu: > 96%",
+                    gap: "+1.8%",
+                    trend: "Ổn định",
+                    color: "#7C3AED",
+                    causes: [
+                      "Ban Tuyển sinh và IT giải quyết 98.3% hồ sơ dưới 3h",
+                      "Phòng Nhân sự còn chậm trễ trong khâu tuyển Tiến sĩ ngành mới"
+                    ],
+                    aiAction: "Đốc thúc Phòng Nhân sự duyệt gói thu hút nhân tài giảng viên 1 Tỷ/Tiến sĩ."
+                  },
+                  {
+                    id: "kpi_risks",
+                    title: "RỦI RO CẦN BOD XỬ LÝ",
+                    value: `${highRisksCount} Rủi ro`,
+                    target: "0 Rủi ro Critical",
+                    gap: "Cần hành động",
+                    trend: "Khẩn cấp",
+                    color: "#DC2626",
+                    causes: [
+                      "Hồ sơ ảo khu vực Miền Tây",
+                      "Tiến độ thi công AI Lab Hòa Lạc",
+                      "Thiếu hụt giảng viên bán dẫn K21"
+                    ],
+                    aiAction: "Mở ngay Risk Center để giao việc xử lý cho các phòng ban."
+                  }
+                ].map((kpi) => (
+                  <div
+                    key={kpi.id}
+                    onClick={() => setSelectedKPIDetail(kpi)}
+                    style={{
+                      background: "#FFFFFF",
+                      border: "1px solid #E2E8F0",
+                      borderRadius: 16,
+                      padding: "20px 18px",
+                      cursor: "pointer",
+                      transition: "all 0.2s ease",
+                      boxShadow: "0 2px 6px rgba(0,0,0,0.03)",
+                      position: "relative",
+                      overflow: "hidden"
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.transform = "translateY(-3px)";
+                      e.currentTarget.style.borderColor = kpi.color;
+                      e.currentTarget.style.boxShadow = `0 10px 25px rgba(0,0,0,0.08), 0 0 15px ${kpi.color}22`;
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.transform = "translateY(0)";
+                      e.currentTarget.style.borderColor = "#E2E8F0";
+                      e.currentTarget.style.boxShadow = "0 2px 6px rgba(0,0,0,0.03)";
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: "#64748B", textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        {kpi.title}
+                      </span>
+                      <ChevronRight size={15} color="#94A3B8" />
+                    </div>
+                    <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", lineHeight: 1.1, marginBottom: 6 }}>
+                      {kpi.value}
+                    </div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: kpi.color }}>
+                      {kpi.target} • {kpi.trend}
+                    </div>
+                    <div style={{ fontSize: 11, color: "#94A3B8", marginTop: 8, borderTop: "1px solid #F1F5F9", paddingTop: 8 }}>
+                      👉 Click xem nguyên nhân & hành động BOD
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Strategic Charts & Portfolio 5 Campuses */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.2fr", gap: 20 }}>
+                
+                {/* Left: 5 Campus Enrollment & Quota Breakdown */}
+                <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                    <div>
+                      <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                        Tiến Độ Tuyển Sinh 5 Phân Hiệu Toàn Quốc (Thu 2026)
+                      </h3>
+                      <p style={{ fontSize: 12, color: "#64748B", margin: "2px 0 0" }}>
+                        Chỉ tiêu vs Hồ sơ nộp vs Nhập học thực tế (Yield Rate)
+                      </p>
+                    </div>
                     <button
-                      onClick={() => setLongTermMetric("students")}
-                      style={{
-                        padding: "5px 12px", borderRadius: 5, border: "none",
-                        background: longTermMetric === "students" ? "#FFFFFF" : "transparent",
-                        fontWeight: 700, fontSize: 11.5, color: "#0F172A", cursor: "pointer"
-                      }}
+                      onClick={() => setActiveTab("dss_funnel")}
+                      style={{ background: "#F1F5F9", border: "1px solid #CBD5E1", padding: "6px 12px", borderRadius: 8, fontSize: 12, fontWeight: 600, color: "#334155", cursor: "pointer" }}
                     >
-                      Quy mô SV
+                      Phân tích chi tiết phễu
                     </button>
-                    <button
-                      onClick={() => setLongTermMetric("revenue")}
-                      style={{
-                        padding: "5px 12px", borderRadius: 5, border: "none",
-                        background: longTermMetric === "revenue" ? "#FFFFFF" : "transparent",
-                        fontWeight: 700, fontSize: 11.5, color: "#0F172A", cursor: "pointer"
-                      }}
-                    >
-                      Doanh thu
-                    </button>
+                  </div>
+
+                  <div style={{ height: 260 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { campus: "Hà Nội", target: 5500, enrolled: 5320, yield: 96.7 },
+                          { campus: "TP.HCM", target: 5000, enrolled: 4890, yield: 97.8 },
+                          { campus: "Đà Nẵng", target: 2000, enrolled: 1910, yield: 95.5 },
+                          { campus: "Cần Thơ", target: 1500, enrolled: 1280, yield: 85.3 },
+                          { campus: "Quy Nhơn", target: 1000, enrolled: 850, yield: 85.0 },
+                        ]}
+                        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                        <XAxis dataKey="campus" stroke="#64748B" fontSize={12} />
+                        <YAxis stroke="#64748B" fontSize={12} />
+                        <Tooltip
+                          contentStyle={{ background: "#0F172A", borderRadius: 8, border: "none", color: "#FFF", fontSize: 12 }}
+                          formatter={(val, name) => [name === "target" ? `${val} SV (Chỉ tiêu)` : `${val} SV (Nhập học)`, name === "target" ? "Chỉ tiêu" : "Nhập học"]}
+                        />
+                        <Bar dataKey="target" fill="#CBD5E1" radius={[4, 4, 0, 0]} barSize={24} name="target" />
+                        <Bar dataKey="enrolled" fill="#EA580C" radius={[4, 4, 0, 0]} barSize={24} name="enrolled" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div style={{ display: "flex", justifyContent: "center", gap: 20, marginTop: 10, fontSize: 12 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 12, height: 12, background: "#CBD5E1", borderRadius: 3 }} />
+                      <span style={{ color: "#64748B" }}>Chỉ tiêu tuyển sinh</span>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                      <span style={{ width: 12, height: 12, background: "#EA580C", borderRadius: 3 }} />
+                      <span style={{ color: "#0F172A", fontWeight: 700 }}>Sinh viên nhập học thực tế</span>
+                    </div>
                   </div>
                 </div>
 
-                <div style={{ width: "100%", height: 210 }}>
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart
-                      data={[
-                        { year: "2020", history: 8500, projection: null },
-                        { year: "2021", history: 9600, projection: null },
-                        { year: "2022", history: 11200, projection: null },
-                        { year: "2023", history: 12800, projection: null },
-                        { year: "2024", history: 14250, projection: null },
-                        { year: "2025 (H)", history: 15200, projection: 15200 },
-                        { year: "2026 (P)", history: null, projection: 16800 },
-                        { year: "2027 (P)", history: null, projection: 18500 },
-                        { year: "2028 (P)", history: null, projection: 20400 },
-                        { year: "2029 (P)", history: null, projection: 22600 },
-                        { year: "2030 (P)", history: null, projection: 25000 },
-                      ]}
-                      margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+                {/* Right: Quick Action Board for BOD */}
+                <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22, display: "flex", flexDirection: "column" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14 }}>
+                    <Zap size={18} color="#EA580C" />
+                    <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                      Hành Động & Điều Hành Nhanh (BOD Actions)
+                    </h3>
+                  </div>
+
+                  <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+                    <button
+                      onClick={() => setActiveTab("decision_center")}
+                      style={{
+                        padding: "12px 14px", borderRadius: 10, background: "#FFF7ED",
+                        border: "1px solid #FDBA74", color: "#9A3412", textAlign: "left",
+                        display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
+                      }}
                     >
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F8FAFC" />
-                      <XAxis dataKey="year" fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                      <YAxis fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                      <Tooltip />
-                      <ReferenceLine x="2025 (H)" stroke="#F59E0B" strokeDasharray="3 3" label={{ value: "Hiện tại", position: "top", fill: "#B45309", fontSize: 10, fontWeight: 700 }} />
-                      <Line type="monotone" dataKey="history" stroke="#2563EB" strokeWidth={3.5} dot={{ r: 3 }} name="Dữ liệu lịch sử" />
-                      <Line type="monotone" dataKey="projection" stroke="#78350F" strokeWidth={3.5} strokeDasharray="6 6" dot={{ r: 3 }} name="Dự phóng 5 năm tới" />
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>✓ Phê duyệt {pendingProposalsCount} Đề xuất ngân sách</div>
+                        <div style={{ fontSize: 11.5, color: "#C2410C" }}>Ban Tuyển sinh & Marketing đang chờ ý kiến</div>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab("gov_risk")}
+                      style={{
+                        padding: "12px 14px", borderRadius: 10, background: "#FEF2F2",
+                        border: "1px solid #FCA5A5", color: "#991B1B", textAlign: "left",
+                        display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>🚨 Xử lý {highRisksCount} Rủi ro tuyển sinh</div>
+                        <div style={{ fontSize: 11.5, color: "#B91C1C" }}>Hồ sơ ảo Miền Tây & Hạ tầng Lab GPU</div>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => setActiveTab("dss_forecast")}
+                      style={{
+                        padding: "12px 14px", borderRadius: 10, background: "#EFF6FF",
+                        border: "1px solid #BFDBFE", color: "#1E40AF", textAlign: "left",
+                        display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>🎛️ Chạy mô phỏng What-If Ngân sách</div>
+                        <div style={{ fontSize: 11.5, color: "#2563EB" }}>Tối ưu học phí, học bổng & doanh thu</div>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+
+                    <button
+                      onClick={() => setShowNewMajorModal(true)}
+                      style={{
+                        padding: "12px 14px", borderRadius: 10, background: "#F0FDF4",
+                        border: "1px solid #BBF7D0", color: "#166534", textAlign: "left",
+                        display: "flex", alignItems: "center", justifyContent: "space-between", cursor: "pointer"
+                      }}
+                    >
+                      <div>
+                        <div style={{ fontSize: 13, fontWeight: 700 }}>🏫 Phê duyệt mở ngành Bán dẫn & AI</div>
+                        <div style={{ fontSize: 11.5, color: "#15803D" }}>Chiến lược K21 & Đào tạo nhân lực vi mạch</div>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 3: DỰ BÁO & MÔ PHỎNG WHAT-IF (DSS FORECAST) - DIRECT PROPOSAL CREATION
+              ========================================================================= */}
+          {activeTab === "dss_forecast" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#EA580C", textTransform: "uppercase" }}>
+                    DSS WHAT-IF SIMULATION & DECISION GENERATOR
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Dự Báo & Mô Phỏng Kịch Bản Quyết Định
+                  </h1>
+                </div>
+
+                <button
+                  onClick={handleCreateProposalFromWhatIf}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 20px",
+                    background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+                    border: "none", borderRadius: 10, color: "#FFFFFF",
+                    fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(234,88,12,0.35)"
+                  }}
+                >
+                  <Sparkles size={16} /> Tạo Đề Xuất Quyết Định Từ Kịch Bản Này
+                </button>
+              </div>
+
+              {/* Simulation Sliders Control Matrix */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 20 }}>
+                {/* Parameter 1: Tuition */}
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>Điều chỉnh Học phí:</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "#EA580C" }}>+{tuitionIncrease}%</span>
+                  </div>
+                  <input
+                    type="range" min={0} max={15} step={1}
+                    value={tuitionIncrease}
+                    onChange={e => setTuitionIncrease(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "#EA580C", cursor: "pointer" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94A3B8", marginTop: 6 }}>
+                    <span>0% (Giữ nguyên)</span>
+                    <span>5% (Khuyên dùng)</span>
+                    <span>15% (Tối đa)</span>
+                  </div>
+                </div>
+
+                {/* Parameter 2: Scholarship */}
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                    <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>Tỷ lệ Học bổng Talent:</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: "#2563EB" }}>{scholarshipRate}%</span>
+                  </div>
+                  <input
+                    type="range" min={5} max={25} step={1}
+                    value={scholarshipRate}
+                    onChange={e => setScholarshipRate(Number(e.target.value))}
+                    style={{ width: "100%", accentColor: "#2563EB", cursor: "pointer" }}
+                  />
+                  <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94A3B8", marginTop: 6 }}>
+                    <span>5% (Thấp)</span>
+                    <span>12% (Mục tiêu)</span>
+                    <span>25% (Thu hút tài năng)</span>
+                  </div>
+                </div>
+
+                {/* Parameter 3: Marketing Strategy */}
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20 }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", display: "block", marginBottom: 10 }}>Chiến dịch Marketing Tuyển sinh:</span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    {[
+                      { id: "attack", label: "Tấn công (+10%)", color: "#EA580C" },
+                      { id: "normal", label: "Cơ bản (Giữ nguyên)", color: "#475569" },
+                      { id: "saving", label: "Tiết kiệm (-8%)", color: "#16A34A" },
+                    ].map(mode => (
+                      <button
+                        key={mode.id}
+                        onClick={() => setMarketingBudgetMode(mode.id)}
+                        style={{
+                          flex: 1, padding: "8px 6px", borderRadius: 8, fontSize: 11.5, fontWeight: 700,
+                          border: marketingBudgetMode === mode.id ? `1.5px solid ${mode.color}` : "1px solid #E2E8F0",
+                          background: marketingBudgetMode === mode.id ? "#F8FAFC" : "#FFFFFF",
+                          color: marketingBudgetMode === mode.id ? mode.color : "#64748B",
+                          cursor: "pointer"
+                        }}
+                      >
+                        {mode.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Simulation Results Chart */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+                  <div>
+                    <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                      Dự Phóng Doanh Thu & Nhập Học 4 Quý (Kịch Bản Cơ Bản vs Mô Phỏng)
+                    </h3>
+                    <p style={{ fontSize: 12.5, color: "#64748B", margin: "2px 0 0" }}>
+                      Đơn vị tính: Tỷ VND • Dự báo Doanh thu FY26 đạt <strong>2,450 Tỷ VND</strong> (+12.5%)
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ height: 280 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={simulatedForecastData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <XAxis dataKey="quarter" stroke="#64748B" fontSize={12} />
+                      <YAxis stroke="#64748B" fontSize={12} />
+                      <Tooltip contentStyle={{ background: "#0F172A", borderRadius: 8, border: "none", color: "#FFF", fontSize: 12 }} />
+                      <Line type="monotone" dataKey="base" stroke="#94A3B8" strokeWidth={2} name="Kế hoạch gốc" strokeDasharray="5 5" />
+                      <Line type="monotone" dataKey="sim" stroke="#EA580C" strokeWidth={3} name="Kịch bản mô phỏng" activeDot={{ r: 8 }} />
                     </LineChart>
                   </ResponsiveContainer>
                 </div>
@@ -653,1238 +1376,142 @@ export default function BODExecutivePortal() {
           )}
 
           {/* =========================================================================
-              MÀN HÌNH 2: DSS PHỄU TUYỂN SINH & KHUYẾN NGHỊ HÀNH ĐỘNG AI
-             ========================================================================= */}
+              TAB 4: DSS PHỄU TUYỂN SINH & KHUYẾN NGHỊ CHUYỂN ĐỔI (DSS FUNNEL COMPLETE)
+              ========================================================================= */}
           {activeTab === "dss_funnel" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
                 <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.4px" }}>
-                    Hệ Thống Hỗ Trợ Ra Quyết Định Tuyển Sinh (DSS Funnel)
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#2563EB", textTransform: "uppercase" }}>
+                    ADMISSION FUNNEL CONVERSION & STAGE-BY-STAGE INTELLIGENCE
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    DSS Phễu Tuyển Sinh & Tối Ưu Hóa Tỷ Lệ Nhập Học (Yield Rate)
                   </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Phân tích chuyển đổi đa tầng & Đề xuất hành động tức thời từ mô hình Machine Learning
-                  </p>
                 </div>
 
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={handleExportComprehensiveReport}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Download size={14} /> Xuất Báo Cáo
-                  </button>
-                  <button
-                    onClick={() => setShowRunModelModal(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Bot size={14} /> Chạy Mô Hình
-                  </button>
+                <button
+                  onClick={() => {
+                    const prop = proposals.find(p => p.id === "PROP-2026-001");
+                    if (prop) setSelectedProposalForApproval(prop);
+                  }}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "9px 18px",
+                    background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 10,
+                    color: "#C2410C", fontSize: 13, fontWeight: 700, cursor: "pointer"
+                  }}
+                >
+                  <Zap size={15} /> Xử lý Điểm nghẽn Phễu Miền Tây (+800M)
+                </button>
+              </div>
+
+              {/* 4 Funnel Stage Cards with Conversion Rates */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20, borderTop: "4px solid #3B82F6" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#1E40AF", textTransform: "uppercase" }}>1. TỔNG LEADS</span>
+                    <span style={{ fontSize: 11, background: "#EFF6FF", color: "#2563EB", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>+12% YoY</span>
+                  </div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", margin: "8px 0 4px" }}>24,500</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>Đăng ký tư vấn trực tuyến & THPT</div>
+                </div>
+
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20, borderTop: "4px solid #F59E0B" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#92400E", textTransform: "uppercase" }}>2. HỒ SƠ (APPLICANTS)</span>
+                    <span style={{ fontSize: 11, background: "#FEF3C7", color: "#D97706", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>33.5% Chuyển đổi</span>
+                  </div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", margin: "8px 0 4px" }}>8,200</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>Đã nộp hồ sơ xét tuyển hợp lệ</div>
+                </div>
+
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20, borderTop: "4px solid #8B5CF6" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#5B21B6", textTransform: "uppercase" }}>3. ĐỦ ĐIỀU KIỆN (ADMITS)</span>
+                    <span style={{ fontSize: 11, background: "#F5F3FF", color: "#7C3AED", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>62.2% Trúng tuyển</span>
+                  </div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", margin: "8px 0 4px" }}>5,100</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>Đủ điểm chuẩn THPT & Học bạ</div>
+                </div>
+
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20, borderTop: "4px solid #10B981" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 11.5, fontWeight: 800, color: "#065F46", textTransform: "uppercase" }}>4. NHẬP HỌC (ENROLLED)</span>
+                    <span style={{ fontSize: 11, background: "#ECFDF5", color: "#059669", padding: "2px 6px", borderRadius: 4, fontWeight: 700 }}>75.5% Yield Rate</span>
+                  </div>
+                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", margin: "8px 0 4px" }}>3,850</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>Đã nộp học phí chính thức đợt 1</div>
                 </div>
               </div>
 
-              {/* 4 Thẻ KPI DSS */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#475569" }}>
-                      <TrendingUp size={15} color="#9A3412" /> Dự Báo Nhập Học
-                    </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "2px 6px", borderRadius: 4 }}>
-                      ↑ 12.4%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>
-                    14,250
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
-                    Sinh viên (Độ tin cậy 94%)
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#475569" }}>
-                      <Filter size={15} color="#2563EB" /> Tỷ Lệ Chuyển Đổi
-                    </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#D97706", background: "#FEF3C7", padding: "2px 6px", borderRadius: 4 }}>
-                      — 0.2%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>
-                    8.7%
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
-                    Leads → Nhập học
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#475569" }}>
-                      <Megaphone size={15} color="#059669" /> ROI Marketing
-                    </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "2px 6px", borderRadius: 4 }}>
-                      ↑ 4.1%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>
-                    3.2x
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
-                    Trung bình các kênh
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "#475569" }}>
-                      <CreditCard size={15} color="#DC2626" /> Ngân Sách Học Bổng
-                    </div>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "2px 6px", borderRadius: 4 }}>
-                      ⚠️ Vượt 2%
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 30, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px" }}>
-                    45B VNĐ
-                  </div>
-                  <div style={{ fontSize: 11, color: "#64748B", marginTop: 4 }}>
-                    Đã giải ngân (Dự kiến 44B)
-                  </div>
-                </div>
-              </div>
-
-              {/* Phễu Tuyển Sinh & Khuyến Nghị Hành Động */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, alignItems: "start" }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", margin: 0 }}>
-                      Phân Tích Phễu Tuyển Sinh (Conversion Funnel)
-                    </h3>
-                    <span onClick={() => showToast("Đang mở chi tiết phễu chuyển đổi từng phân hiệu")} style={{ fontSize: 12, fontWeight: 700, color: "#9A3412", cursor: "pointer" }}>
-                      Chi tiết
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 16 }}>
-                    {[
-                      { step: "1. Đăng ký nhận thông tin (Leads)", count: "165,000", percent: 100, barWidth: 100, color: "#582C1B" },
-                      { step: "2. Nộp hồ sơ xét tuyển", count: "85,200", percent: 51.6, barWidth: 51.6, color: "#9A3412" },
-                      { step: "3. Trúng tuyển", count: "42,600", percent: 50.0, barWidth: 25.8, color: "#C2410C" },
-                      { step: "4. Nhập học chính thức", count: "14,350", percent: 33.6, barWidth: 8.7, color: "#EA580C" },
-                    ].map((f, idx) => (
-                      <div key={idx}>
-                        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 5 }}>
-                          <span>{f.step}</span>
-                          <strong>{f.count} {f.percent < 100 ? `(${f.percent}%)` : ""}</strong>
-                        </div>
-                        <div style={{ width: "100%", height: 14, borderRadius: 3, background: "#0F172A", overflow: "hidden" }}>
-                          <div style={{ width: `${f.barWidth}%`, height: "100%", background: f.color }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div style={{ padding: "12px 14px", borderRadius: 8, background: "#FFF7ED", border: "1px solid #FFEDD5" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 900, color: "#9A3412", marginBottom: 3 }}>
-                      <Lightbulb size={15} /> Đề xuất AI
-                    </div>
-                    <p style={{ fontSize: 11.5, color: "#7C2D12", margin: 0, lineHeight: 1.45 }}>
-                      Tỷ lệ chuyển đổi từ Trúng tuyển sang Nhập học giảm 2% so với kỳ trước. Đề xuất tăng cường chiến dịch gọi điện chăm sóc (Telesales) cho nhóm đối tượng có điểm xét tuyển ở mức khá trong tuần tới.
-                    </p>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 14 }}>
-                    <Bot size={16} color="#9A3412" /> Khuyến Nghị Hành Động
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                    {[
-                      { id: "REC-01", title: "Điều chỉnh Học bổng Vùng", tag: "High", tagBg: "#FEE2E2", tagColor: "#DC2626", desc: "Mô hình dự báo số lượng thí sinh ĐBSCL giảm. Cân nhắc tăng 5% quota học bổng khu vực này để bù đắp.", actionText: "Tăng Quota Học bổng ĐBSCL" },
-                      { id: "REC-02", title: "Tối ưu Kênh Digital", tag: "Medium", tagBg: "#FEF3C7", tagColor: "#D97706", desc: "ROI kênh TikTok Ads đang gấp 1.5 lần Facebook Ads. Đề xuất dịch chuyển 20% ngân sách.", actionText: "Dịch chuyển Ngân sách TikTok" },
-                      { id: "REC-03", title: "Mở thêm Ngành Hot", tag: "Low", tagBg: "#DCFCE7", tagColor: "#16A34A", desc: "Nhu cầu tìm kiếm \"AI & Robotics\" tăng đột biến. Chuẩn bị nguồn lực truyền thông chuyên sâu.", actionText: "Phê duyệt Đề án Mở ngành" }
-                    ].map((rec) => (
-                      <div
-                        key={rec.id}
-                        style={{
-                          padding: "12px 14px", borderRadius: 8, border: "1px solid #E2E8F0",
-                          borderLeft: rec.tag === "High" ? "4px solid #DC2626" : rec.tag === "Medium" ? "4px solid #D97706" : "4px solid #16A34A",
-                          background: "#FFFFFF"
-                        }}
-                      >
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <strong style={{ fontSize: 12.5, color: "#0F172A" }}>{rec.title}</strong>
-                          <span style={{ padding: "1px 6px", borderRadius: 4, fontSize: 10, fontWeight: 800, color: rec.tagColor, background: rec.tagBg }}>
-                            {rec.tag}
-                          </span>
-                        </div>
-                        <p style={{ fontSize: 11.5, color: "#475569", margin: "0 0 8px", lineHeight: 1.4 }}>
-                          {rec.desc}
-                        </p>
-                        <button
-                          onClick={() => setSelectedBODDirective(rec)}
-                          style={{ padding: "6px 12px", borderRadius: 6, background: "#0F172A", color: "#FFFFFF", border: "none", fontSize: 11, fontWeight: 800, cursor: "pointer", boxShadow: "0 2px 6px rgba(15,23,42,0.2)" }}
-                        >
-                          Phê duyệt chỉ thị
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 3: HIỆU QUẢ MARKETING, NGUỒN TUYỂN SINH & BẢN ĐỒ NHIỆT
-             ========================================================================= */}
-          {activeTab === "dss_marketing" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.3px" }}>
-                    Phân tích Nguồn Tuyển sinh & Hiệu quả Marketing
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Tối ưu hóa đa kênh • Đo lường chi phí thu hút sinh viên (CAC) & Phân bổ địa lý
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 6, border: "1px solid #78350F", background: "#FFFFFF", color: "#78350F", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                    <Calendar size={14} /> Kỳ {selectedSemester}
-                  </button>
-                  <button
-                    onClick={handleExportComprehensiveReport}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Download size={14} /> Xuất báo cáo
-                  </button>
-                </div>
-              </div>
-
-              {/* Phễu Tuyển sinh Thông minh + ROI Marketing */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                      <div style={{ color: "#DC2626" }}><Filter size={16} /></div>
-                      Phễu tuyển sinh thông minh
-                    </div>
-                    <span style={{ fontSize: 11, color: "#475569", background: "#F1F5F9", padding: "3px 8px", borderRadius: 4, fontWeight: 600 }}>
-                      Dự báo: Ổn định
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                    <div style={{ background: "#EFF6FF", borderRadius: 8, padding: "12px 18px", border: "1px solid #DBEAFE" }}>
-                      <div style={{ fontSize: 10.5, fontWeight: 800, color: "#64748B" }}>LEADS</div>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 2 }}>
-                        <span style={{ fontSize: 26, fontWeight: 900, color: "#1D4ED8" }}>24,500</span>
-                        <span style={{ fontSize: 12, fontWeight: 800, color: "#16A34A" }}>↗ +12%</span>
-                      </div>
-                    </div>
-
-                    <div style={{ width: "88%", margin: "0 auto", background: "#F0FDF4", borderRadius: 8, padding: "10px 16px", border: "1px solid #DCFCE7" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>APPLICANTS</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: "#0369A1" }}>8,200</div>
-                        </div>
-                        <div style={{ textAlign: "right" }}>
-                          <span style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>33.4% Conv.</span>
-                          <div style={{ fontSize: 11, color: "#DC2626", fontWeight: 700 }}>Dự báo rớt: 15%</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={{ width: "74%", margin: "0 auto", background: "#FFF7ED", borderRadius: 8, padding: "10px 16px", border: "1px solid #FFEDD5" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>ADMITS</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: "#C2410C" }}>5,100</div>
-                        </div>
-                        <div style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>62.1% Conv.</div>
-                      </div>
-                    </div>
-
-                    <div style={{ width: "60%", margin: "0 auto", background: "#ECFDF5", borderRadius: 8, padding: "10px 16px", border: "1px solid #D1FAE5" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <div>
-                          <div style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>ENROLLED</div>
-                          <div style={{ fontSize: 20, fontWeight: 900, color: "#047857" }}>3,850</div>
-                        </div>
-                        <div style={{ fontSize: 11.5, color: "#065F46", fontWeight: 800 }}>75.4% Yield</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 16 }}>
-                    <div style={{ color: "#78350F" }}><CreditCard size={16} /></div>
-                    Chỉ số ROI Marketing
-                  </div>
-
-                  <div style={{ marginBottom: 20 }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline" }}>
-                      <span style={{ fontSize: 12, fontWeight: 700, color: "#475569" }}>CAC (Chi phí/Thí sinh)</span>
-                      <span style={{ fontSize: 26, fontWeight: 900, color: "#0F172A" }}>2.4M VNĐ</span>
-                    </div>
-                    <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#9A3412", margin: "8px 0 4px" }} />
-                    <div style={{ textAlign: "right", fontSize: 11, fontWeight: 700, color: "#16A34A" }}>-5% vs kỳ trước</div>
-                  </div>
-
-                  <div style={{ background: "#FAFAFA", borderRadius: 10, padding: "14px 16px", border: "1px solid #F1F5F9" }}>
-                    <div style={{ fontSize: 12, color: "#475569", fontWeight: 600 }}>Dự báo ngân sách cần thiết (K20)</div>
-                    <div style={{ fontSize: 28, fontWeight: 900, color: "#1D4ED8", margin: "4px 0 6px" }}>15.2 Tỷ VNĐ</div>
-                    <p style={{ fontSize: 11.5, color: "#64748B", margin: 0 }}>
-                      Dựa trên mục tiêu tăng trưởng 15% leads.
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Attribution Donut & Bản đồ nhiệt */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.3fr", gap: 18 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 16 }}>
-                    <div style={{ color: "#EA580C" }}><PieChart size={16} /></div>
-                    Phân tích nguồn (Attribution)
-                  </div>
-
-                  <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
-                    <div style={{ width: 140, height: 140, position: "relative" }}>
-                      <ResponsiveContainer width="100%" height="100%">
-                        <RechartsPieChart>
-                          <Pie
-                            data={[
-                              { name: "Facebook Ads", value: 40, color: "#78350F" },
-                              { name: "Event THPT", value: 30, color: "#2563EB" },
-                              { name: "TikTok", value: 20, color: "#0284C7" },
-                              { name: "Referral", value: 10, color: "#059669" },
-                            ]}
-                            innerRadius={45} outerRadius={65} dataKey="value" stroke="none"
-                          >
-                            <Cell fill="#78350F" />
-                            <Cell fill="#2563EB" />
-                            <Cell fill="#0284C7" />
-                            <Cell fill="#059669" />
-                          </Pie>
-                        </RechartsPieChart>
-                      </ResponsiveContainer>
-                      <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", pointerEvents: "none" }}>
-                        <span style={{ fontSize: 9.5, color: "#64748B", fontWeight: 600 }}>Tổng Leads</span>
-                        <strong style={{ fontSize: 13, color: "#0F172A" }}>24.5k</strong>
-                      </div>
-                    </div>
-
-                    <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
-                      {[
-                        { label: "Facebook Ads", pct: "40%", color: "#78350F" },
-                        { label: "Event THPT", pct: "30%", color: "#2563EB" },
-                        { label: "TikTok", pct: "20%", color: "#0284C7" },
-                        { label: "Referral", pct: "10%", color: "#059669" },
-                      ].map((s, idx) => (
-                        <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                            <div style={{ width: 9, height: 9, borderRadius: "50%", background: s.color }} />
-                            <span style={{ color: "#334155", fontWeight: 600 }}>{s.label}</span>
-                          </div>
-                          <strong style={{ color: "#0F172A" }}>{s.pct}</strong>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px", position: "relative" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                      <div style={{ color: "#DC2626" }}><Map size={16} /></div>
-                      Bản đồ nhiệt Tuyển sinh
-                    </div>
-                    <button onClick={() => setShowCampusMapModal(true)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8" }}>
-                      <Maximize2 size={15} />
-                    </button>
-                  </div>
-
-                  <div style={{
-                    height: 150, borderRadius: 8, background: "linear-gradient(135deg, #E0F2FE 0%, #DCFCE7 100%)",
-                    border: "1px solid #BAE6FD", position: "relative", overflow: "hidden", display: "flex", alignItems: "center", justifyContent: "center"
-                  }}>
-                    <div style={{ position: "absolute", inset: 0, opacity: 0.15, backgroundImage: "radial-gradient(#0369A1 1px, transparent 1px)", backgroundSize: "12px 12px" }} />
-                    <div style={{ textAlign: "center", color: "#0369A1", fontSize: 12, fontWeight: 700 }}>
-                      🗺️ Mạng lưới phân bổ nguồn thí sinh 5 Phân hiệu Toàn quốc
-                    </div>
-
-                    <div style={{
-                      position: "absolute", bottom: 10, right: 10, background: "#FFFFFF",
-                      borderRadius: 8, padding: "8px 12px", boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
-                      border: "1px solid #E2E8F0", fontSize: 11
-                    }}>
-                      <div style={{ fontWeight: 800, color: "#0F172A", marginBottom: 4 }}>Top Khu vực</div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}><span>Hà Nội</span><strong style={{ color: "#9A3412" }}>45%</strong></div>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}><span>TP.HCM</span><strong style={{ color: "#2563EB" }}>30%</strong></div>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 16 }}><span>Đà Nẵng</span><strong style={{ color: "#059669" }}>15%</strong></div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 4: XU HƯỚNG THỊ TRƯỜNG & CHIẾN LƯỢC MỞ NGÀNH MỚI
-             ========================================================================= */}
-          {activeTab === "dss_trends" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.3px" }}>
-                    Phân tích Xu hướng & Thị trường Lao động
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Dữ liệu hỗ trợ quyết định chiến lược mở ngành mới năm học 2025-2026
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={handleExportComprehensiveReport}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, border: "1px solid #1D4ED8", background: "#FFFFFF", color: "#1D4ED8", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Download size={14} /> Xuất Báo Cáo
-                  </button>
-                  <button
-                    onClick={() => setShowNewMajorProposalModal(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    + Tạo Đề Xuất
-                  </button>
-                </div>
-              </div>
-
-              {/* Xu hướng Quan tâm Khối ngành + AI Insights */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1.1fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                      <TrendingUp size={16} color="#DC2626" />
-                      Xu hướng Quan tâm Khối ngành (2020-2024)
-                    </div>
-                    <select
-                      value={selectedIndustryField}
-                      onChange={(e) => setSelectedIndustryField(e.target.value)}
-                      style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 11.5, background: "#FFFFFF" }}
-                    >
-                      <option value="all">Tất cả Khối ngành</option>
-                      <option value="it">Khối CNTT & AI</option>
-                      <option value="biz">Khối Kinh tế & Quản trị</option>
-                    </select>
-                  </div>
-
-                  <div style={{ width: "100%", height: 210 }}>
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={[
-                          { year: "2020", value: 38, fill: "#0284C7" },
-                          { year: "2021", value: 58, fill: "#0284C7" },
-                          { year: "2022", value: 45, fill: "#0284C7" },
-                          { year: "2023", value: 75, fill: "#EA580C" },
-                          { year: "2024", value: 92, fill: "#78350F" },
-                        ]}
-                        margin={{ top: 15, right: 10, left: -20, bottom: 0 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F8FAFC" />
-                        <XAxis dataKey="year" fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <YAxis fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <Tooltip />
-                        <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                          {[
-                            { fill: "#0284C7" },
-                            { fill: "#0284C7" },
-                            { fill: "#0284C7" },
-                            { fill: "#EA580C" },
-                            { fill: "#78350F" },
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div style={{ textAlign: "center", fontSize: 11, color: "#64748B", marginTop: 6 }}>
-                    Dữ liệu minh họa: Tăng trưởng khối ngành Kỹ thuật
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 14 }}>
-                    <div style={{ color: "#0284C7" }}><Briefcase size={16} /></div>
-                    AI Insights: Thị trường Lao động
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ padding: "10px 14px", background: "#FAFAFA", borderRadius: 8, border: "1px solid #F1F5F9" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>NHU CẦU CAO NHẤT</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A" }}>+24% YoY</span>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: "2px 0" }}>Kỹ sư AI & Dữ liệu</div>
-                      <div style={{ fontSize: 11.5, color: "#475569" }}>Lương KĐ: 15M - 25M VNĐ</div>
-                    </div>
-
-                    <div style={{ padding: "10px 14px", background: "#FAFAFA", borderRadius: 8, border: "1px solid #F1F5F9" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>TĂNG TRƯỞNG NHANH</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A" }}>+18% YoY</span>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: "2px 0" }}>Truyền thông Đa phương tiện</div>
-                      <div style={{ fontSize: 11.5, color: "#475569" }}>Lương KĐ: 12M - 18M VNĐ</div>
-                    </div>
-
-                    <div style={{ padding: "10px 14px", background: "#FAFAFA", borderRadius: 8, border: "1px solid #F1F5F9" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <span style={{ fontSize: 10, fontWeight: 800, color: "#64748B" }}>BÃO HÒA NHẸ</span>
-                        <span style={{ fontSize: 10.5, fontWeight: 800, color: "#DC2626" }}>-5% YoY</span>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", margin: "2px 0" }}>Quản trị Khách sạn truyền thống</div>
-                      <div style={{ fontSize: 11.5, color: "#475569" }}>Lương KĐ: 8M - 12M VNĐ</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Đối thủ Cạnh tranh + Đề xuất Mở Ngành Mới */}
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1.2fr", gap: 18 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 16 }}>
-                    <div style={{ color: "#0284C7" }}><PieChart size={16} /></div>
-                    Phân tích Đối thủ Cạnh tranh
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    <div>
-                      <strong style={{ fontSize: 12.5, color: "#0F172A" }}>Thiết kế Vi mạch (Semiconductor)</strong>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 4, marginBottom: 4 }}>
-                        <span style={{ color: "#9A3412", fontWeight: 700 }}>FPT: Sẵn sàng 80%</span>
-                        <span style={{ color: "#64748B" }}>ĐH Bách Khoa: Đã mở</span>
-                      </div>
-                      <div style={{ width: "100%", height: 7, borderRadius: 3.5, background: "#E2E8F0", overflow: "hidden" }}>
-                        <div style={{ width: "80%", height: "100%", background: "#78350F" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <strong style={{ fontSize: 12.5, color: "#0F172A" }}>Công nghệ Ô tô điện</strong>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, marginTop: 4, marginBottom: 4 }}>
-                        <span style={{ color: "#EA580C", fontWeight: 700 }}>FPT: Đang nghiên cứu (40%)</span>
-                        <span style={{ color: "#64748B" }}>ĐH SPKT: Đang mở rộng</span>
-                      </div>
-                      <div style={{ width: "100%", height: 7, borderRadius: 3.5, background: "#E2E8F0", overflow: "hidden" }}>
-                        <div style={{ width: "40%", height: "100%", background: "#EA580C" }} />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A", marginBottom: 14 }}>
-                    <div style={{ color: "#EA580C" }}><Lightbulb size={16} /></div>
-                    Đề xuất Mở Ngành Mới
-                  </div>
-
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12 }}>
-                    <thead>
-                      <tr style={{ color: "#64748B", borderBottom: "1px solid #E2E8F0" }}>
-                        <th style={{ padding: "8px 10px", fontWeight: 700 }}>NGÀNH ĐỀ XUẤT</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "center" }}>NHU CẦU TT</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "center" }}>NGUỒN LỰC FPT</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "right" }}>ĐÁNH GIÁ</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[
-                        { name: "Thiết kế Vi mạch", demand: "↑", demandColor: "#16A34A", resource: "Cao", evaluation: "Khả thi Cao", evalBg: "#DCFCE7", evalColor: "#16A34A" },
-                        { name: "Kinh tế Tuần hoàn", demand: "→", demandColor: "#D97706", resource: "Trung bình", evaluation: "Cần theo dõi", evalBg: "#FEF3C7", evalColor: "#D97706" },
-                        { name: "Nghệ thuật Game", demand: "↑", demandColor: "#16A34A", resource: "Tốt", evaluation: "Khả thi Cao", evalBg: "#DCFCE7", evalColor: "#16A34A" },
-                      ].map((item, idx) => (
-                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                          <td style={{ padding: "10px", fontWeight: 800, color: "#0F172A" }}>{item.name}</td>
-                          <td style={{ padding: "10px", textAlign: "center", fontWeight: 900, fontSize: 14, color: item.demandColor }}>{item.demand}</td>
-                          <td style={{ padding: "10px", textAlign: "center", color: "#64748B" }}>{item.resource}</td>
-                          <td style={{ padding: "10px", textAlign: "right" }}>
-                            <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 10.5, fontWeight: 800, background: item.evalBg, color: item.evalColor }}>
-                              {item.evaluation}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 5: TỔNG QUAN CHIẾN LƯỢC TOÀN KHỐI (GOVERNANCE STRATEGIC)
-             ========================================================================= */}
-          {activeTab === "gov_strategic" && (
-            <div>
-              <div style={{ marginBottom: 20 }}>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.4px" }}>
-                  Tổng quan Chiến lược Toàn khối
-                </h1>
-                <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                  Bảng điều khiển dành cho Ban Giám Hiệu - Cập nhật số liệu thời gian thực từ 5 Phân hiệu.
-                </p>
-              </div>
-
-              {/* 4 Thẻ KPI chính */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-                {[
-                  { title: "Tổng Tuyển sinh", value: "145,200", change: "+12.5% so với năm trước", isPositive: true, icon: Users, iconColor: "#2563EB" },
-                  { title: "Doanh thu / Ngân sách", value: "94.2%", progress: 94.2, goal: "Mục tiêu: 100%", icon: CreditCard, iconColor: "#DC2626" },
-                  { title: "Tỷ lệ Đạt (Học thuật)", value: "88.5%", note: "Ổn định", icon: GraduationCap, iconColor: "#2563EB" },
-                  { title: "Độ hài lòng Sinh viên", value: "4.6/5", change: "+0.2 điểm", isPositive: true, icon: Smile, iconColor: "#0284C7" },
-                ].map((kpi, idx) => (
-                  <div key={idx} style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>{kpi.title}</span>
-                      <kpi.icon size={17} color={kpi.iconColor} />
-                    </div>
-
-                    <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.5px", marginBottom: 6 }}>
-                      {kpi.value}
-                    </div>
-
-                    {kpi.change && (
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: "#16A34A" }}>
-                        ↑ {kpi.change}
-                      </div>
-                    )}
-
-                    {kpi.progress && (
-                      <div>
-                        <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#E2E8F0", overflow: "hidden", marginTop: 4 }}>
-                          <div style={{ width: `${kpi.progress}%`, height: "100%", background: "#EA580C" }} />
-                        </div>
-                        <div style={{ textAlign: "right", fontSize: 10.5, color: "#64748B", marginTop: 4 }}>{kpi.goal}</div>
-                      </div>
-                    )}
-
-                    {kpi.note && (
-                      <div style={{ fontSize: 11.5, color: "#D97706", fontWeight: 700 }}>
-                        — {kpi.note}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Hàng 2: Theo dõi KPI Phòng ban + Bản đồ Hoạt động Cơ sở */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.8fr 1.1fr", gap: 18 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 16 }}>
-                    <TrendingUp size={16} color="#0F172A" /> Theo dõi KPI Phòng ban
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-                    {[
-                      { name: "Tuyển sinh (Admissions)", percent: 102, color: "#10B981" },
-                      { name: "Tài chính (Finance)", percent: 94, color: "#EA580C" },
-                      { name: "Đào tạo (Academic Affairs)", percent: 88, color: "#F59E0B" },
-                    ].map((dep, idx) => (
-                      <div key={idx}>
-                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                          <span style={{ fontSize: 12.5, fontWeight: 700, color: "#0F172A" }}>{dep.name}</span>
-                          <strong style={{ fontSize: 12.5, color: "#0F172A" }}>{dep.percent}%</strong>
-                        </div>
-                        <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#E2E8F0", overflow: "hidden" }}>
-                          <div style={{ width: `${Math.min(dep.percent, 100)}%`, height: "100%", background: dep.color }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div style={{ background: "#F1F5F9", borderRadius: 12, border: "1px solid #E2E8F0", padding: "28px 20px", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center" }}>
-                  <div style={{ width: 50, height: 50, borderRadius: "50%", background: "#FFFFFF", color: "#9A3412", display: "flex", alignItems: "center", justifyContent: "center", marginBottom: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}>
-                    <Map size={24} />
-                  </div>
-                  <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", margin: "0 0 14px" }}>
-                    Bản đồ Hoạt động 5 Cơ sở
+              {/* Conversion Waterfall Chart & Campus Breakdown Matrix */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr", gap: 20 }}>
+                
+                {/* Funnel Waterfall Chart */}
+                <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                  <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", margin: "0 0 4px" }}>
+                    Tỷ Lệ Chuyển Đổi & Rơi Rụng Từng Tầng Phễu (Drop-off Analysis)
                   </h3>
-                  <button
-                    onClick={() => setShowCampusMapModal(true)}
-                    style={{ padding: "8px 20px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}
-                  >
-                    Xem chi tiết mạng lưới
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 6: CẢNH BÁO RỦI RO SỚM & KIỂM SOÁT CHỈ TIÊU NĂM (GOVERNANCE RISK)
-             ========================================================================= */}
-          {activeTab === "gov_risk" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.3px" }}>
-                    Cảnh báo Rủi ro Sớm & Kiểm soát Chỉ tiêu Năm
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Giám sát rủi ro hồ sơ ảo, tỷ lệ bỏ học, ngân sách và tiến độ chỉ tiêu tuyển sinh toàn hệ thống
+                  <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 16px" }}>
+                    Rơi rụng nhiều nhất ở tầng Lead ➔ Applicant (-66.5%) và Admit ➔ Enrolled (-24.5%)
                   </p>
-                </div>
 
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button
-                    onClick={handleExportComprehensiveReport}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, border: "1px solid #1D4ED8", background: "#FFFFFF", color: "#1D4ED8", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Download size={14} /> Xuất báo cáo
-                  </button>
-                  <button
-                    onClick={() => setShowRiskConfigModal(true)}
-                    style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#EA580C", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}
-                  >
-                    <Bell size={14} /> Thiết lập cảnh báo
-                  </button>
-                </div>
-              </div>
-
-              {/* Cảnh báo sớm + Dashboard chỉ tiêu */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.6fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 800, color: "#0F172A" }}>
-                      <div style={{ color: "#DC2626" }}><AlertTriangle size={16} /></div>
-                      Cảnh báo sớm
-                    </div>
-                    <span style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "2px 8px", borderRadius: 4 }}>
-                      3 Mới
-                    </span>
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ padding: "10px 12px", background: "#FFF1F2", borderRadius: 8, borderLeft: "4px solid #DC2626" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-                        <strong style={{ color: "#DC2626" }}>📈 Mức cao</strong>
-                        <span style={{ color: "#94A3B8", fontSize: 10.5 }}>10 phút trước</span>
-                      </div>
-                      <p style={{ fontSize: 12, color: "#475569", margin: "0 0 6px", lineHeight: 1.4 }}>
-                        Tỷ lệ hồ sơ ảo tại khu vực Miền Tây tăng 15% so với cùng kỳ.
-                      </p>
-                      <div style={{ display: "flex", gap: 12, fontSize: 11, fontWeight: 700 }}>
-                        <span onClick={() => showToast("Đang mở chi tiết phân tích hồ sơ ảo Miền Tây")} style={{ color: "#9A3412", cursor: "pointer" }}>Chi tiết</span>
-                        <span onClick={() => {
-                          logAuditEvent("BOD_DISPATCH_RISK_ALERT", "BGH chuyển lệnh cảnh báo Rủi ro Hồ sơ ảo Miền Tây (+15%) tới Giám đốc Tuyển sinh & Cán bộ thẩm định.", "BOD Executive Council");
-                          showToast("⚡ Đã gửi chỉ thị cảnh báo rủi ro tới Giám đốc Tuyển sinh!");
-                        }} style={{ color: "#2563EB", cursor: "pointer" }}>Gửi GĐ Tuyển sinh</span>
-                      </div>
-                    </div>
-
-                    <div style={{ padding: "10px 12px", background: "#FFFBEB", borderRadius: 8, borderLeft: "4px solid #D97706" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-                        <strong style={{ color: "#D97706" }}>— Mức trung bình</strong>
-                        <span style={{ color: "#94A3B8", fontSize: 10.5 }}>1 giờ trước</span>
-                      </div>
-                      <p style={{ fontSize: 12, color: "#475569", margin: "0 0 6px", lineHeight: 1.4 }}>
-                        Ngân sách marketing ngành CNTT đạt ngưỡng 90% ngân sách quý.
-                      </p>
-                      <span onClick={() => showToast("Đang phân tích cấu trúc chi phí marketing ngành CNTT")} style={{ fontSize: 11, fontWeight: 700, color: "#9A3412", cursor: "pointer" }}>Phân tích</span>
-                    </div>
-
-                    <div style={{ padding: "10px 12px", background: "#F0FDF4", borderRadius: 8, borderLeft: "4px solid #2563EB" }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, marginBottom: 3 }}>
-                        <strong style={{ color: "#2563EB" }}>⏱ Mức thấp</strong>
-                        <span style={{ color: "#94A3B8", fontSize: 10.5 }}>3 giờ trước</span>
-                      </div>
-                      <p style={{ fontSize: 12, color: "#475569", margin: 0, lineHeight: 1.4 }}>
-                        Tỷ lệ sinh viên vắng mặt môn Nhập môn lập trình tăng nhẹ 2%.
-                      </p>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => showToast("Toàn bộ 24 cảnh báo đã được lưu trữ tại Risk Center")}
-                    style={{ width: "100%", padding: "8px", marginTop: 12, borderRadius: 6, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12, fontWeight: 700, color: "#475569", cursor: "pointer" }}
-                  >
-                    Xem tất cả cảnh báo
-                  </button>
-                </div>
-
-                <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 12 }}>
-                    <div style={{ background: "#FFFFFF", borderRadius: 10, border: "1px solid #E2E8F0", padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#DC2626" }}>
-                        <AlertCircle size={14} /> Rủi ro Cao
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: "#DC2626" }}>4</span>
-                        <span style={{ fontSize: 11.5, color: "#64748B" }}>hạng mục</span>
-                      </div>
-                    </div>
-
-                    <div style={{ background: "#FFFFFF", borderRadius: 10, border: "1px solid #E2E8F0", padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#D97706" }}>
-                        <AlertTriangle size={14} /> Rủi ro TB
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: "#D97706" }}>12</span>
-                        <span style={{ fontSize: 11.5, color: "#64748B" }}>hạng mục</span>
-                      </div>
-                    </div>
-
-                    <div style={{ background: "#FFFFFF", borderRadius: 10, border: "1px solid #E2E8F0", padding: "14px 16px" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 700, color: "#16A34A" }}>
-                        <CheckCircle size={14} /> Kiểm soát Tốt
-                      </div>
-                      <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginTop: 4 }}>
-                        <span style={{ fontSize: 28, fontWeight: 900, color: "#16A34A" }}>48</span>
-                        <span style={{ fontSize: 11.5, color: "#64748B" }}>hạng mục</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                      <strong style={{ fontSize: 14, color: "#0F172A" }}>Dashboard Kiểm soát Chỉ tiêu Năm</strong>
-                      <span style={{ fontSize: 11, color: "#64748B" }}>Năm học 2023-2024</span>
-                    </div>
-
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 3 }}>
-                        <span style={{ color: "#334155" }}>👥 Tuyển sinh hệ Đại học</span>
-                        <div>
-                          <span style={{ color: "#64748B" }}>12,450 / 15,000 </span>
-                          <span style={{ color: "#EA580C", fontWeight: 800 }}>Chậm tiến độ 5%</span>
-                        </div>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                        <div style={{ width: "83%", height: "100%", background: "#EA580C" }} />
-                      </div>
-                    </div>
-
-                    <div style={{ marginBottom: 10 }}>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 3 }}>
-                        <span style={{ color: "#334155" }}>💵 Thu học phí Kỳ Fall</span>
-                        <div>
-                          <span style={{ color: "#64748B" }}>95.2% </span>
-                          <span style={{ color: "#16A34A", fontWeight: 800 }}>Đạt mục tiêu</span>
-                        </div>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                        <div style={{ width: "95%", height: "100%", background: "#10B981" }} />
-                      </div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, marginBottom: 3 }}>
-                        <span style={{ color: "#334155" }}>🎓 Tỷ lệ SV duy trì (Retention Rate)</span>
-                        <div>
-                          <span style={{ color: "#64748B" }}>88.5% / 92% </span>
-                          <span style={{ color: "#DC2626", fontWeight: 800 }}>Cảnh báo</span>
-                        </div>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#F1F5F9", overflow: "hidden" }}>
-                        <div style={{ width: "88%", height: "100%", background: "#DC2626" }} />
-                      </div>
-                    </div>
-
-                    <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid #F1F5F9" }}>
-                      <div style={{ fontSize: 11, fontWeight: 800, color: "#64748B", marginBottom: 8 }}>CÔNG CỤ ĐIỀU HÀNH NHANH</div>
-                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 8 }}>
-                        {[
-                          { icon: MessageSquare, label: "Yêu cầu BC Tuyển sinh" },
-                          { icon: Mail, label: "Gửi thông báo Tài chính" },
-                          { icon: Calendar, label: "Lên lịch họp BGH" },
-                          { icon: FileText, label: "Điều chỉnh Chỉ tiêu" },
-                        ].map((btn, idx) => (
-                          <button
-                            key={idx}
-                            onClick={() => showToast(`Đã kích hoạt hành động: "${btn.label}"`)}
-                            style={{
-                              padding: "10px 6px", borderRadius: 8, border: "1px solid #E2E8F0",
-                              background: "#F8FAFC", display: "flex", flexDirection: "column",
-                              alignItems: "center", gap: 6, cursor: "pointer", fontSize: 11,
-                              fontWeight: 700, color: "#334155"
-                            }}
-                          >
-                            <btn.icon size={15} />
-                            <span style={{ textAlign: "center", lineHeight: 1.2 }}>{btn.label}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Ma trận Rủi ro */}
-              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-                  <strong style={{ fontSize: 15, color: "#0F172A" }}>Ma trận Rủi ro chi tiết</strong>
-                  <button style={{ border: "none", background: "transparent", cursor: "pointer", color: "#64748B" }}>
-                    <Filter size={15} />
-                  </button>
-                </div>
-
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
-                      <th style={{ padding: "10px 12px", fontWeight: 700 }}>PHÂN LOẠI</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700 }}>HẠNG MỤC RỦI RO</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700 }}>MỨC ĐỘ</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700 }}>PHÒNG BAN PHỤ TRÁCH</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "right" }}>HÀNH ĐỘNG</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { type: "Tuyển sinh", typeBg: "#FFEDD5", typeColor: "#C2410C", risk: "Tỷ lệ hồ sơ ảo khu vực Miền Tây", level: "● Cao", levelColor: "#DC2626", levelBg: "#FEE2E2", dept: "Ban Tuyển sinh" },
-                      { type: "Tài chính", typeBg: "#DCFCE7", typeColor: "#16A34A", risk: "Ngân sách Marketing ngành CNTT", level: "● Trung bình", levelColor: "#D97706", levelBg: "#FEF3C7", dept: "Ban Tài chính & MKT" },
-                      { type: "Đào tạo", typeBg: "#E0F2FE", typeColor: "#0284C7", risk: "Tỷ lệ vắng mặt môn NMLT", level: "● Thấp", levelColor: "#2563EB", levelBg: "#DBEAFE", dept: "Ban Đào tạo" },
-                    ].map((r, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 4, fontSize: 11, fontWeight: 700, background: r.typeBg, color: r.typeColor }}>
-                            {r.type}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px", fontWeight: 700, color: "#0F172A" }}>{r.risk}</td>
-                        <td style={{ padding: "12px" }}>
-                          <span style={{ padding: "3px 8px", borderRadius: 100, fontSize: 11, fontWeight: 800, background: r.levelBg, color: r.levelColor }}>
-                            {r.level}
-                          </span>
-                        </td>
-                        <td style={{ padding: "12px", color: "#475569" }}>{r.dept}</td>
-                        <td style={{ padding: "12px", textAlign: "right" }}>
-                          <button
-                            onClick={() => showToast(`Xem chi tiết rủi ro: ${r.risk}`)}
-                            style={{ border: "none", background: "transparent", color: "#2563EB", cursor: "pointer", fontWeight: 700 }}
-                          >
-                            <ChevronRight size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 7: SLA & ĐIỀU PHỐI HOẠT ĐỘNG LIÊN PHÒNG BAN (GOVERNANCE SLA)
-             ========================================================================= */}
-          {activeTab === "gov_crossdept" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.4px" }}>
-                    Giám sát Hoạt động & SLA Liên Phòng ban
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Theo dõi tiến độ phối hợp giữa Phòng Tuyển sinh, Đào tạo, Tài chính và Công tác Sinh viên (CTSV)
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 6, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                    <Calendar size={14} /> Tháng này
-                  </button>
-                  <button onClick={handleExportComprehensiveReport} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 6, background: "#9A3412", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                    <Download size={14} /> Xuất Báo cáo
-                  </button>
-                </div>
-              </div>
-
-              {/* 4 Thẻ Chỉ số Vận hành */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16, marginBottom: 20 }}>
-                {[
-                  { title: "Chỉ số SLA Toàn khối", value: "94.2%", change: "+1.2% vs tháng trước", isPositive: true, icon: Clock, iconColor: "#EA580C", iconBg: "#FFEDD5" },
-                  { title: "Yêu cầu Tồn đọng", value: "128", change: "+15 vs tuần trước", isNegative: true, icon: AlertTriangle, iconColor: "#D97706", iconBg: "#FEF3C7" },
-                  { title: "Tỷ lệ Sử dụng Phòng", value: "87%", note: "Tối ưu hóa mức cao", progress: 87, icon: Building, iconColor: "#2563EB", iconBg: "#DBEAFE" },
-                  { title: "Cảnh báo Trầm trọng", value: "3", note: "Liên quan đến Xếp thời khóa biểu", icon: ShieldAlert, iconColor: "#DC2626", iconBg: "#FEE2E2", isAlert: true },
-                ].map((kpi, idx) => (
-                  <div key={idx} style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                      <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>{kpi.title}</span>
-                      <div style={{ width: 28, height: 28, borderRadius: 6, background: kpi.iconBg, color: kpi.iconColor, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <kpi.icon size={15} />
-                      </div>
-                    </div>
-
-                    <div style={{ fontSize: 30, fontWeight: 900, color: kpi.isAlert ? "#DC2626" : "#0F172A", letterSpacing: "-0.5px", marginBottom: 4 }}>
-                      {kpi.value}
-                    </div>
-
-                    {kpi.change && (
-                      <div style={{ fontSize: 11.5, fontWeight: 700, color: kpi.isNegative ? "#DC2626" : "#16A34A" }}>
-                        ↑ {kpi.change}
-                      </div>
-                    )}
-
-                    {kpi.progress && (
-                      <div>
-                        <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#E2E8F0", overflow: "hidden", marginTop: 4 }}>
-                          <div style={{ width: `${kpi.progress}%`, height: "100%", background: "#9A3412" }} />
-                        </div>
-                        <div style={{ fontSize: 10.5, color: "#64748B", marginTop: 3 }}>{kpi.note}</div>
-                      </div>
-                    )}
-
-                    {kpi.isAlert && (
-                      <div style={{ fontSize: 11, color: "#64748B" }}>
-                        {kpi.note}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              {/* Bảng Chi tiết Hiệu suất từng Phòng ban */}
-              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", margin: "0 0 14px" }}>
-                  Bảng Điều Phối & Xử Lý Yêu Cầu Liên Phòng Ban
-                </h3>
-
-                <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
-                  <thead>
-                    <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
-                      <th style={{ padding: "10px 12px", fontWeight: 700 }}>PHÒNG BAN</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "center" }}>TỔNG YÊU CẦU</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "center" }}>ĐÃ XỬ LÝ</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "center" }}>TỒN ĐỌNG</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "center" }}>TỶ LỆ SLA</th>
-                      <th style={{ padding: "10px 12px", fontWeight: 700, textAlign: "right" }}>HÀNH ĐỘNG</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[
-                      { name: "Phòng Tuyển sinh", total: 4250, done: 4180, pending: 70, sla: "98.3%", slaColor: "#16A34A" },
-                      { name: "Phòng Quản lý Đào tạo", total: 3100, done: 2820, pending: 280, sla: "90.9%", slaColor: "#D97706" },
-                      { name: "Phòng Kế toán Tài chính", total: 1890, done: 1845, pending: 45, sla: "97.6%", slaColor: "#16A34A" },
-                      { name: "Phòng Công tác Sinh viên (CTSV)", total: 2450, done: 2310, pending: 140, sla: "94.2%", slaColor: "#16A34A" },
-                    ].map((row, idx) => (
-                      <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                        <td style={{ padding: "12px", fontWeight: 700, color: "#0F172A" }}>{row.name}</td>
-                        <td style={{ padding: "12px", textAlign: "center", color: "#475569" }}>{row.total.toLocaleString()}</td>
-                        <td style={{ padding: "12px", textAlign: "center", color: "#16A34A", fontWeight: 700 }}>{row.done.toLocaleString()}</td>
-                        <td style={{ padding: "12px", textAlign: "center", color: "#DC2626", fontWeight: 700 }}>{row.pending}</td>
-                        <td style={{ padding: "12px", textAlign: "center", fontWeight: 800, color: row.slaColor }}>{row.sla}</td>
-                        <td style={{ padding: "12px", textAlign: "right" }}>
-                          <button
-                            onClick={() => {
-                              logAuditEvent("BOD_URGE_SLA_COMPLIANCE", `BGH phát lệnh Đốc thúc SLA khẩn cấp tới ${row.name} (Tồn đọng ${row.pending} hồ sơ / SLA ${row.sla})`, "BOD Executive Council");
-                              showToast(`⚡ Đã phát lệnh Đốc thúc SLA khẩn cấp tới Trưởng ${row.name}!`);
-                            }}
-                            style={{ padding: "5px 12px", borderRadius: 6, background: "#0F172A", color: "#FFFFFF", border: "none", fontSize: 11.5, fontWeight: 700, cursor: "pointer", boxShadow: "0 2px 5px rgba(0,0,0,0.15)" }}
-                          >
-                            ⚡ Đốc thúc
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          )}
-
-          {/* =========================================================================
-              MÀN HÌNH 8: KẾ HOẠCH TÀI CHÍNH DÀI HẠN & ĐẦU TƯ (GOVERNANCE FINANCE)
-             ========================================================================= */}
-          {activeTab === "gov_finance" && (
-            <div>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 20 }}>
-                <div>
-                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px", letterSpacing: "-0.4px" }}>
-                    Kế hoạch Phát triển Chiến lược & Tài chính Dài hạn
-                  </h1>
-                  <p style={{ fontSize: 13, color: "#64748B", margin: 0, fontWeight: 500 }}>
-                    Theo dõi tiến độ giải ngân đầu tư hạ tầng các cơ sở và kiểm soát rủi ro tài khóa
-                  </p>
-                </div>
-
-                <div style={{ display: "flex", gap: 10 }}>
-                  <button onClick={handleExportComprehensiveReport} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 6, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                    <Download size={14} /> Xuất file
-                  </button>
-                  <button onClick={() => window.print()} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 14px", borderRadius: 6, border: "1px solid #CBD5E1", background: "#FFFFFF", fontSize: 12.5, fontWeight: 700, cursor: "pointer" }}>
-                    <Printer size={14} /> In báo cáo
-                  </button>
-                </div>
-              </div>
-
-              {/* 3 Thẻ Chỉ số */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1.2fr 1fr", gap: 16, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>Tăng trưởng Doanh thu</span>
-                    <TrendingUp size={16} color="#16A34A" />
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#9A3412", letterSpacing: "-0.5px" }}>
-                    1.2B <span style={{ fontSize: 22, fontWeight: 700, textDecoration: "underline" }}>đ</span>
-                  </div>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: "#16A34A", marginTop: 3 }}>
-                    +15.4% YoY <span style={{ color: "#64748B", fontWeight: 500 }}>vs Mục tiêu Q3</span>
-                  </div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>Tổng Đầu tư Hạ tầng</span>
-                    <Building size={16} color="#2563EB" />
-                  </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#2563EB", letterSpacing: "-0.5px" }}>
-                    450M <span style={{ fontSize: 22, fontWeight: 700, textDecoration: "underline" }}>đ</span>
-                  </div>
-                  <div style={{ width: "100%", height: 5, borderRadius: 3, background: "#0F172A", overflow: "hidden" }}>
-                    <div style={{ width: "65%", height: "100%", background: "#EA580C" }} />
-                  </div>
-                  <div style={{ textAlign: "right", fontSize: 10.5, color: "#64748B", marginTop: 3 }}>65% Giải ngân</div>
-                </div>
-
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>Chỉ số Rủi ro Tổng thể</span>
-                    <AlertTriangle size={16} color="#D97706" />
-                  </div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: "#0F172A", letterSpacing: "-0.4px" }}>
-                    Trung bình
-                  </div>
-                  <div style={{ fontSize: 11.5, color: "#D97706", fontWeight: 700, marginTop: 3 }}>
-                    3 Cảnh báo Mới <span style={{ color: "#64748B", fontWeight: 500 }}>• Tháng 9/2023</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Xu hướng 5 Năm + Mục tiêu vs Thực tế */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.7fr 1fr", gap: 18, marginBottom: 20 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-                    <h3 style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", margin: 0 }}>
-                      Phân tích Xu hướng Dài hạn (5 Năm)
-                    </h3>
-                    <select style={{ padding: "5px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 11.5, background: "#FFFFFF" }}>
-                      <option>Doanh thu & Chi phí</option>
-                      <option>Tăng trưởng Học phí</option>
-                    </select>
-                  </div>
-
-                  <div style={{ width: "100%", height: 190 }}>
+                  <div style={{ height: 260 }}>
                     <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={[
-                        { year: "2020", value: 380, fill: "#BFDBFE" },
-                        { year: "2021", value: 540, fill: "#93C5FD" },
-                        { year: "2022", value: 720, fill: "#60A5FA" },
-                        { year: "2023", value: 960, fill: "#D97706" },
-                        { year: "2024 (KH)", value: 1200, fill: "#9A3412" },
-                      ]} margin={{ top: 15, right: 10, left: -20, bottom: 0 }}>
+                      <AreaChart
+                        data={[
+                          { stage: "Leads (Tiếp cận)", volume: 24500, drop: 0 },
+                          { stage: "Applicants (Nộp hồ sơ)", volume: 8200, drop: 16300 },
+                          { stage: "Admits (Đủ điều kiện)", volume: 5100, drop: 3100 },
+                          { stage: "Enrolled (Nhập học)", volume: 3850, drop: 1250 },
+                        ]}
+                        margin={{ top: 10, right: 20, left: -10, bottom: 0 }}
+                      >
                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
-                        <XAxis dataKey="year" fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <YAxis fontSize={11} stroke="#94A3B8" tickLine={false} axisLine={false} />
-                        <Tooltip />
-                        <ReferenceLine y={1000} stroke="#10B981" strokeDasharray="3 3" />
-                        <Bar dataKey="value" radius={[5, 5, 0, 0]}>
-                          {[
-                            { fill: "#BFDBFE" },
-                            { fill: "#93C5FD" },
-                            { fill: "#60A5FA" },
-                            { fill: "#D97706" },
-                            { fill: "#9A3412" },
-                          ].map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={entry.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
+                        <XAxis dataKey="stage" stroke="#64748B" fontSize={11.5} />
+                        <YAxis stroke="#64748B" fontSize={11.5} />
+                        <Tooltip contentStyle={{ background: "#0F172A", borderRadius: 8, color: "#FFF", fontSize: 12 }} />
+                        <Area type="monotone" dataKey="volume" stroke="#2563EB" fill="#DBEAFE" strokeWidth={3} name="Số lượng thí sinh" />
+                      </AreaChart>
                     </ResponsiveContainer>
                   </div>
                 </div>
 
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 14 }}>
-                    Mục tiêu vs Thực tế
-                  </div>
-
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 3 }}>
-                        <span>Mở rộng Campus Mới (Q4)</span>
-                        <strong style={{ color: "#10B981" }}>82%</strong>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#0F172A", overflow: "hidden" }}>
-                        <div style={{ width: "82%", height: "100%", background: "#10B981" }} />
-                      </div>
-                      <div style={{ fontSize: 10.5, color: "#64748B", marginTop: 3 }}>Đúng tiến độ</div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 3 }}>
-                        <span>Tuyển sinh Sau Đại học</span>
-                        <strong style={{ color: "#F59E0B" }}>45%</strong>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#0F172A", overflow: "hidden" }}>
-                        <div style={{ width: "45%", height: "100%", background: "#F59E0B" }} />
-                      </div>
-                      <div style={{ fontSize: 10.5, color: "#64748B", marginTop: 3 }}>Chậm so với kế hoạch (Mục tiêu: 60%)</div>
-                    </div>
-
-                    <div>
-                      <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, fontWeight: 700, color: "#0F172A", marginBottom: 3 }}>
-                        <span>Trang thiết bị Lab AI</span>
-                        <strong style={{ color: "#EA580C" }}>95%</strong>
-                      </div>
-                      <div style={{ width: "100%", height: 6, borderRadius: 3, background: "#0F172A", overflow: "hidden" }}>
-                        <div style={{ width: "95%", height: "100%", background: "#9A3412" }} />
-                      </div>
-                      <div style={{ fontSize: 10.5, color: "#64748B", marginTop: 3 }}>Sắp hoàn thành</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Đầu tư trọng điểm & Rủi ro Ký Quỹ */}
-              <div style={{ display: "grid", gridTemplateColumns: "1.5fr 1fr", gap: 18 }}>
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 14 }}>
-                    <CreditCard size={15} color="#2563EB" /> Theo dõi Đầu tư Trọng điểm
-                  </div>
-
-                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12 }}>
+                {/* Campus Funnel Breakdown Table */}
+                <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                  <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", margin: "0 0 14px" }}>
+                    Hiệu Suất Phễu Theo 5 Phân Hiệu
+                  </h3>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, textAlign: "left" }}>
                     <thead>
-                      <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
-                        <th style={{ padding: "8px 10px", fontWeight: 700 }}>Dự án</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "center" }}>Ngân sách</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "center" }}>Đã chi</th>
-                        <th style={{ padding: "8px 10px", fontWeight: 700, textAlign: "right" }}>Trạng thái</th>
+                      <tr style={{ background: "#F8FAFC", color: "#64748B", borderBottom: "1px solid #E2E8F0" }}>
+                        <th style={{ padding: "8px 10px" }}>Cơ Sở</th>
+                        <th style={{ padding: "8px 10px" }}>Chỉ Tiêu</th>
+                        <th style={{ padding: "8px 10px" }}>Applicants</th>
+                        <th style={{ padding: "8px 10px" }}>Enrolled</th>
+                        <th style={{ padding: "8px 10px" }}>Tỷ Lệ Yield</th>
                       </tr>
                     </thead>
                     <tbody>
                       {[
-                        { project: "Campus Cần Thơ GĐ 2", budget: "200M", spent: "150M", status: "Đang triển khai", statusBg: "#DCFCE7", statusColor: "#16A34A" },
-                        { project: "Nâng cấp HPC Lab", budget: "50M", spent: "48M", status: "Hoàn thành", statusBg: "#FFEDD5", statusColor: "#C2410C" },
-                        { project: "Cơ sở vật chất KTX mới", budget: "120M", spent: "20M", status: "Khởi công", statusBg: "#FEF3C7", statusColor: "#D97706" },
-                      ].map((inv, idx) => (
+                        { campus: "Hà Nội", target: 5500, app: 3200, enrolled: 1550, yield: "78.2%", status: "Tốt" },
+                        { campus: "TP.HCM", target: 5000, app: 2900, enrolled: 1420, yield: "80.5%", status: "Rất tốt" },
+                        { campus: "Đà Nẵng", target: 2000, app: 1100, enrolled: 460, yield: "74.0%", status: "Ổn định" },
+                        { campus: "Cần Thơ", target: 1500, app: 620, enrolled: 240, yield: "64.5%", status: "Cảnh báo" },
+                        { campus: "Quy Nhơn", target: 1000, app: 380, enrolled: 180, yield: "72.0%", status: "Ổn định" },
+                      ].map((row, idx) => (
                         <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
-                          <td style={{ padding: "10px", fontWeight: 700, color: "#0F172A" }}>{inv.project}</td>
-                          <td style={{ padding: "10px", textAlign: "center", color: "#64748B" }}>{inv.budget}</td>
-                          <td style={{ padding: "10px", textAlign: "center", color: "#0F172A", fontWeight: 700 }}>{inv.spent}</td>
-                          <td style={{ padding: "10px", textAlign: "right" }}>
-                            <span style={{ padding: "2px 7px", borderRadius: 100, fontSize: 10.5, fontWeight: 700, color: inv.statusColor, background: inv.statusBg }}>
-                              {inv.status}
+                          <td style={{ padding: "10px", fontWeight: 700, color: "#0F172A" }}>{row.campus}</td>
+                          <td style={{ padding: "10px", color: "#64748B" }}>{row.target}</td>
+                          <td style={{ padding: "10px", color: "#2563EB", fontWeight: 600 }}>{row.app}</td>
+                          <td style={{ padding: "10px", color: "#16A34A", fontWeight: 800 }}>{row.enrolled}</td>
+                          <td style={{ padding: "10px" }}>
+                            <span style={{
+                              fontWeight: 800, padding: "2px 6px", borderRadius: 4, fontSize: 11,
+                              background: row.yield >= "75%" ? "#DCFCE7" : row.yield >= "70%" ? "#FEF3C7" : "#FEE2E2",
+                              color: row.yield >= "75%" ? "#15803D" : row.yield >= "70%" ? "#B45309" : "#B91C1C"
+                            }}>
+                              {row.yield}
                             </span>
                           </td>
                         </tr>
@@ -1892,142 +1519,1157 @@ export default function BODExecutivePortal() {
                     </tbody>
                   </table>
                 </div>
+              </div>
 
-                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 15, fontWeight: 900, color: "#0F172A", marginBottom: 14 }}>
-                    <ShieldAlert size={15} color="#DC2626" /> Cảnh báo Rủi ro Ký Quỹ
+              {/* AI Conversion Strategy Cards */}
+              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 16, padding: 20, display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+                  <Bot size={32} color="#D97706" />
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 800, color: "#92400E" }}>
+                      AI Recommendation: Rút ngắn chu kỳ xác nhận nhập học tại Campus Cần Thơ
+                    </div>
+                    <div style={{ fontSize: 13, color: "#78350F", marginTop: 2 }}>
+                      Phân tích 620 hồ sơ trúng tuyển tại ĐBSCL cho thấy 35.5% thí sinh hủy vé do chờ trường công lập. Cần áp dụng gói Voucher KTX và cam kết học bổng sớm.
+                    </div>
                   </div>
+                </div>
+                <button
+                  onClick={() => {
+                    const prop = proposals.find(p => p.id === "PROP-2026-001");
+                    if (prop) setSelectedProposalForApproval(prop);
+                  }}
+                  style={{ padding: "10px 18px", borderRadius: 10, background: "#EA580C", color: "#FFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                >
+                  ⚡ Duyệt gói ngân sách giữ chân thí sinh
+                </button>
+              </div>
+            </div>
+          )}
 
-                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "#FFF1F2", border: "1px solid #FFE4E6" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#DC2626", fontWeight: 800, fontSize: 12, marginBottom: 3 }}>
-                        <TrendingDown size={14} /> Biến động Tỷ giá
+          {/* =========================================================================
+              TAB 5: NGUỒN & ROI MARKETING (DSS MARKETING COMPLETE)
+              ========================================================================= */}
+          {activeTab === "dss_marketing" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#EA580C", textTransform: "uppercase" }}>
+                    MARKETING ATTRIBUTION & ROI OPTIMIZATION
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Hiệu Quả Kênh Marketing, Chi Phí CAC & Bản Đồ Nhiệt
+                  </h1>
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      const prop = proposals.find(p => p.id === "PROP-2026-001");
+                      if (prop) setSelectedProposalForApproval(prop);
+                    }}
+                    style={{ padding: "9px 18px", borderRadius: 10, background: "#EA580C", color: "#FFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                  >
+                    + Phê duyệt phân bổ ngân sách 800M
+                  </button>
+                </div>
+              </div>
+
+              {/* Marketing KPI Bar */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 18 }}>
+                  <div style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>TỔNG NGÂN SÁCH MARKETING</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "6px 0 2px" }}>15.2 Tỷ VND</div>
+                  <div style={{ fontSize: 12, color: "#16A34A" }}>Đã giải ngân: 11.8 Tỷ (77.6%)</div>
+                </div>
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 18 }}>
+                  <div style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>CHI PHÍ MỖI TÂN SV (CAC)</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#2563EB", margin: "6px 0 2px" }}>2.4 Triệu/SV</div>
+                  <div style={{ fontSize: 12, color: "#16A34A" }}>Tiết kiệm 8% vs định mức 2.6 Tr</div>
+                </div>
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 18 }}>
+                  <div style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>ROI TRUNG BÌNH TOÀN KÊNH</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#EA580C", margin: "6px 0 2px" }}>3.2x</div>
+                  <div style={{ fontSize: 12, color: "#EA580C" }}>Doanh thu học phí / Chi phí MKT</div>
+                </div>
+                <div style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 18 }}>
+                  <div style={{ fontSize: 11.5, color: "#64748B", fontWeight: 700 }}>TỶ LỆ LEAD ➔ ENROLLED</div>
+                  <div style={{ fontSize: 24, fontWeight: 900, color: "#7C3AED", margin: "6px 0 2px" }}>15.7%</div>
+                  <div style={{ fontSize: 12, color: "#64748B" }}>Mục tiêu cả năm: 15.0%</div>
+                </div>
+              </div>
+
+              {/* Marketing Channels Table with ROI & CAC */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 14 }}>
+                  Hiệu Suất Từng Kênh Tiếp Thị & Tỷ Lệ Hoàn Vốn (Attribution Model)
+                </h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", color: "#64748B", borderBottom: "1px solid #E2E8F0", fontSize: 12, textTransform: "uppercase" }}>
+                        <th style={{ padding: "12px 14px" }}>Kênh Tiếp Thị</th>
+                        <th style={{ padding: "12px 14px" }}>Ngân Sách Đã Chi</th>
+                        <th style={{ padding: "12px 14px" }}>Leads Thu Được</th>
+                        <th style={{ padding: "12px 14px" }}>Số SV Nhập Học</th>
+                        <th style={{ padding: "12px 14px" }}>Chi Phí / SV (CAC)</th>
+                        <th style={{ padding: "12px 14px" }}>Tỷ Lệ ROI</th>
+                        <th style={{ padding: "12px 14px" }}>Đánh Giá AI</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { channel: "TikTok Ads & KOC Video", spend: "3.2 Tỷ", leads: "8,500", enrolled: "1,450", cac: "2.2 Tr", roi: "3.8x", eval: "Hiệu quả cao nhất", color: "#16A34A" },
+                        { channel: "Meta Ads (Facebook/Instagram)", spend: "4.8 Tỷ", leads: "9,200", enrolled: "1,200", cac: "4.0 Tr", roi: "2.8x", eval: "Hiệu quả ổn định", color: "#2563EB" },
+                        { channel: "Google Search & Youtube Ads", spend: "3.0 Tỷ", leads: "3,400", enrolled: "550", cac: "5.4 Tr", roi: "2.1x", eval: "Bị đẩy giá thầu", color: "#DC2626" },
+                        { channel: "THPT Roadshow & School Tour", spend: "2.5 Tỷ", leads: "2,200", enrolled: "480", cac: "5.2 Tr", roi: "3.1x", eval: "Chất lượng lead tốt", color: "#16A34A" },
+                        { channel: "Open Day Trải Nghiệm Campus", spend: "1.2 Tỷ", leads: "900", enrolled: "380", cac: "3.1 Tr", roi: "4.2x", eval: "Tỷ lệ chốt cao", color: "#16A34A" },
+                        { channel: "Referral Cựu SV & Giới thiệu", spend: "0.5 Tỷ", leads: "300", enrolled: "190", cac: "2.6 Tr", roi: "5.5x", eval: "Chi phí thấp", color: "#16A34A" },
+                      ].map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "12px 14px", fontWeight: 700, color: "#0F172A" }}>{row.channel}</td>
+                          <td style={{ padding: "12px 14px", color: "#334155" }}>{row.spend}</td>
+                          <td style={{ padding: "12px 14px", color: "#2563EB", fontWeight: 600 }}>{row.leads}</td>
+                          <td style={{ padding: "12px 14px", color: "#16A34A", fontWeight: 800 }}>{row.enrolled}</td>
+                          <td style={{ padding: "12px 14px", fontWeight: 600 }}>{row.cac}</td>
+                          <td style={{ padding: "12px 14px", fontWeight: 800, color: "#EA580C" }}>{row.roi}</td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, color: row.color, background: `${row.color}15`, padding: "3px 8px", borderRadius: 100 }}>
+                              {row.eval}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 6: XU HƯỚNG KHỐI NGÀNH & MỞ NGÀNH MỚI (DSS TRENDS COMPLETE)
+              ========================================================================= */}
+          {activeTab === "dss_trends" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#7C3AED", textTransform: "uppercase" }}>
+                    MARKET DEMAND & ACADEMIC FEASIBILITY INTELLIGENCE
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Xu Hướng Thị Trường Lao Động & Đề Xuất Mở Ngành Mới
+                  </h1>
+                </div>
+
+                <button
+                  onClick={() => setShowNewMajorModal(true)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 8, padding: "10px 20px",
+                    background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+                    border: "none", borderRadius: 10, color: "#FFFFFF",
+                    fontSize: 13.5, fontWeight: 700, cursor: "pointer",
+                    boxShadow: "0 4px 14px rgba(234,88,12,0.35)"
+                  }}
+                >
+                  <Sparkles size={16} /> + Đề Xuất Phê Duyệt Mở Ngành Mới
+                </button>
+              </div>
+
+              {/* Industry Trends Matrix Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 18 }}>
+                {[
+                  {
+                    name: "Công nghệ Bán dẫn & Vi mạch (Semiconductor)",
+                    growth: "+45% Nhu cầu",
+                    salary: "25 - 40 Triệu/tháng",
+                    feasibility: "9.1/10 (Rất khả thi)",
+                    color: "#EA580C",
+                    desc: "Chiến lược quốc gia 50.000 kỹ sư vi mạch đến 2030. FPT Semiconductor cam kết tiếp nhận 200 thực tập sinh.",
+                    status: "Đang trình phê duyệt"
+                  },
+                  {
+                    name: "Trí tuệ Nhân tạo & GenAI (Artificial Intelligence)",
+                    growth: "+38% Nhu cầu",
+                    salary: "22 - 35 Triệu/tháng",
+                    feasibility: "9.5/10 (Trọng điểm)",
+                    color: "#2563EB",
+                    desc: "Ngành mũi nhọn của Đại học FPT với cụm Lab Siêu máy tính GPU NVIDIA H100 tại Hòa Lạc.",
+                    status: "Đang đào tạo K20"
+                  },
+                  {
+                    name: "Công nghệ Y sinh số (Digital Health & MedTech)",
+                    growth: "+30% Nhu cầu",
+                    salary: "20 - 32 Triệu/tháng",
+                    feasibility: "8.2/10 (Khả thi)",
+                    color: "#059669",
+                    desc: "Kết hợp CNTT với Y tế số, hợp tác nghiên cứu cùng FPT Long Châu và các bệnh viện quốc tế.",
+                    status: "Đang lập đề cương"
+                  },
+                  {
+                    name: "Công nghệ Hàng không Vũ trụ (Aerospace & Space AI)",
+                    growth: "+22% Nhu cầu",
+                    salary: "25 - 45 Triệu/tháng",
+                    feasibility: "7.6/10 (Cần đối tác)",
+                    color: "#7C3AED",
+                    desc: "Định hướng phát triển vệ tinh tầm thấp và xử lý ảnh viễn thám phục vụ nông nghiệp thông minh.",
+                    status: "Nghiên cứu thị trường"
+                  },
+                ].map((item, idx) => (
+                  <div key={idx} style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 22, borderTop: `4px solid ${item.color}` }}>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 10 }}>
+                      <span style={{ fontSize: 11, fontWeight: 800, color: item.color, background: `${item.color}15`, padding: "3px 8px", borderRadius: 100 }}>
+                        {item.growth}
+                      </span>
+                      <span style={{ fontSize: 11, color: "#64748B" }}>{item.status}</span>
+                    </div>
+
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: "0 0 8px", lineHeight: 1.35 }}>
+                      {item.name}
+                    </h3>
+
+                    <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5, marginBottom: 14 }}>
+                      {item.desc}
+                    </p>
+
+                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <div>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>Lương khởi điểm:</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A" }}>{item.salary}</div>
                       </div>
-                      <p style={{ fontSize: 11.5, color: "#475569", margin: "0 0 4px", lineHeight: 1.4 }}>
-                        Ảnh hưởng đến chi phí nhập khẩu thiết bị Lab nước ngoài (+5% chi phí dự kiến).
-                      </p>
-                      <span onClick={() => showToast("Đã kích hoạt hợp đồng phòng ngừa rủi ro tỷ giá Forward Contract")} style={{ fontSize: 11, fontWeight: 700, color: "#9A3412", cursor: "pointer", textDecoration: "underline" }}>
-                        Xem phương án phòng ngừa
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontSize: 11, color: "#64748B" }}>Điểm Khả thi:</div>
+                        <div style={{ fontSize: 13, fontWeight: 800, color: item.color }}>{item.feasibility}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 7: KẾ HOẠCH TÀI CHÍNH DÀI HẠN (GOV_FINANCE COMPLETE)
+              ========================================================================= */}
+          {activeTab === "gov_finance" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#059669", textTransform: "uppercase" }}>
+                    LONG-TERM FINANCIAL PLAN & INFRASTRUCTURE CAPEX (5-YEAR)
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Kế Hoạch Tài Chính & Đầu Tư Hạ Tầng Dài Hạn (2026 - 2030)
+                  </h1>
+                </div>
+
+                <button
+                  onClick={() => {
+                    const prop = proposals.find(p => p.id === "PROP-2026-005");
+                    if (prop) setSelectedProposalForApproval(prop);
+                  }}
+                  style={{ padding: "9px 18px", borderRadius: 10, background: "#059669", color: "#FFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                >
+                  ⚡ Xem Gói Đầu tư Lab AI GPU (18.5 Tỷ)
+                </button>
+              </div>
+
+              {/* 5-Year Revenue Forecast Chart */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", margin: "0 0 4px" }}>
+                  Dự Phóng Doanh Thu & Lợi Nhuận Giai Đoạn 2026 - 2030 (Tỷ VND)
+                </h3>
+                <p style={{ fontSize: 12, color: "#64748B", margin: "0 0 16px" }}>
+                  Tốc độ tăng trưởng kép hàng năm (CAGR) dự kiến đạt <strong>15.8%</strong>
+                </p>
+
+                <div style={{ height: 260 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={[
+                        { year: "2026", revenue: 2450, profit: 590, capex: 180 },
+                        { year: "2027", revenue: 2850, profit: 690, capex: 210 },
+                        { year: "2028", revenue: 3300, profit: 820, capex: 240 },
+                        { year: "2029", revenue: 3800, profit: 960, capex: 270 },
+                        { year: "2030", revenue: 4400, profit: 1150, capex: 300 },
+                      ]}
+                      margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                      <XAxis dataKey="year" stroke="#64748B" fontSize={12} />
+                      <YAxis stroke="#64748B" fontSize={12} />
+                      <Tooltip contentStyle={{ background: "#0F172A", borderRadius: 8, color: "#FFF", fontSize: 12 }} />
+                      <Bar dataKey="revenue" fill="#EA580C" radius={[4, 4, 0, 0]} name="Doanh thu (Tỷ VND)" />
+                      <Bar dataKey="profit" fill="#16A34A" radius={[4, 4, 0, 0]} name="Lợi nhuận (Tỷ VND)" />
+                      <Bar dataKey="capex" fill="#2563EB" radius={[4, 4, 0, 0]} name="Đầu tư CAPEX (Tỷ VND)" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+
+              {/* Major CAPEX Projects Portfolio */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 22 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 14 }}>
+                  Danh Mục Dự Án Đầu Tư Cơ Sở Vật Chất & Công Nghệ Trọng Điểm
+                </h3>
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", color: "#64748B", borderBottom: "1px solid #E2E8F0", fontSize: 12, textTransform: "uppercase" }}>
+                        <th style={{ padding: "12px 14px" }}>Dự Án Đầu Tư</th>
+                        <th style={{ padding: "12px 14px" }}>Phân Hiệu</th>
+                        <th style={{ padding: "12px 14px" }}>Tổng Ngân Sách</th>
+                        <th style={{ padding: "12px 14px" }}>Tiến Độ</th>
+                        <th style={{ padding: "12px 14px" }}>Thời Gian Bàn Giao</th>
+                        <th style={{ padding: "12px 14px" }}>Trạng Thái</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { project: "Siêu máy tính GPU AI NVIDIA H100", campus: "Hà Nội (Hòa Lạc)", budget: "18.5 Tỷ", progress: "85%", eta: "Tháng 09/2026", status: "Đang lắp đặt" },
+                        { project: "Tòa nhà Đào tạo & KTX Giai đoạn 3", campus: "TP. Hồ Chí Minh", budget: "65.0 Tỷ", progress: "40%", eta: "Tháng 06/2027", status: "Đang thi công" },
+                        { project: "Viện Nghiên cứu Trí tuệ Nhân tạo & Bán dẫn", campus: "Quy Nhơn", budget: "42.0 Tỷ", progress: "60%", eta: "Tháng 12/2026", status: "Đang hoàn thiện" },
+                        { project: "Khu phức hợp Thể thao & Sáng tạo SV", campus: "Đà Nẵng", budget: "22.0 Tỷ", progress: "100%", eta: "Đã nghiệm thu", status: "Hoàn thành" },
+                      ].map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "12px 14px", fontWeight: 700, color: "#0F172A" }}>{row.project}</td>
+                          <td style={{ padding: "12px 14px", color: "#334155" }}>{row.campus}</td>
+                          <td style={{ padding: "12px 14px", fontWeight: 800, color: "#EA580C" }}>{row.budget}</td>
+                          <td style={{ padding: "12px 14px", color: "#2563EB", fontWeight: 700 }}>{row.progress}</td>
+                          <td style={{ padding: "12px 14px", color: "#64748B" }}>{row.eta}</td>
+                          <td style={{ padding: "12px 14px" }}>
+                            <span style={{ fontSize: 11, fontWeight: 700, background: row.progress === "100%" ? "#DCFCE7" : "#EFF6FF", color: row.progress === "100%" ? "#15803D" : "#1D4ED8", padding: "3px 8px", borderRadius: 100 }}>
+                              {row.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 8: CẢNH BÁO RỦI RO & QUY TRÌNH XỬ LÝ (RISK CENTER - P0 CORE)
+              ========================================================================= */}
+          {activeTab === "gov_risk" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", textTransform: "uppercase" }}>
+                    ENTERPRISE RISK MANAGEMENT & ESCALATION CENTER
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Trung Tâm Cảnh Báo Rủi Ro Tuyển Sinh & Vận Hành
+                  </h1>
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <span style={{ padding: "6px 12px", borderRadius: 8, background: "#FEE2E2", color: "#DC2626", fontSize: 12.5, fontWeight: 700 }}>
+                    🚨 {highRisksCount} Rủi ro Nghiêm trọng
+                  </span>
+                </div>
+              </div>
+
+              {/* Risk Matrix Cards */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(420px, 1fr))", gap: 20 }}>
+                {risks.map((risk) => (
+                  <div
+                    key={risk.id}
+                    style={{
+                      background: "#FFFFFF",
+                      border: risk.severity === "CRITICAL" ? "2px solid #DC2626" : risk.severity === "HIGH" ? "1.5px solid #FCA5A5" : "1px solid #E2E8F0",
+                      borderRadius: 16,
+                      padding: 22,
+                      display: "flex",
+                      flexDirection: "column",
+                      boxShadow: "0 4px 14px rgba(0,0,0,0.04)"
+                    }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+                      <div>
+                        <span style={{ fontSize: 11, fontWeight: 800, color: "#DC2626", textTransform: "uppercase" }}>
+                          {risk.id} • {risk.category}
+                        </span>
+                        <div style={{ fontSize: 12, color: "#64748B", marginTop: 2 }}>
+                          Chủ trì: <strong style={{ color: "#1E293B" }}>{risk.owner}</strong> ({risk.department})
+                        </div>
+                      </div>
+                      <span style={{
+                        fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 100,
+                        background: risk.severity === "CRITICAL" ? "#DC2626" : risk.severity === "HIGH" ? "#FEE2E2" : "#FEF3C7",
+                        color: risk.severity === "CRITICAL" ? "#FFFFFF" : risk.severity === "HIGH" ? "#DC2626" : "#D97706"
+                      }}>
+                        {risk.severity} • {risk.probability}%
                       </span>
                     </div>
 
-                    <div style={{ padding: "10px 12px", borderRadius: 8, background: "#FFFBEB", border: "1px solid #FEF3C7" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: 6, color: "#D97706", fontWeight: 800, fontSize: 12, marginBottom: 3 }}>
-                        <Clock size={14} /> Chậm tiến độ Giấy phép
+                    <h3 style={{ fontSize: 16.5, fontWeight: 800, color: "#0F172A", marginBottom: 8, lineHeight: 1.35 }}>
+                      {risk.title}
+                    </h3>
+
+                    <p style={{ fontSize: 13, color: "#475569", lineHeight: 1.5, marginBottom: 14, flex: 1 }}>
+                      {risk.reason}
+                    </p>
+
+                    <div style={{ background: "#FEF2F2", border: "1px solid #FECACA", borderRadius: 10, padding: "10px 12px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#991B1B" }}>TÁC ĐỘNG TỔNG THỂ:</div>
+                      <div style={{ fontSize: 12.5, fontWeight: 600, color: "#B91C1C", marginTop: 2 }}>
+                        {risk.financialImpact} • {risk.enrollmentImpact}
                       </div>
-                      <p style={{ fontSize: 11.5, color: "#475569", margin: 0, lineHeight: 1.4 }}>
-                        Dự án Tòa nhà Beta có nguy cơ chậm 2 tháng do thủ tục hành chính.
-                      </p>
+                      <div style={{ fontSize: 11, color: "#7F1D1D", marginTop: 4 }}>
+                        SLA còn lại: <strong>{risk.slaRemaining}</strong>
+                      </div>
+                    </div>
+
+                    <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 10, padding: "10px 12px", marginBottom: 16 }}>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "#64748B" }}>ĐỀ XUẤT XỬ LÝ (AI RECOMMENDATION):</div>
+                      <div style={{ fontSize: 12, color: "#334155", marginTop: 2 }}>
+                        {risk.recommendedAction}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div style={{ display: "flex", gap: 8, borderTop: "1px solid #F1F5F9", paddingTop: 14 }}>
+                      <button
+                        onClick={() => {
+                          setSelectedRiskForAction(risk);
+                          setRiskActionPlan(risk.recommendedAction);
+                          setRiskAssignedDept(risk.department);
+                          setRiskAssignee(risk.owner);
+                        }}
+                        style={{
+                          flex: 1, padding: "9px 12px", borderRadius: 8,
+                          background: "linear-gradient(135deg, #DC2626 0%, #B91C1C 100%)",
+                          border: "none", color: "#FFFFFF", fontSize: 12.5, fontWeight: 700,
+                          cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 6
+                        }}
+                      >
+                        <Zap size={14} /> Giao việc xử lý ngay
+                      </button>
+
+                      {risk.status !== "CLOSED" && (
+                        <button
+                          onClick={() => handleMitigateRisk(risk.id)}
+                          style={{
+                            padding: "9px 12px", borderRadius: 8,
+                            background: "#F0FDF4", border: "1px solid #BBF7D0",
+                            color: "#166534", fontSize: 12, fontWeight: 600, cursor: "pointer"
+                          }}
+                        >
+                          Đóng rủi ro
+                        </button>
+                      )}
                     </div>
                   </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* =========================================================================
+              TAB 9: LỊCH SỬ QUYẾT ĐỊNH & AUDIT LOG (DECISION HISTORY) - P0 CORE
+              ========================================================================= */}
+          {activeTab === "decision_history" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#2563EB", textTransform: "uppercase" }}>
+                    EXECUTIVE AUDIT TRAIL & DECISION GOVERNANCE
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Lịch Sử Quyết Định & Nhật Ký Kiểm Toán (Audit Log)
+                  </h1>
+                </div>
+              </div>
+
+              {/* Audit Trail Table */}
+              <div style={{ background: "#FFFFFF", borderRadius: 16, border: "1px solid #E2E8F0", padding: 24 }}>
+                <h3 style={{ fontSize: 17, fontWeight: 800, color: "#0F172A", marginBottom: 16 }}>
+                  Nhật Ký Thao Tác Quyết Định Cấp Ban Giám Hiệu
+                </h3>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 13 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", color: "#64748B", borderBottom: "1px solid #E2E8F0", fontSize: 12, textTransform: "uppercase" }}>
+                        <th style={{ padding: "12px 16px" }}>Mã Log</th>
+                        <th style={{ padding: "12px 16px" }}>Thời Gian</th>
+                        <th style={{ padding: "12px 16px" }}>Người Thực Hiện</th>
+                        <th style={{ padding: "12px 16px" }}>Hành Động</th>
+                        <th style={{ padding: "12px 16px" }}>Đối Tượng / Quyết Định</th>
+                        <th style={{ padding: "12px 16px" }}>Giá Trị Thay Đổi</th>
+                        <th style={{ padding: "12px 16px" }}>Lý Do & Ghi Chú</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {auditLogs.map((log, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "14px 16px", fontFamily: "monospace", fontWeight: 700, color: "#EA580C" }}>
+                            {log.id}
+                          </td>
+                          <td style={{ padding: "14px 16px", color: "#64748B", whiteSpace: "nowrap" }}>
+                            {log.timestamp}
+                          </td>
+                          <td style={{ padding: "14px 16px", fontWeight: 600, color: "#0F172A" }}>
+                            {log.actor}
+                          </td>
+                          <td style={{ padding: "14px 16px" }}>
+                            <span style={{
+                              fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6,
+                              background: "#EFF6FF", color: "#1E40AF"
+                            }}>
+                              {log.action}
+                            </span>
+                          </td>
+                          <td style={{ padding: "14px 16px", fontWeight: 600, color: "#334155" }}>
+                            {log.target}
+                          </td>
+                          <td style={{ padding: "14px 16px", fontSize: 12, color: "#475569" }}>
+                            <div>{log.beforeValue} ➔ <strong>{log.afterValue}</strong></div>
+                          </td>
+                          <td style={{ padding: "14px 16px", color: "#64748B", fontSize: 12 }}>
+                            {log.reason}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
           )}
 
-        </div>
-      </main>
+          {/* =========================================================================
+              TAB 10: SLA LIÊN PHÒNG BAN (GOV_CROSSDEPT COMPLETE)
+              ========================================================================= */}
+          {activeTab === "gov_crossdept" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 16 }}>
+                <div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: "#D97706", textTransform: "uppercase" }}>
+                    CROSS-DEPARTMENT SLA COORDINATION & BOTTLENECK MONITOR
+                  </div>
+                  <h1 style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0 0" }}>
+                    Giám Sát SLA & Phối Hợp Xử Lý Hồ Sơ Liên Phòng Ban
+                  </h1>
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      departmentSLAs.forEach(d => handleUrgeDepartment(d.id));
+                    }}
+                    style={{ padding: "9px 18px", borderRadius: 10, background: "#EA580C", color: "#FFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                  >
+                    ⚡ Đốc thúc toàn khối phòng ban
+                  </button>
+                </div>
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+                {departmentSLAs.map((dept) => (
+                  <div
+                    key={dept.id}
+                    onClick={() => setSelectedDepartmentDetail(dept)}
+                    style={{ background: "#FFFFFF", border: "1px solid #E2E8F0", borderRadius: 16, padding: 20, cursor: "pointer", boxShadow: "0 2px 6px rgba(0,0,0,0.03)" }}
+                  >
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                      <span style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{dept.name}</span>
+                      <span style={{ fontSize: 12, fontWeight: 800, color: dept.slaRate >= 97 ? "#16A34A" : "#D97706" }}>
+                        {dept.slaRate}% SLA
+                      </span>
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "#64748B", marginBottom: 6 }}>
+                      Trưởng bộ phận: <strong>{dept.lead}</strong> • Thời gian phản hồi TB: <strong>{dept.avgResponseHours}</strong>
+                    </div>
+                    <div style={{ fontSize: 12, color: "#DC2626", background: "#FEF2F2", padding: "8px 12px", borderRadius: 8, marginBottom: 12 }}>
+                      ⚠️ Điểm nghẽn: {dept.topBottleneck}
+                    </div>
+                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", borderTop: "1px solid #F1F5F9", paddingTop: 10 }}>
+                      <span style={{ fontSize: 12, color: "#64748B" }}>Tồn đọng: <strong>{dept.pending}</strong> | Quá hạn: <strong style={{ color: "#DC2626" }}>{dept.overdue}</strong></span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUrgeDepartment(dept.id);
+                        }}
+                        style={{ padding: "5px 12px", borderRadius: 6, background: "#FFF7ED", border: "1px solid #FDBA74", color: "#C2410C", fontSize: 12, fontWeight: 700, cursor: "pointer" }}
+                      >
+                        Đốc thúc
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </main>
+      </div>
 
       {/* =========================================================================
-          MODALS BGH & DSS
-         ========================================================================= */}
-      {/* Modal: Chạy Mô Hình DSS Tuyển Sinh */}
-      {showRunModelModal && (
+          MODAL 1: APPROVAL MODAL (CORE DECISION WORKFLOW)
+          ========================================================================= */}
+      {selectedProposalForApproval && (
         <div style={{
-          position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1000, padding: 20
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(15,23,42,0.65)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20
         }}>
-          <div style={{ width: "100%", maxWidth: 520, background: "#FFFFFF", borderRadius: 16, padding: "24px 26px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 17, fontWeight: 900, color: "#0F172A" }}>
-                <Bot size={20} color="#9A3412" /> Huấn Luyện & Chạy Mô Hình DSS Tuyển Sinh
+          <div style={{
+            width: "100%", maxWidth: 680, background: "#FFFFFF",
+            borderRadius: 20, boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
+            overflow: "hidden", border: "1px solid #E2E8F0", animation: "scaleIn 0.2s ease-out"
+          }}>
+            {/* Modal Header */}
+            <div style={{ padding: "18px 24px", background: "#0F172A", color: "#FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 800, color: "#FB923C", letterSpacing: 0.8, textTransform: "uppercase" }}>
+                  HỘI ĐỒNG PHÊ DUYỆT BAN GIÁM HIỆU
+                </div>
+                <div style={{ fontSize: 17, fontWeight: 800, marginTop: 2 }}>
+                  Phê Duyệt Đề Xuất: {selectedProposalForApproval.id}
+                </div>
               </div>
-              <button onClick={() => setShowRunModelModal(false)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8" }}>
+              <button
+                onClick={() => setSelectedProposalForApproval(null)}
+                style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer" }}
+              >
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14, marginBottom: 20 }}>
+            {/* Modal Body */}
+            <div style={{ padding: 24, maxHeight: "75vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
+              
+              {/* Proposal Info */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 4 }}>THUẬT TOÁN HỖ TRỢ RA QUYẾT ĐỊNH</label>
-                <select style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 13, background: "#FFF" }}>
-                  <option>XGBoost Regression Model (Độ chính xác dự báo 94.2%)</option>
-                  <option>Random Forest Ensemble (Phân tích đa biến số tuyển sinh)</option>
-                  <option>Mô hình Tối ưu hóa Tuyến tính (Linear Programming Budget Allocation)</option>
-                </select>
+                <h3 style={{ fontSize: 18, fontWeight: 900, color: "#0F172A", margin: "0 0 6px" }}>
+                  {selectedProposalForApproval.title}
+                </h3>
+                <div style={{ fontSize: 12.5, color: "#64748B" }}>
+                  Đề xuất bởi: <strong>{selectedProposalForApproval.proposedBy}</strong> ({selectedProposalForApproval.department})
+                </div>
               </div>
 
+              {/* Financial Matrix Comparison */}
+              <div style={{
+                background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12,
+                padding: "14px 18px", display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 12
+              }}>
+                <div>
+                  <div style={{ fontSize: 11.5, color: "#64748B" }}>Ngân sách hiện tại:</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#334155" }}>
+                    {(selectedProposalForApproval.currentBudget / 1e9).toFixed(1)} Tỷ
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11.5, color: "#64748B" }}>Ngân sách đề xuất:</div>
+                  <div style={{ fontSize: 15, fontWeight: 800, color: "#EA580C" }}>
+                    {(selectedProposalForApproval.proposedBudget / 1e9).toFixed(1)} Tỷ
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11.5, color: "#64748B" }}>Chênh lệch tăng:</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#16A34A" }}>
+                    +{selectedProposalForApproval.budgetDelta > 0 ? (selectedProposalForApproval.budgetDelta / 1e6).toLocaleString() + " Tr" : "0"}
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Score & Recommendation */}
+              {selectedProposalForApproval.aiRecommendation && (
+                <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 14 }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: "#B45309" }}>
+                      AI DECISION SCORE: {selectedProposalForApproval.decisionScore?.overall}/10
+                    </span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "#92400E" }}>
+                      Độ tin cậy: {selectedProposalForApproval.decisionScore?.aiConfidence}%
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#78350F", marginBottom: 4 }}>
+                    {selectedProposalForApproval.aiRecommendation.headline}
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12, color: "#92400E" }}>
+                    {selectedProposalForApproval.aiRecommendation.evidence?.map((ev, i) => (
+                      <li key={i}>{ev}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Conditional Options */}
+              {isConditionalApproval && (
+                <div style={{ background: "#FFF7ED", border: "1.5px dashed #FDBA74", borderRadius: 12, padding: 16 }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: "#9A3412", marginBottom: 10 }}>
+                    ⚙️ Thiết Lập Điều Kiện Phê Duyệt Của BOD:
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                    <div>
+                      <label style={{ fontSize: 11.5, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>
+                        Hạn chót nghiệm thu:
+                      </label>
+                      <input
+                        type="date"
+                        value={conditionalParams.deadline}
+                        onChange={e => setConditionalParams({ ...conditionalParams, deadline: e.target.value })}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5 }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ fontSize: 11.5, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>
+                        KPI Cam Kết Tối Thiểu:
+                      </label>
+                      <input
+                        type="text"
+                        value={conditionalParams.kpiCommitment}
+                        onChange={e => setConditionalParams({ ...conditionalParams, kpiCommitment: e.target.value })}
+                        style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5 }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* BOD Comment / Direction */}
               <div>
-                <label style={{ display: "block", fontSize: 12, fontWeight: 700, color: "#334155", marginBottom: 4 }}>KỲ DỰ BÁO MỤC TIÊU</label>
-                <select style={{ width: "100%", padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 13, background: "#FFF" }}>
-                  <option>Kỳ Thu 2024 (Thu 2026)</option>
-                  <option>Kỳ Xuân 2025 (Xuan 2026)</option>
-                  <option>Kỳ Thu 2025 (Thu 2026)</option>
-                </select>
+                <label style={{ fontSize: 13, fontWeight: 700, color: "#0F172A", display: "block", marginBottom: 6 }}>
+                  Ý kiến chỉ đạo của Ban Giám Hiệu:
+                </label>
+                <textarea
+                  rows={3}
+                  value={approvalComment}
+                  onChange={e => setApprovalComment(e.target.value)}
+                  placeholder="Nhập ý kiến chỉ đạo, yêu cầu đối soát tài chính hoặc điều kiện ràng buộc..."
+                  style={{
+                    width: "100%", padding: "10px 12px", borderRadius: 8,
+                    border: "1px solid #CBD5E1", fontSize: 13, outline: "none", boxSizing: "border-box"
+                  }}
+                />
               </div>
             </div>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              <button onClick={() => setShowRunModelModal(false)} style={{ padding: "10px", borderRadius: 8, background: "#F1F5F9", color: "#475569", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>Hủy</button>
+            {/* Modal Footer Actions */}
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <button
-                onClick={() => {
-                  setShowRunModelModal(false);
-                  showToast("Mô hình DSS đã chạy xong và cập nhật dự báo 14,250 tân sinh viên!");
-                }}
-                style={{ padding: "10px", borderRadius: 8, background: "#9A3412", color: "#FFFFFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}
+                onClick={() => handleRequestMoreInfo(selectedProposalForApproval)}
+                style={{ padding: "9px 16px", borderRadius: 8, background: "#FFFFFF", border: "1px solid #CBD5E1", fontSize: 13, fontWeight: 600, color: "#475569", cursor: "pointer" }}
               >
-                Bắt Đầu Huấn Luyện
+                Yêu cầu bổ sung
+              </button>
+
+              <div style={{ display: "flex", gap: 10 }}>
+                <button
+                  onClick={() => handleRejectProposal(selectedProposalForApproval)}
+                  style={{ padding: "9px 16px", borderRadius: 8, background: "#FEF2F2", border: "1px solid #FCA5A5", fontSize: 13, fontWeight: 700, color: "#DC2626", cursor: "pointer" }}
+                >
+                  Từ chối
+                </button>
+
+                <button
+                  onClick={() => handleApproveProposal(selectedProposalForApproval)}
+                  style={{
+                    padding: "9px 24px", borderRadius: 8,
+                    background: "linear-gradient(135deg, #EA580C 0%, #C2410C 100%)",
+                    border: "none", color: "#FFFFFF", fontSize: 13.5, fontWeight: 800,
+                    cursor: "pointer", boxShadow: "0 4px 12px rgba(234,88,12,0.35)"
+                  }}
+                >
+                  {isConditionalApproval ? "Xác nhận Phê duyệt có điều kiện" : "Xác nhận Phê duyệt Quyết định"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          DRAWER 1: KPI DRILL-DOWN DRAWER (EVERY KPI CLICKABLE)
+          ========================================================================= */}
+      {selectedKPIDetail && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(15,23,42,0.5)", display: "flex", justifyContent: "flex-end"
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 520, background: "#FFFFFF", height: "100%",
+            boxShadow: "-10px 0 35px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column"
+          }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0F172A", color: "#FFF" }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#FB923C", fontWeight: 800 }}>CHI TIẾT CHỈ SỐ KPI CHIẾN LƯỢC</div>
+                <div style={{ fontSize: 17, fontWeight: 800 }}>{selectedKPIDetail.title}</div>
+              </div>
+              <button onClick={() => setSelectedKPIDetail(null)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer" }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: 24, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
+              {/* Metrics Summary */}
+              <div style={{ background: "#F8FAFC", borderRadius: 12, padding: 18, border: "1px solid #E2E8F0" }}>
+                <div style={{ fontSize: 12, color: "#64748B" }}>Giá trị thực tế / Mục tiêu:</div>
+                <div style={{ fontSize: 26, fontWeight: 900, color: "#0F172A", margin: "4px 0" }}>
+                  {selectedKPIDetail.value} <span style={{ fontSize: 14, color: selectedKPIDetail.color, fontWeight: 700 }}>({selectedKPIDetail.gap})</span>
+                </div>
+                <div style={{ fontSize: 12, color: "#475569" }}>{selectedKPIDetail.target}</div>
+              </div>
+
+              {/* Causes */}
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: "#0F172A", marginBottom: 8 }}>
+                  🔍 Phân tích Nguyên nhân gốc rễ (Root Causes):
+                </div>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 12.5, color: "#334155", display: "flex", flexDirection: "column", gap: 6 }}>
+                  {selectedKPIDetail.causes?.map((c, i) => (
+                    <li key={i}>{c}</li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* AI Recommended Action */}
+              <div style={{ background: "#FFFBEB", border: "1px solid #FDE68A", borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 12, fontWeight: 800, color: "#B45309", marginBottom: 4 }}>
+                  💡 Khuyến nghị hành động của AI:
+                </div>
+                <div style={{ fontSize: 12.5, color: "#78350F" }}>
+                  {selectedKPIDetail.aiAction}
+                </div>
+              </div>
+
+              {/* 4 Action Buttons */}
+              <div style={{ marginTop: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
+                <button
+                  onClick={() => {
+                    setSelectedKPIDetail(null);
+                    setActiveTab("decision_center");
+                  }}
+                  style={{
+                    padding: "11px", borderRadius: 9, background: "#EA580C",
+                    border: "none", color: "#FFF", fontSize: 13, fontWeight: 700, cursor: "pointer"
+                  }}
+                >
+                  ⚡ Mở Quyết định Phê duyệt liên quan
+                </button>
+                <button
+                  onClick={() => {
+                    setSelectedKPIDetail(null);
+                    setActiveTab("dss_forecast");
+                  }}
+                  style={{
+                    padding: "10px", borderRadius: 9, background: "#F1F5F9",
+                    border: "1px solid #CBD5E1", color: "#334155", fontSize: 13, fontWeight: 600, cursor: "pointer"
+                  }}
+                >
+                  🎛️ Chạy Mô phỏng What-If
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 2: RISK TO ACTION WORKFLOW MODAL
+          ========================================================================= */}
+      {selectedRiskForAction && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(15,23,42,0.65)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+        }}>
+          <div style={{ width: "100%", maxWidth: 600, background: "#FFFFFF", borderRadius: 20, overflow: "hidden", border: "1px solid #E2E8F0" }}>
+            <div style={{ padding: "18px 24px", background: "#DC2626", color: "#FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 16, fontWeight: 800 }}>Giao Việc Xử Lý Rủi Ro: {selectedRiskForAction.id}</div>
+              <button onClick={() => setSelectedRiskForAction(null)} style={{ background: "none", border: "none", color: "#FFF", cursor: "pointer" }}>
+                <X size={20} />
+              </button>
+            </div>
+
+            <div style={{ padding: 24, display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <div style={{ fontSize: 12, color: "#64748B" }}>Rủi ro:</div>
+                <div style={{ fontSize: 15, fontWeight: 800, color: "#0F172A" }}>{selectedRiskForAction.title}</div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: "#0F172A", display: "block", marginBottom: 4 }}>
+                  Nhiệm vụ / Kế hoạch hành động cụ thể:
+                </label>
+                <textarea
+                  rows={3}
+                  value={riskActionPlan}
+                  onChange={e => setRiskActionPlan(e.target.value)}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>Phòng ban chịu trách nhiệm:</label>
+                  <input
+                    type="text"
+                    value={riskAssignedDept}
+                    onChange={e => setRiskAssignedDept(e.target.value)}
+                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>Người phụ trách trực tiếp:</label>
+                  <input
+                    type="text"
+                    value={riskAssignee}
+                    onChange={e => setRiskAssignee(e.target.value)}
+                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>Hạn chót hoàn thành (SLA):</label>
+                <input
+                  type="text"
+                  value={riskDeadline}
+                  onChange={e => setRiskDeadline(e.target.value)}
+                  style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                />
+              </div>
+            </div>
+
+            <div style={{ padding: "14px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setSelectedRiskForAction(null)} style={{ padding: "8px 16px", borderRadius: 8, background: "#FFF", border: "1px solid #CBD5E1", fontSize: 12.5, cursor: "pointer" }}>
+                Hủy
+              </button>
+              <button
+                onClick={handleCreateActionFromRisk}
+                style={{ padding: "8px 20px", borderRadius: 8, background: "#DC2626", color: "#FFF", border: "none", fontWeight: 700, fontSize: 12.5, cursor: "pointer" }}
+              >
+                Giao việc và Bật SLA Tracking
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Modal: Bản đồ Hoạt động 5 Cơ sở */}
-      {showCampusMapModal && (
+      {/* =========================================================================
+          MODAL 3: NEW MAJOR PROPOSAL MODAL (MỞ NGÀNH MỚI)
+          ========================================================================= */}
+      {showNewMajorModal && (
         <div style={{
-          position: "fixed", inset: 0, background: "rgba(15,23,42,0.6)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          zIndex: 1000, padding: 20
+          position: "fixed", inset: 0, zIndex: 1100,
+          background: "rgba(15,23,42,0.7)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center", padding: 20
         }}>
-          <div style={{ width: "100%", maxWidth: 540, background: "#FFFFFF", borderRadius: 16, padding: "24px 26px", boxShadow: "0 20px 40px rgba(0,0,0,0.2)" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-              <h3 style={{ fontSize: 17, fontWeight: 900, color: "#0F172A", margin: 0 }}>
-                Mạng Lưới 5 Phân Hiệu FPT University
-              </h3>
-              <button onClick={() => setShowCampusMapModal(false)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "#94A3B8" }}>
+          <div style={{
+            width: "100%", maxWidth: 660, background: "#FFFFFF",
+            borderRadius: 20, boxShadow: "0 25px 60px rgba(0,0,0,0.3)",
+            overflow: "hidden", border: "1px solid #E2E8F0"
+          }}>
+            <div style={{ padding: "18px 24px", background: "#EA580C", color: "#FFFFFF", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontSize: 16.5, fontWeight: 800 }}>Đề Xuất Phê Duyệt Mở Chuyên Ngành Mới</div>
+              <button onClick={() => setShowNewMajorModal(false)} style={{ background: "none", border: "none", color: "#FFF", cursor: "pointer" }}>
                 <X size={20} />
               </button>
             </div>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+            <div style={{ padding: 24, maxHeight: "75vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
+              <div>
+                <label style={{ fontSize: 12.5, fontWeight: 700, color: "#0F172A", display: "block", marginBottom: 4 }}>
+                  Tên chuyên ngành đào tạo:
+                </label>
+                <input
+                  type="text"
+                  value={newMajorForm.name}
+                  onChange={e => setNewMajorForm({ ...newMajorForm, name: e.target.value })}
+                  style={{ width: "100%", padding: "8px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 13, boxSizing: "border-box" }}
+                />
+              </div>
+
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>Mã ngành / Khoa quản lý:</label>
+                  <input
+                    type="text"
+                    value={newMajorForm.faculty}
+                    onChange={e => setNewMajorForm({ ...newMajorForm, faculty: e.target.value })}
+                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                  />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: "#475569", display: "block", marginBottom: 4 }}>Chỉ tiêu tuyển sinh năm đầu:</label>
+                  <input
+                    type="number"
+                    value={newMajorForm.firstYearQuota}
+                    onChange={e => setNewMajorForm({ ...newMajorForm, firstYearQuota: Number(e.target.value) })}
+                    style={{ width: "100%", padding: "7px 10px", borderRadius: 6, border: "1px solid #CBD5E1", fontSize: 12.5, boxSizing: "border-box" }}
+                  />
+                </div>
+              </div>
+
+              <div style={{ background: "#F8FAFC", border: "1px solid #E2E8F0", borderRadius: 12, padding: 14, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Dự toán Đầu tư (CAPEX):</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#EA580C" }}>{newMajorForm.capex}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Thời gian hòa vốn (Break-even):</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: "#16A34A" }}>{newMajorForm.breakEven}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Đội ngũ giảng viên cam kết:</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{newMajorForm.facultyCount}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 11, color: "#64748B" }}>Đối tác bảo trợ thực tập:</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: "#2563EB" }}>{newMajorForm.strategicPartner}</div>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowNewMajorModal(false)} style={{ padding: "9px 16px", borderRadius: 8, background: "#FFF", border: "1px solid #CBD5E1", fontSize: 13, cursor: "pointer" }}>
+                Hủy
+              </button>
+              <button
+                onClick={handleApproveNewMajor}
+                style={{ padding: "9px 22px", borderRadius: 8, background: "#EA580C", color: "#FFF", border: "none", fontWeight: 800, fontSize: 13.5, cursor: "pointer" }}
+              >
+                Xác Nhận Phê Duyệt Mở Ngành (K21)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* =========================================================================
+          MODAL 4: GLOBAL COMMAND PALETTE (CTRL + K)
+          ========================================================================= */}
+      {showCommandPalette && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1100,
+          background: "rgba(15,23,42,0.7)", backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "12vh"
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 620, background: "#FFFFFF",
+            borderRadius: 18, boxShadow: "0 25px 60px rgba(0,0,0,0.35)",
+            overflow: "hidden", border: "1px solid #E2E8F0"
+          }}>
+            <div style={{ padding: "14px 18px", borderBottom: "1px solid #E2E8F0", display: "flex", alignItems: "center", gap: 12 }}>
+              <Search size={18} color="#94A3B8" />
+              <input
+                type="text"
+                autoFocus
+                placeholder="Tìm kiếm quyết định, rủi ro, phòng ban, kịch bản What-If..."
+                value={commandQuery}
+                onChange={e => setCommandQuery(e.target.value)}
+                style={{ flex: 1, border: "none", outline: "none", fontSize: 14, fontWeight: 500 }}
+              />
+              <button onClick={() => setShowCommandPalette(false)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer" }}>
+                <X size={18} />
+              </button>
+            </div>
+
+            <div style={{ padding: 14, maxHeight: 340, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8 }}>
               {[
-                { name: "FPTU Hà Nội (Khu CNC Hòa Lạc)", students: "42,000 SV", status: "Hoạt động 100%" },
-                { name: "FPTU TP.HCM (Khu CNC TP.Thủ Đức)", students: "38,500 SV", status: "Hoạt động 100%" },
-                { name: "FPTU Đà Nẵng (Khu Đô thị FPT City)", students: "28,000 SV", status: "Hoạt động 98%" },
-                { name: "FPTU Cần Thơ (An Bình, Ninh Kiều)", students: "22,500 SV", status: "Mở rộng GĐ 2" },
-                { name: "FPTU Quy Nhơn (Trung tâm AI Quốc tế)", students: "14,200 SV", status: "Hoạt động 100%" },
-              ].map((c, idx) => (
-                <div key={idx} style={{ padding: "10px 14px", background: "#F8FAFC", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <div>
-                    <strong style={{ fontSize: 13, color: "#0F172A" }}>{c.name}</strong>
-                    <div style={{ fontSize: 11.5, color: "#64748B" }}>Quy mô: {c.students}</div>
-                  </div>
-                  <span style={{ fontSize: 11.5, fontWeight: 700, color: "#16A34A" }}>{c.status}</span>
+                { title: "Phê duyệt Đề xuất Tăng ngân sách Digital Miền Tây (+800M)", category: "Decision Proposal", tab: "decision_center" },
+                { title: "Xem 3 Rủi ro Tuyển sinh Nghiêm trọng (Hồ sơ ảo Miền Tây)", category: "Risk Center", tab: "gov_risk" },
+                { title: "Chạy mô phỏng What-If Kịch bản Học phí & Học bổng K21", category: "Simulation", tab: "dss_forecast" },
+                { title: "Phân tích Phễu Tuyển sinh & Yield Rate từng phân hiệu", category: "DSS Funnel", tab: "dss_funnel" },
+                { title: "Xem Hiệu quả Kênh Marketing & Chi phí CAC 2.4 Tr/SV", category: "Marketing ROI", tab: "dss_marketing" },
+                { title: "Đề xuất Mở Ngành Bán dẫn & Vi mạch Semiconductor", category: "Trends & Majors", tab: "dss_trends" },
+                { title: "Kế hoạch Tài chính 5 Năm & Đầu tư Hạ tầng Lab GPU Hòa Lạc", category: "Finance & CAPEX", tab: "gov_finance" },
+                { title: "Xem tiến độ giải ngân & SLA Ban Tài chính (97.6% SLA)", category: "SLA Coordination", tab: "gov_crossdept" },
+              ].map((cmd, i) => (
+                <div
+                  key={i}
+                  onClick={() => {
+                    setActiveTab(cmd.tab);
+                    setShowCommandPalette(false);
+                  }}
+                  style={{
+                    padding: "10px 14px", borderRadius: 8, background: "#F8FAFC",
+                    display: "flex", justifyContent: "space-between", alignItems: "center", cursor: "pointer"
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#0F172A" }}>{cmd.title}</span>
+                  <span style={{ fontSize: 11, color: "#64748B", background: "#E2E8F0", padding: "2px 8px", borderRadius: 4 }}>
+                    {cmd.category}
+                  </span>
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+      )}
 
-            <div style={{ display: "flex", justifyContent: "flex-end" }}>
-              <button onClick={() => setShowCampusMapModal(false)} style={{ padding: "9px 20px", borderRadius: 8, background: "#0F172A", color: "#FFFFFF", border: "none", fontWeight: 700, fontSize: 13, cursor: "pointer" }}>
-                Đóng
+      {/* =========================================================================
+          DRAWER 2: DECISION HISTORY & TIMELINE DRAWER
+          ========================================================================= */}
+      {selectedDecisionForHistory && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(15,23,42,0.5)", display: "flex", justifyContent: "flex-end"
+        }}>
+          <div style={{
+            width: "100%", maxWidth: 540, background: "#FFFFFF", height: "100%",
+            boxShadow: "-10px 0 35px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column"
+          }}>
+            <div style={{ padding: "18px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#0F172A", color: "#FFF" }}>
+              <div>
+                <div style={{ fontSize: 11, color: "#FB923C", fontWeight: 800 }}>DECISION TIMELINE & WORKFLOW</div>
+                <div style={{ fontSize: 16, fontWeight: 800 }}>{selectedDecisionForHistory.decisionId}</div>
+              </div>
+              <button onClick={() => setSelectedDecisionForHistory(null)} style={{ background: "none", border: "none", color: "#94A3B8", cursor: "pointer" }}>
+                <X size={20} />
               </button>
+            </div>
+
+            <div style={{ padding: 24, flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
+              <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                {selectedDecisionForHistory.title}
+              </h3>
+
+              {/* Timeline Steps */}
+              <div style={{ display: "flex", flexDirection: "column", gap: 16, borderLeft: "2px solid #E2E8F0", paddingLeft: 18, marginLeft: 8 }}>
+                {[
+                  { time: "19/08 09:30", title: "Tạo đề xuất mới", desc: "Ban Tuyển sinh lập tờ trình bổ sung ngân sách", done: true },
+                  { time: "19/08 10:45", title: "Ban Tài chính thẩm định", desc: "Xác nhận nguồn tiền dự phòng Q3 khả dụng", done: true },
+                  { time: "19/08 11:30", title: "BOD Phê duyệt Quyết định", desc: "TS. Hoàng Việt Hà ký duyệt quyết định số DEC-2026-00124", done: true },
+                  { time: "19/08 11:35", title: "Tự động phân bổ nhiệm vụ liên phòng", desc: "Tạo 4 Tasks cho Finance, Marketing, Admission, Data/BI", done: true },
+                  { time: "Đang diễn ra", title: "Thực thi & Giám sát SLA", desc: "Marketing đang chạy ads TikTok, Tuyển sinh gọi tư vấn 1-1", done: false },
+                ].map((st, i) => (
+                  <div key={i} style={{ position: "relative" }}>
+                    <div style={{
+                      position: "absolute", left: -25, top: 2,
+                      width: 12, height: 12, borderRadius: "50%",
+                      background: st.done ? "#16A34A" : "#EA580C"
+                    }} />
+                    <div style={{ fontSize: 11, color: "#94A3B8" }}>{st.time}</div>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#0F172A" }}>{st.title}</div>
+                    <div style={{ fontSize: 12, color: "#64748B" }}>{st.desc}</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
       )}
 
+      {/* Global CSS Animation Helpers */}
+      <style>{`
+        @keyframes scaleIn {
+          from { opacity: 0; transform: scale(0.96); }
+          to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }

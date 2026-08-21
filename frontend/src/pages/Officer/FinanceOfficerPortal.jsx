@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useStaff } from "../../context/StaffContext";
 import {
   Landmark, CreditCard, Wallet, Award, FileText,
   Search, Bell, HelpCircle, Download, Plus, CheckCircle,
@@ -18,6 +19,7 @@ import * as XLSX from "xlsx";
 
 export default function FinanceOfficerPortal() {
   const navigate = useNavigate();
+  const { staffList, isPayrollApproved, approvePayroll } = useStaff();
 
   // Active navigation tab
   const [activeTab, setActiveTab] = useState("transactions"); // transactions (Lương & Bảng lương) | reports (Báo cáo tài chính) | overview | tuition | scholarships
@@ -42,110 +44,14 @@ export default function FinanceOfficerPortal() {
 
   // ─── TRANSACTIONS / SALARY & PAYROLL STATE (IMAGE 1) ───
   const [payrollCycle, setPayrollCycle] = useState("Tháng 10/2023");
-  const [isPayrollApproved, setIsPayrollApproved] = useState(false);
+  // const [isPayrollApproved, setIsPayrollApproved] = useState(false); // Using Context
   const [staffTab, setStaffTab] = useState("ALL"); // ALL | ACADEMIC | ADMIN
   const [selectedStaffIds, setSelectedStaffIds] = useState([]);
   const [teachingHoursInput, setTeachingHoursInput] = useState(36);
   const [hourlyRateInput, setHourlyRateInput] = useState(200000);
 
   // Initial staff payroll data matching Image 1
-  const [staffList, setStaffList] = useState([
-    {
-      id: "EMP-00124",
-      name: "Nguyễn Văn Tuấn",
-      initials: "NT",
-      avatarBg: "#2563EB",
-      avatarColor: "#FFFFFF",
-      dept: "Kỹ thuật Phần mềm",
-      role: "Giảng viên Cao cấp",
-      category: "ACADEMIC",
-      baseSalary: 25000000,
-      teachingHrs: 42,
-      teachingRate: 200000,
-      teachingPay: 8400000,
-      deductions: 3507000,
-      netPayable: 29893000,
-      status: "CALCULATED",
-      bankName: "Vietcombank",
-      bankAccount: "0071001234567"
-    },
-    {
-      id: "EMP-00451",
-      name: "Lê Thị Hoa",
-      initials: "LH",
-      avatarBg: "#06B6D4",
-      avatarColor: "#FFFFFF",
-      dept: "Quản trị Kinh doanh",
-      role: "Giảng viên",
-      category: "ACADEMIC",
-      baseSalary: 18000000,
-      teachingHrs: null, // Pending
-      teachingRate: 200000,
-      teachingPay: 0,
-      deductions: null,
-      netPayable: null,
-      status: "AWAITING_HRS",
-      bankName: "Techcombank",
-      bankAccount: "1903456789012"
-    },
-    {
-      id: "ADM-00102",
-      name: "Phạm Văn Minh",
-      initials: "PM",
-      avatarBg: "#64748B",
-      avatarColor: "#FFFFFF",
-      dept: "Hạ tầng CNTT",
-      role: "Quản trị Hệ thống",
-      category: "ADMIN",
-      baseSalary: 22000000,
-      teachingHrs: "N/A",
-      teachingRate: 0,
-      teachingPay: 0,
-      deductions: 2310000,
-      netPayable: 19690000,
-      status: "CALCULATED",
-      bankName: "MB Bank",
-      bankAccount: "888899990001"
-    },
-    {
-      id: "EMP-00892",
-      name: "Trần Hoàng Nam",
-      initials: "TN",
-      avatarBg: "#8B5CF6",
-      avatarColor: "#FFFFFF",
-      dept: "Trí tuệ Nhân tạo (AI)",
-      role: "Phó Giáo sư",
-      category: "ACADEMIC",
-      baseSalary: 32000000,
-      teachingHrs: 48,
-      teachingRate: 250000,
-      teachingPay: 12000000,
-      deductions: 4850000,
-      netPayable: 39150000,
-      status: "CALCULATED",
-      bankName: "Vietcombank",
-      bankAccount: "0011009876543"
-    },
-    {
-      id: "ADM-00315",
-      name: "Vũ Thị Lan",
-      initials: "VL",
-      avatarBg: "#10B981",
-      avatarColor: "#FFFFFF",
-      dept: "Tài chính & Kế toán",
-      role: "Kế toán Tổng hợp",
-      category: "ADMIN",
-      baseSalary: 20000000,
-      teachingHrs: "N/A",
-      teachingRate: 0,
-      teachingPay: 0,
-      deductions: 2100000,
-      netPayable: 17900000,
-      status: "CALCULATED",
-      bankName: "VPBank",
-      bankAccount: "1234567890"
-    }
-  ]);
+  // staffList is now managed by StaffContext
 
   // Filtered staff list
   const filteredStaff = useMemo(() => {
@@ -283,8 +189,8 @@ export default function FinanceOfficerPortal() {
     setShowTeachingHrsModal(null);
   };
 
-  const handleApprovePayroll = () => {
-    setIsPayrollApproved(true);
+  const handleApprovePayroll = async () => {
+    await approvePayroll();
     setShowApprovePayrollModal(false);
     showToast("🎉 Bảng lương Tháng 10/2023 đã được PHÊ DUYỆT thành công và chuyển sang giải ngân!");
   };
@@ -898,7 +804,7 @@ export default function FinanceOfficerPortal() {
                           </td>
 
                           <td style={{ padding: "16px 18px", color: "#64748B", fontWeight: 600, fontFamily: "monospace" }}>
-                            ₫{staff.baseSalary.toLocaleString("vi-VN")}
+                            ₫{staff.baseSalary?.toLocaleString("vi-VN")}
                           </td>
 
                           <td style={{ padding: "16px 18px" }}>
@@ -925,7 +831,7 @@ export default function FinanceOfficerPortal() {
                                   🔗 {staff.teachingHrs} giờ
                                 </div>
                                 <div style={{ fontSize: 11.5, color: "#64748B", fontFamily: "monospace" }}>
-                                  ₫{staff.teachingPay.toLocaleString("vi-VN")}
+                                  ₫{staff.teachingPay?.toLocaleString("vi-VN")}
                                 </div>
                               </div>
                             )}
@@ -934,7 +840,7 @@ export default function FinanceOfficerPortal() {
                           <td style={{ padding: "16px 18px" }}>
                             {staff.deductions ? (
                               <span style={{ color: "#DC2626", fontWeight: 600, fontFamily: "monospace" }}>
-                                -₫{staff.deductions.toLocaleString("vi-VN")}
+                                -₫{staff.deductions?.toLocaleString("vi-VN")}
                               </span>
                             ) : (
                               <span style={{ color: "#94A3B8" }}>--</span>
@@ -944,7 +850,7 @@ export default function FinanceOfficerPortal() {
                           <td style={{ padding: "16px 18px" }}>
                             {staff.netPayable ? (
                               <span style={{ color: "#9A3412", fontWeight: 800, fontSize: 13.5, fontFamily: "monospace" }}>
-                                ₫{staff.netPayable.toLocaleString("vi-VN")}
+                                ₫{staff.netPayable?.toLocaleString("vi-VN")}
                               </span>
                             ) : (
                               <span style={{ color: "#94A3B8" }}>--</span>
@@ -1522,7 +1428,7 @@ export default function FinanceOfficerPortal() {
                 <input
                   type="text"
                   disabled
-                  value={`₫${showTeachingHrsModal.baseSalary.toLocaleString("vi-VN")}`}
+                  value={`₫${showTeachingHrsModal.baseSalary?.toLocaleString("vi-VN")}`}
                   style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: "1px solid #E2E8F0", background: "#F8FAFC", fontWeight: 700, color: "#475569", boxSizing: "border-box" }}
                 />
               </div>
@@ -1663,7 +1569,7 @@ export default function FinanceOfficerPortal() {
             <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "14px 0", borderTop: "1px solid #F1F5F9", borderBottom: "1px solid #F1F5F9", fontSize: 13 }}>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#64748B" }}>Lương Hợp Đồng Cơ Bản:</span>
-                <strong style={{ color: "#0F172A", fontFamily: "monospace" }}>₫{showDetailModal.baseSalary.toLocaleString("vi-VN")}</strong>
+                <strong style={{ color: "#0F172A", fontFamily: "monospace" }}>₫{showDetailModal.baseSalary?.toLocaleString("vi-VN")}</strong>
               </div>
               <div style={{ display: "flex", justifyContent: "space-between" }}>
                 <span style={{ color: "#64748B" }}>Thù Lao Giảng Dạy ({showDetailModal.teachingHrs} giờ):</span>

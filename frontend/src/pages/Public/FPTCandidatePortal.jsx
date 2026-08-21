@@ -14,7 +14,7 @@ import {
   Sliders, Calendar, Map, Maximize2, Briefcase, Mail,
   CreditCard, Grid, Search, Smile, ChevronDown, CheckSquare,
   Upload, FileUp, AlertOctagon, CheckCircle2, ChevronUp,
-  MoveUp, MoveDown, Trash2, Plus, PhoneCall, QrCode
+  MoveUp, MoveDown, Trash2, Plus, PhoneCall, QrCode, FileCheck
 } from "lucide-react";
 
 // Sub-components

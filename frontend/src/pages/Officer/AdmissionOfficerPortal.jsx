@@ -54,15 +54,19 @@ export default function AdmissionOfficerPortal() {
       name: "Nguyễn Văn An",
       dob: "15/08/2006",
       citizenId: "001206019842",
+      phone: "0912.345.678",
+      email: "an.nv2006@gmail.com",
       major: "Kỹ thuật Phần mềm (Software Engineering)",
       majorCode: "7480103",
       campus: "FPT Hà Nội (Khu CNC Hòa Lạc)",
-      submissionDate: "14/08/2026",
+      campusCode: "HN",
+      method: "Xét Học bạ THPT (SchoolRank)",
+      submissionDate: "14/08/2026 09:30",
       priority: "High",
       status: "UNDER_REVIEW",
       ocrMathScore: "8.5",
       declaredMathScore: "8.8",
-      confidence: 72,
+      confidence: 72.0,
       isDiscrepant: true,
       reviewerComments: "Điểm môn Toán học kỳ 2 trên giấy là 8.5, cần điều chỉnh lại.",
       formSent: false,
@@ -79,12 +83,16 @@ export default function AdmissionOfficerPortal() {
       name: "Trần Thị Mai Anh",
       dob: "20/11/2006",
       citizenId: "079206001234",
+      phone: "0987.654.321",
+      email: "maianh.tran@gmail.com",
       major: "Trí tuệ Nhân tạo (AI)",
       majorCode: "7480107",
       campus: "FPT Quy Nhơn (AI Center)",
-      submissionDate: "15/08/2026",
+      campusCode: "QN",
+      method: "Xét SAT Quốc Tế + Học bạ",
+      submissionDate: "15/08/2026 14:15",
       priority: "Normal",
-      status: "UNDER_REVIEW",
+      status: "VERIFIED_AND_COMPLETE",
       ocrMathScore: "9.2",
       declaredMathScore: "9.2",
       confidence: 98.8,
@@ -103,10 +111,14 @@ export default function AdmissionOfficerPortal() {
       name: "Lê Hoàng Phúc",
       dob: "05/03/2006",
       citizenId: "080206004921",
+      phone: "0903.112.233",
+      email: "phucle.ic@gmail.com",
       major: "Thiết kế Vi mạch Bán dẫn",
       majorCode: "7340120",
       campus: "FPT TP.HCM (Thủ Đức)",
-      submissionDate: "16/08/2026",
+      campusCode: "HCM",
+      method: "Điểm ĐGNL ĐHQG (890đ)",
+      submissionDate: "16/08/2026 10:20",
       priority: "High",
       status: "SUBMITTED",
       ocrMathScore: "8.8",
@@ -119,6 +131,191 @@ export default function AdmissionOfficerPortal() {
       docs: [
         { id: "doc-transcript-3", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "UNDER_REVIEW", statusColor: "#D97706", statusBg: "#FEF3C7" },
         { id: "doc-cccd-3", type: "CITIZEN_ID", name: "CCCD gắn chip", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" }
+      ]
+    },
+    {
+      id: "FPT-2026-928410",
+      name: "Phạm Quỳnh Nga",
+      dob: "12/09/2006",
+      citizenId: "048206007812",
+      phone: "0934.556.677",
+      email: "quynhnga.art@gmail.com",
+      major: "Thiết kế Mỹ thuật số (Digital Art)",
+      majorCode: "7210403",
+      campus: "FPT Đà Nẵng (Ngũ Hành Sơn)",
+      campusCode: "DN",
+      method: "Điểm Thi THPT (Khối V00)",
+      submissionDate: "16/08/2026 15:40",
+      priority: "Normal",
+      status: "VERIFIED_AND_COMPLETE",
+      ocrMathScore: "8.2",
+      declaredMathScore: "8.2",
+      confidence: 99.1,
+      isDiscrepant: false,
+      reviewerComments: "Hồ sơ năng khiếu và học bạ đầy đủ hợp lệ.",
+      formSent: true,
+      admissionResult: "Trúng tuyển chính thức (25.5đ)",
+      docs: [
+        { id: "doc-transcript-4", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" },
+        { id: "doc-cccd-4", type: "CITIZEN_ID", name: "CCCD gắn chip", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" }
+      ]
+    },
+    {
+      id: "FPT-2026-934512",
+      name: "Đặng Minh Khang",
+      dob: "28/04/2006",
+      citizenId: "001206089123",
+      phone: "0945.667.788",
+      email: "khang.cyber@gmail.com",
+      major: "An toàn Thông tin (Cybersecurity)",
+      majorCode: "7480202",
+      campus: "FPT Hà Nội (Khu CNC Hòa Lạc)",
+      campusCode: "HN",
+      method: "Xét Học bạ THPT (SchoolRank)",
+      submissionDate: "17/08/2026 08:50",
+      priority: "Normal",
+      status: "NEEDS_UPDATE",
+      ocrMathScore: "8.6",
+      declaredMathScore: "8.6",
+      confidence: 91.2,
+      isDiscrepant: false,
+      reviewerComments: "Thiếu ảnh thẻ 3x4 nền trắng và giấy xác nhận hạnh kiểm.",
+      formSent: false,
+      admissionResult: "Đang chờ bổ sung giấy tờ",
+      docs: [
+        { id: "doc-transcript-5", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" },
+        { id: "doc-photo-5", type: "PORTRAIT_PHOTO", name: "Ảnh chân dung 3x4", status: "NEEDS_UPDATE", statusColor: "#DC2626", statusBg: "#FEE2E2" }
+      ]
+    },
+    {
+      id: "FPT-2026-945671",
+      name: "Võ Thảo My",
+      dob: "18/07/2006",
+      citizenId: "092206005612",
+      phone: "0977.889.900",
+      email: "thaomy.vo@gmail.com",
+      major: "Quản trị Kinh doanh Quốc tế",
+      majorCode: "7340101",
+      campus: "FPT Cần Thơ (Ninh Kiều)",
+      campusCode: "CT",
+      method: "Điểm Thi THPT (Khối D01)",
+      submissionDate: "17/08/2026 11:10",
+      priority: "Normal",
+      status: "SUBMITTED",
+      ocrMathScore: "7.8",
+      declaredMathScore: "7.8",
+      confidence: 97.4,
+      isDiscrepant: false,
+      reviewerComments: "",
+      formSent: false,
+      admissionResult: "Đủ điều kiện xét tuyển (24.8đ)",
+      docs: [
+        { id: "doc-transcript-6", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "UNDER_REVIEW", statusColor: "#D97706", statusBg: "#FEF3C7" }
+      ]
+    },
+    {
+      id: "FPT-2026-956782",
+      name: "Bùi Quốc Hưng",
+      dob: "09/12/2006",
+      citizenId: "079206098214",
+      phone: "0966.112.233",
+      email: "hung.fintech@gmail.com",
+      major: "Công nghệ Tài chính (Fintech)",
+      majorCode: "7340205",
+      campus: "FPT TP.HCM (Thủ Đức)",
+      campusCode: "HCM",
+      method: "Chứng chỉ IELTS 7.5 + Học bạ",
+      submissionDate: "18/08/2026 09:15",
+      priority: "High",
+      status: "VERIFIED_AND_COMPLETE",
+      ocrMathScore: "9.0",
+      declaredMathScore: "9.0",
+      confidence: 99.5,
+      isDiscrepant: false,
+      reviewerComments: "IELTS 7.5 đạt chuẩn học bổng 30% FPT Talent.",
+      formSent: true,
+      admissionResult: "Trúng tuyển chính thức - HB 30%",
+      docs: [
+        { id: "doc-transcript-7", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" },
+        { id: "doc-ielts-7", type: "INTERNATIONAL_CERT_FILE", name: "Chứng chỉ IELTS 7.5", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" }
+      ]
+    },
+    {
+      id: "FPT-2026-967893",
+      name: "Lâm Gia Bảo",
+      dob: "03/01/2006",
+      citizenId: "093206001928",
+      phone: "0918.223.344",
+      email: "giabao.lam@gmail.com",
+      major: "Kỹ thuật Phần mềm (Software Engineering)",
+      majorCode: "7480103",
+      campus: "FPT Cần Thơ (Ninh Kiều)",
+      campusCode: "CT",
+      method: "Xét Học bạ THPT",
+      submissionDate: "18/08/2026 14:00",
+      priority: "Normal",
+      status: "REJECTED",
+      ocrMathScore: "6.5",
+      declaredMathScore: "7.0",
+      confidence: 88.0,
+      isDiscrepant: true,
+      reviewerComments: "Tổng điểm chưa đạt ngưỡng Top40 SchoolRank theo quy chế tuyển sinh.",
+      formSent: false,
+      admissionResult: "Không đạt ngưỡng sàn tuyển sinh",
+      docs: [
+        { id: "doc-transcript-8", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "NEEDS_UPDATE", statusColor: "#DC2626", statusBg: "#FEE2E2" }
+      ]
+    },
+    {
+      id: "FPT-2026-978904",
+      name: "Hoàng Yến Nhi",
+      dob: "14/06/2006",
+      citizenId: "001206078451",
+      phone: "0988.334.455",
+      email: "yennhi.media@gmail.com",
+      major: "Truyền thông Đa phương tiện",
+      majorCode: "7320104",
+      campus: "FPT Hà Nội (Khu CNC Hòa Lạc)",
+      campusCode: "HN",
+      method: "Tuyển thẳng HSG Quốc Gia",
+      submissionDate: "19/08/2026 08:30",
+      priority: "High",
+      status: "VERIFIED_AND_COMPLETE",
+      ocrMathScore: "9.5",
+      declaredMathScore: "9.5",
+      confidence: 100.0,
+      isDiscrepant: false,
+      reviewerComments: "Giải Ba HSG Quốc Gia môn Văn - Cấp học bổng 100% Talent.",
+      formSent: true,
+      admissionResult: "Tuyển thẳng - Học bổng 100%",
+      docs: [
+        { id: "doc-transcript-9", type: "ACADEMIC_TRANSCRIPT", name: "Học bạ THPT", status: "VERIFIED", statusColor: "#16A34A", statusBg: "#DCFCE7" }
+      ]
+    },
+    {
+      id: "FPT-2026-989015",
+      name: "Trịnh Đình Trọng",
+      dob: "22/10/2006",
+      citizenId: "077206004812",
+      phone: "0933.778.899",
+      email: "trong.td@gmail.com",
+      major: "Công nghệ Bán dẫn (Semiconductor)",
+      majorCode: "7340120",
+      campus: "FPT Quy Nhơn (AI Center)",
+      campusCode: "QN",
+      method: "Điểm ĐGNL ĐHQG (840đ)",
+      submissionDate: "19/08/2026 10:45",
+      priority: "High",
+      status: "UNDER_REVIEW",
+      ocrMathScore: "8.9",
+      declaredMathScore: "8.9",
+      confidence: 97.8,
+      isDiscrepant: false,
+      reviewerComments: "Đang đối soát bảng điểm ĐGNL với cổng thi ĐHQG.",
+      formSent: false,
+      admissionResult: "Đang thẩm định hồ sơ",
+      docs: [
+        { id: "doc-transcript-10", type: "ACADEMIC_TRANSCRIPT", name: "Bảng điểm ĐGNL", status: "UNDER_REVIEW", statusColor: "#D97706", statusBg: "#FEF3C7" }
       ]
     }
   ]);
@@ -264,6 +461,18 @@ export default function AdmissionOfficerPortal() {
 
   // Toast Notification
   const [toastMessage, setToastMessage] = useState(null);
+
+  // Overview Table Filters & Selection
+  const [overviewSearch, setOverviewSearch] = useState("");
+  const [overviewCampusFilter, setOverviewCampusFilter] = useState("all");
+  const [overviewStatusFilter, setOverviewStatusFilter] = useState("all");
+  const [overviewMajorFilter, setOverviewMajorFilter] = useState("all");
+  const [selectedCandidateIds, setSelectedCandidateIds] = useState([]);
+  const [selectedStudentDetailModal, setSelectedStudentDetailModal] = useState(null);
+
+  // Archive Filter State
+  const [archiveSearch, setArchiveSearch] = useState("");
+  const [archiveCohortFilter, setArchiveCohortFilter] = useState("all");
 
   const showToast = (msg, type = "success") => {
     setToastMessage({ text: msg, type });
@@ -1243,46 +1452,338 @@ export default function AdmissionOfficerPortal() {
           )}
 
           {/* =========================================================================
-              MODULE 2: TỔNG QUAN HỒ SƠ & REAL-TIME KPIS (DASHBOARD)
+              MODULE 2: TỔNG QUAN HỒ SƠ & DANH SÁCH THÍ SINH TOÀN DIỆN (DASHBOARD)
              ========================================================================= */}
           {activeTab === "overview" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px" }}>
-                  Tổng Quan Khối Quản Trị Tuyển Sinh &amp; Thẩm Định FPTU 2026
-                </h1>
-                <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
-                  Theo dõi tiến độ nhận hồ sơ trực tuyến, số lượng hồ sơ chờ duyệt và tỷ lệ hoàn thành KPI ngày.
-                </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", flexWrap: "wrap", gap: 14 }}>
+                <div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+                    <span style={{ padding: "2px 8px", background: "#EFF6FF", color: "#1D4ED8", fontSize: 11, fontWeight: 800, borderRadius: 4 }}>
+                      HỆ THỐNG QUẢN TRỊ TUYỂN SINH FPTU
+                    </span>
+                    <span style={{ fontSize: 12, color: "#64748B" }}>Đồng bộ dữ liệu thời gian thực từ 5 Phân hiệu</span>
+                  </div>
+                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: 0 }}>
+                    Tổng Quan Hồ Sơ & Thẩm Định Thí Sinh Toàn Trường
+                  </h1>
+                </div>
+
+                <div style={{ display: "flex", gap: 10 }}>
+                  <button
+                    onClick={() => {
+                      showToast("🔄 Đã làm mới danh sách hồ sơ thí sinh từ DWH Data Lakehouse!");
+                    }}
+                    style={{
+                      padding: "8px 14px", borderRadius: 8, background: "#FFFFFF",
+                      border: "1px solid #CBD5E1", color: "#334155", fontSize: 12.5, fontWeight: 700,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+                    }}
+                  >
+                    <RefreshCw size={14} /> Làm mới
+                  </button>
+
+                  <button
+                    onClick={handleExportAdmissionReport}
+                    style={{
+                      padding: "8px 16px", borderRadius: 8, background: "#EA580C",
+                      color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 800,
+                      cursor: "pointer", display: "flex", alignItems: "center", gap: 6,
+                      boxShadow: "0 2px 6px rgba(234,88,12,0.3)"
+                    }}
+                  >
+                    <Download size={14} /> Xuất Báo Cáo Excel
+                  </button>
+                </div>
               </div>
 
-              {/* 3 KPI Cards */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
-                <div style={{ padding: "20px 24px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12.5, color: "#1E40AF", fontWeight: 800 }}>HỒ SƠ CHỜ THẨM ĐỊNH</span>
-                    <Clock size={18} color="#2563EB" />
-                  </div>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: "#1D4ED8", marginTop: 4 }}>142</div>
-                  <span style={{ fontSize: 11.5, color: "#64748B" }}>Trạng thái SUBMITTED &amp; UNDER_REVIEW</span>
+              {/* 5 KPI Metric Ribbon */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(5, 1fr)", gap: 14 }}>
+                <div style={{ padding: "16px 18px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", borderLeft: "4px solid #2563EB" }}>
+                  <div style={{ fontSize: 11.5, color: "#1E40AF", fontWeight: 800 }}>CHỜ THẨM ĐỊNH</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#1D4ED8", margin: "4px 0 2px" }}>142</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>SUBMITTED & UNDER_REVIEW</span>
                 </div>
 
-                <div style={{ padding: "20px 24px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12.5, color: "#065F46", fontWeight: 800 }}>ĐÃ DUYỆT TRONG NGÀY (24H)</span>
-                    <CheckCircle2 size={18} color="#16A34A" />
-                  </div>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: "#047857", marginTop: 4 }}>328</div>
-                  <span style={{ fontSize: 11.5, color: "#16A34A", fontWeight: 700 }}>+18% so với hôm qua</span>
+                <div style={{ padding: "16px 18px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", borderLeft: "4px solid #16A34A" }}>
+                  <div style={{ fontSize: 11.5, color: "#065F46", fontWeight: 800 }}>ĐÃ DUYỆT HỢP LỆ</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#047857", margin: "4px 0 2px" }}>328</div>
+                  <span style={{ fontSize: 11, color: "#16A34A", fontWeight: 700 }}>+18% so với hôm qua</span>
                 </div>
 
-                <div style={{ padding: "20px 24px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 12.5, color: "#9A3412", fontWeight: 800 }}>TỶ LỆ CHUẨN XÁC OCR ENGINE</span>
-                    <Sparkles size={18} color="#EA580C" />
+                <div style={{ padding: "16px 18px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", borderLeft: "4px solid #DC2626" }}>
+                  <div style={{ fontSize: 11.5, color: "#991B1B", fontWeight: 800 }}>CẦN BỔ SUNG GIẤY TỜ</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#DC2626", margin: "4px 0 2px" }}>45</div>
+                  <span style={{ fontSize: 11, color: "#B91C1C" }}>Sai lệch OCR / Thiếu ảnh CCCD</span>
+                </div>
+
+                <div style={{ padding: "16px 18px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", borderLeft: "4px solid #D97706" }}>
+                  <div style={{ fontSize: 11.5, color: "#92400E", fontWeight: 800 }}>HỌC BỔNG TALENT</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#D97706", margin: "4px 0 2px" }}>86</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Đạt chuẩn xét cấp học bổng</span>
+                </div>
+
+                <div style={{ padding: "16px 18px", background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", borderLeft: "4px solid #7C3AED" }}>
+                  <div style={{ fontSize: 11.5, color: "#5B21B6", fontWeight: 800 }}>TỶ LỆ CHUẨN XÁC OCR</div>
+                  <div style={{ fontSize: 28, fontWeight: 900, color: "#6D28D9", margin: "4px 0 2px" }}>98.6%</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Mô hình AI Human-in-loop</span>
+                </div>
+              </div>
+
+              {/* Search & Filter Toolbar */}
+              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "16px 18px", display: "flex", flexDirection: "column", gap: 12 }}>
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+                  
+                  {/* Search input */}
+                  <div style={{ flex: "1 1 280px", position: "relative" }}>
+                    <Search size={16} color="#94A3B8" style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
+                    <input
+                      type="text"
+                      placeholder="Tìm theo Mã hồ sơ, Họ tên, SĐT, Số CCCD..."
+                      value={overviewSearch}
+                      onChange={e => setOverviewSearch(e.target.value)}
+                      style={{
+                        width: "100%", padding: "9px 12px 9px 36px", borderRadius: 8,
+                        border: "1px solid #CBD5E1", fontSize: 13, outline: "none", boxSizing: "border-box"
+                      }}
+                    />
                   </div>
-                  <div style={{ fontSize: 36, fontWeight: 900, color: "#EA580C", marginTop: 4 }}>98.6%</div>
-                  <span style={{ fontSize: 11.5, color: "#64748B" }}>Mô hình AI Human-in-the-loop v4.2</span>
+
+                  {/* Campus filter */}
+                  <select
+                    value={overviewCampusFilter}
+                    onChange={e => setOverviewCampusFilter(e.target.value)}
+                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12.5, fontWeight: 600, color: "#334155", background: "#FFF", cursor: "pointer" }}
+                  >
+                    <option value="all">Toàn bộ 5 Phân hiệu</option>
+                    <option value="HN">Hà Nội (Hòa Lạc)</option>
+                    <option value="HCM">TP. Hồ Chí Minh</option>
+                    <option value="DN">Đà Nẵng</option>
+                    <option value="CT">Cần Thơ</option>
+                    <option value="QN">Quy Nhơn</option>
+                  </select>
+
+                  {/* Status filter */}
+                  <select
+                    value={overviewStatusFilter}
+                    onChange={e => setOverviewStatusFilter(e.target.value)}
+                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12.5, fontWeight: 600, color: "#334155", background: "#FFF", cursor: "pointer" }}
+                  >
+                    <option value="all">Tất cả trạng thái hồ sơ</option>
+                    <option value="SUBMITTED">Mới nộp (SUBMITTED)</option>
+                    <option value="UNDER_REVIEW">Đang thẩm định (UNDER_REVIEW)</option>
+                    <option value="VERIFIED_AND_COMPLETE">Đã duyệt hợp lệ (VERIFIED)</option>
+                    <option value="NEEDS_UPDATE">Cần bổ sung (NEEDS_UPDATE)</option>
+                    <option value="REJECTED">Từ chối (REJECTED)</option>
+                  </select>
+
+                  {/* Major filter */}
+                  <select
+                    value={overviewMajorFilter}
+                    onChange={e => setOverviewMajorFilter(e.target.value)}
+                    style={{ padding: "9px 12px", borderRadius: 8, border: "1px solid #CBD5E1", fontSize: 12.5, fontWeight: 600, color: "#334155", background: "#FFF", cursor: "pointer" }}
+                  >
+                    <option value="all">Tất cả ngành đào tạo</option>
+                    <option value="Phần mềm">Kỹ thuật Phần mềm</option>
+                    <option value="AI">Trí tuệ Nhân tạo (AI)</option>
+                    <option value="Bán dẫn">Thiết kế Vi mạch Bán dẫn</option>
+                    <option value="Mỹ thuật">Thiết kế Mỹ thuật số</option>
+                    <option value="An toàn">An toàn Thông tin</option>
+                    <option value="Kinh doanh">Quản trị Kinh doanh</option>
+                    <option value="Fintech">Công nghệ Tài chính</option>
+                    <option value="Truyền thông">Truyền thông Đa phương tiện</option>
+                  </select>
+                </div>
+
+                {/* Bulk Actions Bar if candidates selected */}
+                {selectedCandidateIds.length > 0 && (
+                  <div style={{ padding: "10px 14px", background: "#FFF7ED", border: "1px solid #FDBA74", borderRadius: 8, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#9A3412" }}>
+                      Đã chọn {selectedCandidateIds.length} thí sinh:
+                    </span>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        onClick={() => {
+                          setCandidateList(prev => prev.map(c => selectedCandidateIds.includes(c.id) ? { ...c, status: "VERIFIED_AND_COMPLETE" } : c));
+                          showToast(`✓ Đã duyệt hợp lệ ${selectedCandidateIds.length} hồ sơ thành công!`);
+                          setSelectedCandidateIds([]);
+                        }}
+                        style={{ padding: "6px 14px", borderRadius: 6, background: "#16A34A", color: "#FFF", border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                      >
+                        Duyệt nhanh ({selectedCandidateIds.length})
+                      </button>
+                      <button
+                        onClick={() => {
+                          showToast(`✉️ Đã gửi thông báo SMS & Email nhắc nhở tới ${selectedCandidateIds.length} thí sinh!`, "info");
+                          setSelectedCandidateIds([]);
+                        }}
+                        style={{ padding: "6px 14px", borderRadius: 6, background: "#2563EB", color: "#FFF", border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                      >
+                        Gửi SMS/Email nhắc nhở
+                      </button>
+                      <button
+                        onClick={() => setSelectedCandidateIds([])}
+                        style={{ padding: "6px 10px", borderRadius: 6, background: "#FFF", border: "1px solid #CBD5E1", color: "#64748B", fontSize: 12, cursor: "pointer" }}
+                      >
+                        Hủy chọn
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Comprehensive Student Applications Table */}
+              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                      Danh Sách Hồ Sơ Thí Sinh Nộp Trực Tuyến & Thẩm Định
+                    </h3>
+                    <p style={{ fontSize: 12, color: "#64748B", margin: "2px 0 0" }}>
+                      Hiển thị {candidateList.filter(c => {
+                        const matchSearch = overviewSearch === "" || c.name.toLowerCase().includes(overviewSearch.toLowerCase()) || c.id.toLowerCase().includes(overviewSearch.toLowerCase()) || c.phone.includes(overviewSearch) || c.citizenId.includes(overviewSearch);
+                        const matchCampus = overviewCampusFilter === "all" || c.campusCode === overviewCampusFilter;
+                        const matchStatus = overviewStatusFilter === "all" || c.status === overviewStatusFilter;
+                        const matchMajor = overviewMajorFilter === "all" || c.major.includes(overviewMajorFilter);
+                        return matchSearch && matchCampus && matchStatus && matchMajor;
+                      }).length} / {candidateList.length} hồ sơ thí sinh
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B", textTransform: "uppercase", fontSize: 11.5 }}>
+                        <th style={{ padding: "10px 12px", width: 30 }}>
+                          <input
+                            type="checkbox"
+                            checked={selectedCandidateIds.length === candidateList.length}
+                            onChange={e => {
+                              if (e.target.checked) setSelectedCandidateIds(candidateList.map(c => c.id));
+                              else setSelectedCandidateIds([]);
+                            }}
+                            style={{ cursor: "pointer" }}
+                          />
+                        </th>
+                        <th style={{ padding: "10px 12px" }}>Mã Hồ Sơ</th>
+                        <th style={{ padding: "10px 12px" }}>Thí Sinh & Liên Hệ</th>
+                        <th style={{ padding: "10px 12px" }}>Ngành & Cơ Sở</th>
+                        <th style={{ padding: "10px 12px" }}>Phương Thức / Điểm</th>
+                        <th style={{ padding: "10px 12px" }}>OCR AI</th>
+                        <th style={{ padding: "10px 12px" }}>Trạng Thái</th>
+                        <th style={{ padding: "10px 12px", textAlign: "right" }}>Thao Tác</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {candidateList
+                        .filter(c => {
+                          const matchSearch = overviewSearch === "" || c.name.toLowerCase().includes(overviewSearch.toLowerCase()) || c.id.toLowerCase().includes(overviewSearch.toLowerCase()) || c.phone.includes(overviewSearch) || c.citizenId.includes(overviewSearch);
+                          const matchCampus = overviewCampusFilter === "all" || c.campusCode === overviewCampusFilter;
+                          const matchStatus = overviewStatusFilter === "all" || c.status === overviewStatusFilter;
+                          const matchMajor = overviewMajorFilter === "all" || c.major.includes(overviewMajorFilter);
+                          return matchSearch && matchCampus && matchStatus && matchMajor;
+                        })
+                        .map((cand, idx) => {
+                          const isSelected = selectedCandidateIds.includes(cand.id);
+                          return (
+                            <tr key={cand.id} style={{ borderBottom: "1px solid #F1F5F9", background: isSelected ? "#FFFBEB" : "transparent" }}>
+                              <td style={{ padding: "12px" }}>
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={e => {
+                                    if (e.target.checked) setSelectedCandidateIds([...selectedCandidateIds, cand.id]);
+                                    else setSelectedCandidateIds(selectedCandidateIds.filter(id => id !== cand.id));
+                                  }}
+                                  style={{ cursor: "pointer" }}
+                                />
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <div style={{ fontFamily: "monospace", color: "#2563EB", fontWeight: 700, fontSize: 13 }}>
+                                  {cand.id}
+                                </div>
+                                <span style={{
+                                  fontSize: 10, fontWeight: 800, padding: "1px 5px", borderRadius: 3,
+                                  background: cand.priority === "High" ? "#FEE2E2" : "#F1F5F9",
+                                  color: cand.priority === "High" ? "#DC2626" : "#64748B"
+                                }}>
+                                  {cand.priority}
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <strong style={{ color: "#0F172A", fontSize: 13.5, display: "block" }}>{cand.name}</strong>
+                                <div style={{ fontSize: 11.5, color: "#64748B", marginTop: 2 }}>
+                                  📞 {cand.phone} • CCCD: {cand.citizenId}
+                                </div>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <div style={{ fontWeight: 600, color: "#1E293B" }}>{cand.major}</div>
+                                <div style={{ fontSize: 11, color: "#64748B", marginTop: 2 }}>📍 {cand.campus}</div>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <div style={{ color: "#334155", fontWeight: 500 }}>{cand.method}</div>
+                                <div style={{ fontSize: 11, color: "#16A34A", fontWeight: 700, marginTop: 2 }}>
+                                  {cand.admissionResult}
+                                </div>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 6,
+                                  background: cand.confidence >= 95 ? "#DCFCE7" : cand.confidence >= 85 ? "#FEF3C7" : "#FEE2E2",
+                                  color: cand.confidence >= 95 ? "#15803D" : cand.confidence >= 85 ? "#D97706" : "#DC2626"
+                                }}>
+                                  {cand.confidence}%
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px" }}>
+                                <span style={{
+                                  fontSize: 11, fontWeight: 800, padding: "4px 9px", borderRadius: 100,
+                                  background: cand.status === "VERIFIED_AND_COMPLETE" ? "#DCFCE7" : cand.status === "NEEDS_UPDATE" ? "#FEE2E2" : cand.status === "REJECTED" ? "#FEE2E2" : "#EFF6FF",
+                                  color: cand.status === "VERIFIED_AND_COMPLETE" ? "#15803D" : cand.status === "NEEDS_UPDATE" ? "#B91C1C" : cand.status === "REJECTED" ? "#991B1B" : "#1D4ED8"
+                                }}>
+                                  {cand.status === "VERIFIED_AND_COMPLETE" ? "✓ Đã Duyệt Hợp Lệ" : cand.status === "NEEDS_UPDATE" ? "⚠️ Cần Bổ Sung" : cand.status === "REJECTED" ? "✕ Từ Chối" : "⏳ Đang Thẩm Định"}
+                                </span>
+                              </td>
+                              <td style={{ padding: "12px", textAlign: "right" }}>
+                                <div style={{ display: "flex", justifyContent: "flex-end", gap: 6 }}>
+                                  <button
+                                    onClick={() => {
+                                      const idx = candidateList.findIndex(c => c.id === cand.id);
+                                      if (idx !== -1) setSelectedCandidateIndex(idx);
+                                      setActiveTab("verification");
+                                    }}
+                                    style={{
+                                      padding: "6px 12px", borderRadius: 6, background: "#EA580C",
+                                      color: "#FFFFFF", border: "none", fontSize: 11.5, fontWeight: 800,
+                                      cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 4
+                                    }}
+                                  >
+                                    <Eye size={13} /> Thẩm định 3 cột
+                                  </button>
+
+                                  {cand.status !== "VERIFIED_AND_COMPLETE" && (
+                                    <button
+                                      onClick={() => {
+                                        setCandidateList(prev => prev.map(c => c.id === cand.id ? { ...c, status: "VERIFIED_AND_COMPLETE" } : c));
+                                        showToast(`✓ Đã duyệt hợp lệ hồ sơ của thí sinh ${cand.name}!`);
+                                      }}
+                                      style={{
+                                        padding: "6px 10px", borderRadius: 6, background: "#16A34A",
+                                        color: "#FFFFFF", border: "none", fontSize: 11.5, fontWeight: 800, cursor: "pointer"
+                                      }}
+                                      title="Duyệt nhanh"
+                                    >
+                                      <Check size={13} />
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1489,25 +1990,25 @@ export default function AdmissionOfficerPortal() {
           )}
 
           {/* =========================================================================
-              MODULE 6: BÁO CÁO HIỆU SUẤT TUYỂN SINH (RECRUITMENT PERFORMANCE KPI)
+              MODULE 6: BÁO CÁO HIỆU SUẤT TUYỂN SINH & TIẾN ĐỘ THẨM ĐỊNH (PERFORMANCE KPI)
              ========================================================================= */}
           {activeTab === "kpis" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
                 <div>
                   <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px" }}>
-                    Recruitment Performance &amp; Analytics
+                    Báo Cáo Hiệu Suất Tuyển Sinh &amp; Phân Tích Thẩm Định
                   </h1>
                   <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
-                    Năm học 2026-2027 • Đánh giá hiệu suất chuyển đổi toàn kênh tuyển sinh Đại học FPT
+                    Năm học 2026-2027 • Đánh giá hiệu suất chuyển đổi toàn kênh tuyển sinh &amp; KPI cán bộ thẩm định Đại học FPT
                   </p>
                 </div>
 
                 <button
                   onClick={handleExportAdmissionReport}
-                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 18px", borderRadius: 6, background: "#EA580C", color: "#FFFFFF", border: "none", fontSize: 12, fontWeight: 800, cursor: "pointer" }}
+                  style={{ display: "flex", alignItems: "center", gap: 6, padding: "8px 18px", borderRadius: 8, background: "#EA580C", color: "#FFFFFF", border: "none", fontSize: 12.5, fontWeight: 800, cursor: "pointer", boxShadow: "0 2px 6px rgba(234,88,12,0.3)" }}
                 >
-                  <Download size={14} /> Export Report (Excel)
+                  <Download size={14} /> Xuất Báo Cáo Tuyển Sinh (Excel)
                 </button>
               </div>
 
@@ -1515,34 +2016,106 @@ export default function AdmissionOfficerPortal() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 16 }}>
                 <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Applications</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>HỒ SƠ ĐÃ TIẾP NHẬN</span>
                     <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "1px 6px", borderRadius: 4 }}>+12%</span>
                   </div>
                   <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A" }}>14,285</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Đạt 95.2% chỉ tiêu toàn khối</span>
                 </div>
 
                 <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Exams Taken</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>THAM GIA THI / ĐGNL</span>
                     <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "1px 6px", borderRadius: 4 }}>+5%</span>
                   </div>
                   <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A" }}>8,940</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Tỷ lệ tham gia: 62.5%</span>
                 </div>
 
                 <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Interviews</span>
-                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#DC2626", background: "#FEE2E2", padding: "1px 6px", borderRadius: 4 }}>-2%</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>PHỎNG VẤN HỌC BỔNG</span>
+                    <span style={{ fontSize: 10.5, fontWeight: 800, color: "#2563EB", background: "#EFF6FF", padding: "1px 6px", borderRadius: 4 }}>86 Hội đồng</span>
                   </div>
                   <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A" }}>6,120</div>
+                  <span style={{ fontSize: 11, color: "#64748B" }}>Thí sinh đạt chuẩn vòng hồ sơ</span>
                 </div>
 
                 <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 4 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: "#475569" }}>Enrolled</span>
+                    <span style={{ fontSize: 12.5, fontWeight: 700, color: "#475569" }}>NHẬP HỌC CHÍNH THỨC</span>
                     <span style={{ fontSize: 10.5, fontWeight: 800, color: "#16A34A", background: "#DCFCE7", padding: "1px 6px", borderRadius: 4 }}>+8%</span>
                   </div>
-                  <div style={{ fontSize: 32, fontWeight: 900, color: "#0F172A" }}>4,050</div>
+                  <div style={{ fontSize: 32, fontWeight: 900, color: "#16A34A" }}>4,050</div>
+                  <span style={{ fontSize: 11, color: "#16A34A", fontWeight: 700 }}>Yield Rate: 75.5%</span>
+                </div>
+              </div>
+
+              {/* Chart: Applications by Campus & Major */}
+              <div style={{ display: "grid", gridTemplateColumns: "1.6fr 1.4fr", gap: 20 }}>
+                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: "0 0 14px" }}>
+                    Phân Bổ Hồ Sơ Tuyển Sinh Theo 5 Phân Hiệu
+                  </h3>
+                  <div style={{ height: 240 }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={[
+                          { campus: "Hà Nội", applications: 5400, target: 5500 },
+                          { campus: "TP.HCM", applications: 4950, target: 5000 },
+                          { campus: "Đà Nẵng", applications: 1980, target: 2000 },
+                          { campus: "Cần Thơ", applications: 1320, target: 1500 },
+                          { campus: "Quy Nhơn", applications: 920, target: 1000 },
+                        ]}
+                        margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
+                        <XAxis dataKey="campus" stroke="#64748B" fontSize={12} />
+                        <YAxis stroke="#64748B" fontSize={12} />
+                        <Tooltip contentStyle={{ background: "#0F172A", borderRadius: 8, color: "#FFF", fontSize: 12 }} />
+                        <Bar dataKey="target" fill="#CBD5E1" radius={[4, 4, 0, 0]} name="Chỉ tiêu" />
+                        <Bar dataKey="applications" fill="#EA580C" radius={[4, 4, 0, 0]} name="Hồ sơ đã nhận" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Admission Officer Performance Leaderboard Table */}
+                <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
+                  <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: "0 0 14px" }}>
+                    Hiệu Suất &amp; SLA Cán Bộ Thẩm Định Tuyển Sinh
+                  </h3>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5, textAlign: "left" }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B" }}>
+                        <th style={{ padding: "8px 10px" }}>Cán Bộ Thẩm Định</th>
+                        <th style={{ padding: "8px 10px" }}>Đã Duyệt</th>
+                        <th style={{ padding: "8px 10px" }}>Thời Gian TB</th>
+                        <th style={{ padding: "8px 10px" }}>Độ Chuẩn Xác</th>
+                        <th style={{ padding: "8px 10px" }}>SLA</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { name: "Trần Hoàng Nam (Bạn)", done: 328, time: "4.2 phút/HS", acc: "99.2%", sla: "100%", status: "Xuất sắc" },
+                        { name: "Lê Thanh Hà", done: 285, time: "5.1 phút/HS", acc: "98.5%", sla: "98.2%", status: "Tốt" },
+                        { name: "Nguyễn Minh Tuấn", done: 240, time: "6.0 phút/HS", acc: "97.8%", sla: "96.5%", status: "Tốt" },
+                        { name: "Phạm Thúy Vy", done: 210, time: "6.8 phút/HS", acc: "96.2%", sla: "94.0%", status: "Đạt" },
+                      ].map((row, idx) => (
+                        <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                          <td style={{ padding: "10px", fontWeight: 700, color: "#0F172A" }}>{row.name}</td>
+                          <td style={{ padding: "10px", color: "#16A34A", fontWeight: 800 }}>{row.done}</td>
+                          <td style={{ padding: "10px", color: "#475569" }}>{row.time}</td>
+                          <td style={{ padding: "10px", color: "#2563EB", fontWeight: 700 }}>{row.acc}</td>
+                          <td style={{ padding: "10px" }}>
+                            <span style={{ fontSize: 11, fontWeight: 800, padding: "2px 6px", borderRadius: 4, background: "#DCFCE7", color: "#15803D" }}>
+                              {row.sla}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
@@ -1553,28 +2126,109 @@ export default function AdmissionOfficerPortal() {
              ========================================================================= */}
           {activeTab === "archive" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <div>
-                <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px" }}>
-                  Kho Lưu Trữ Tuyển Sinh (Data Lakehouse &amp; Historical Archive)
-                </h1>
-                <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
-                  Tra cứu dữ liệu tuyển sinh từ khóa K15 đến K20 phục vụ phân tích học tập và dự báo sinh viên có nguy cơ thôi học.
-                </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 14 }}>
+                <div>
+                  <h1 style={{ fontSize: 24, fontWeight: 900, color: "#0F172A", margin: "0 0 4px" }}>
+                    Kho Lưu Trữ Tuyển Sinh (Data Lakehouse &amp; Historical Archive)
+                  </h1>
+                  <p style={{ fontSize: 13, color: "#64748B", margin: 0 }}>
+                    Tra cứu dữ liệu tuyển sinh từ khóa K15 đến K20 phục vụ phân tích học tập và dự báo sinh viên có nguy cơ thôi học.
+                  </p>
+                </div>
+
+                <div style={{ display: "flex", gap: 8 }}>
+                  {["all", "K20", "K19", "K18", "K17", "K16"].map(cohort => (
+                    <button
+                      key={cohort}
+                      onClick={() => setArchiveCohortFilter(cohort)}
+                      style={{
+                        padding: "6px 12px", borderRadius: 6, fontSize: 12, fontWeight: 700,
+                        border: archiveCohortFilter === cohort ? "1px solid #EA580C" : "1px solid #E2E8F0",
+                        background: archiveCohortFilter === cohort ? "#FFF7ED" : "#FFFFFF",
+                        color: archiveCohortFilter === cohort ? "#EA580C" : "#64748B", cursor: "pointer"
+                      }}
+                    >
+                      {cohort === "all" ? "Tất cả các khóa" : `Khóa ${cohort}`}
+                    </button>
+                  ))}
+                </div>
               </div>
 
+              {/* 3 Cohort Metric Cards */}
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16 }}>
                 {[
-                  { cohort: "Khóa K20 (2024 - 2025)", total: "12,450 sinh viên", retention: "96.2% duy trì", risk: "3.8% Nguy cơ thôi học" },
-                  { cohort: "Khóa K19 (2023 - 2024)", total: "10,800 sinh viên", retention: "95.5% duy trì", risk: "4.5% Nguy cơ thôi học" },
-                  { cohort: "Khóa K18 (2022 - 2023)", total: "9,200 sinh viên", retention: "94.8% duy trì", risk: "5.2% Nguy cơ thôi học" },
+                  { cohort: "Khóa K20 (2024 - 2025)", total: "12,450 sinh viên", retention: "96.2% duy trì", risk: "3.8% Nguy cơ thôi học", bg: "#EFF6FF", border: "#DBEAFE" },
+                  { cohort: "Khóa K19 (2023 - 2024)", total: "10,800 sinh viên", retention: "95.5% duy trì", risk: "4.5% Nguy cơ thôi học", bg: "#F0FDF4", border: "#DCFCE7" },
+                  { cohort: "Khóa K18 (2022 - 2023)", total: "9,200 sinh viên", retention: "94.8% duy trì", risk: "5.2% Nguy cơ thôi học", bg: "#FFF7ED", border: "#FFEDD5" },
                 ].map((c, idx) => (
-                  <div key={idx} style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "18px 20px" }}>
-                    <strong style={{ fontSize: 14, color: "#0F172A", display: "block", marginBottom: 6 }}>{c.cohort}</strong>
-                    <div style={{ fontSize: 12, color: "#475569" }}>Tổng hồ sơ nhập học: <strong>{c.total}</strong></div>
-                    <div style={{ fontSize: 12, color: "#16A34A", fontWeight: 700, marginTop: 4 }}>✓ {c.retention}</div>
-                    <div style={{ fontSize: 11, color: "#DC2626", marginTop: 2 }}>⚠️ {c.risk}</div>
+                  <div key={idx} style={{ background: c.bg, borderRadius: 12, border: `1px solid ${c.border}`, padding: "18px 20px" }}>
+                    <strong style={{ fontSize: 15, color: "#0F172A", display: "block", marginBottom: 6 }}>{c.cohort}</strong>
+                    <div style={{ fontSize: 12.5, color: "#475569" }}>Tổng hồ sơ nhập học: <strong>{c.total}</strong></div>
+                    <div style={{ fontSize: 12.5, color: "#16A34A", fontWeight: 700, marginTop: 4 }}>✓ {c.retention}</div>
+                    <div style={{ fontSize: 11.5, color: "#DC2626", marginTop: 2 }}>⚠️ {c.risk}</div>
                   </div>
                 ))}
+              </div>
+
+              {/* Historical Student Records Table */}
+              <div style={{ background: "#FFFFFF", borderRadius: 12, border: "1px solid #E2E8F0", padding: "20px 22px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, fontWeight: 800, color: "#0F172A", margin: 0 }}>
+                      Dữ Liệu Hồ Sơ Sinh Viên Lịch Sử (Data Lakehouse)
+                    </h3>
+                    <p style={{ fontSize: 12, color: "#64748B", margin: "2px 0 0" }}>
+                      Tích hợp điểm thi tuyển sinh đầu vào và theo dõi kết quả học tập GPA lũy tiến
+                    </p>
+                  </div>
+                </div>
+
+                <div style={{ overflowX: "auto" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: 12.5 }}>
+                    <thead>
+                      <tr style={{ background: "#F8FAFC", borderBottom: "1px solid #E2E8F0", color: "#64748B", textTransform: "uppercase", fontSize: 11.5 }}>
+                        <th style={{ padding: "10px 12px" }}>Mã Sinh Viên</th>
+                        <th style={{ padding: "10px 12px" }}>Họ Và Tên</th>
+                        <th style={{ padding: "10px 12px" }}>Khóa / Phân Hiệu</th>
+                        <th style={{ padding: "10px 12px" }}>Ngành Đào Tạo</th>
+                        <th style={{ padding: "10px 12px" }}>Điểm Đầu Vào</th>
+                        <th style={{ padding: "10px 12px" }}>GPA Hiện Tại</th>
+                        <th style={{ padding: "10px 12px" }}>Tình Trạng Học Vụ</th>
+                        <th style={{ padding: "10px 12px" }}>Dự Báo Nguy Cơ</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[
+                        { id: "HE182041", name: "Nguyễn Tuấn Kiệt", cohort: "K18", campus: "Hà Nội", major: "Kỹ thuật Phần mềm", score: "27.5đ (HB 70%)", gpa: "3.68 / 4.0", status: "Đang học (HK7)", risk: "Thấp (1.2%)", riskColor: "#16A34A" },
+                        { id: "SE173920", name: "Phan Hoài Nam", cohort: "K17", campus: "TP.HCM", major: "Trí tuệ Nhân tạo", score: "26.0đ (Học bạ)", gpa: "3.45 / 4.0", status: "Đang học (HK9)", risk: "Thấp (2.5%)", riskColor: "#16A34A" },
+                        { id: "AI190241", name: "Trịnh Diệu Linh", cohort: "K19", campus: "Quy Nhơn", major: "Khoa học Dữ liệu", score: "28.0đ (HB 100%)", gpa: "3.82 / 4.0", status: "Đang học (HK5)", risk: "Rất thấp (0.5%)", riskColor: "#16A34A" },
+                        { id: "BA184512", name: "Lê Minh Trí", cohort: "K18", campus: "Cần Thơ", major: "Quản trị Kinh doanh", score: "21.5đ (THPT)", gpa: "2.10 / 4.0", status: "Cảnh báo học vụ 1", risk: "Cao (48.0%)", riskColor: "#DC2626" },
+                        { id: "MC172911", name: "Vũ Phương Uyên", cohort: "K17", campus: "Đà Nẵng", major: "Truyền thông Đa phương tiện", score: "24.5đ (Học bạ)", gpa: "3.55 / 4.0", status: "Đã tốt nghiệp (Giỏi)", risk: "Hoàn thành", riskColor: "#2563EB" },
+                      ]
+                        .filter(item => archiveCohortFilter === "all" || item.cohort === archiveCohortFilter)
+                        .map((st, idx) => (
+                          <tr key={idx} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                            <td style={{ padding: "12px", fontFamily: "monospace", color: "#2563EB", fontWeight: 700 }}>{st.id}</td>
+                            <td style={{ padding: "12px", fontWeight: 700, color: "#0F172A" }}>{st.name}</td>
+                            <td style={{ padding: "12px", color: "#475569" }}>{st.cohort} • {st.campus}</td>
+                            <td style={{ padding: "12px", color: "#1E293B", fontWeight: 600 }}>{st.major}</td>
+                            <td style={{ padding: "12px", color: "#EA580C", fontWeight: 700 }}>{st.score}</td>
+                            <td style={{ padding: "12px", fontWeight: 800, color: "#0F172A" }}>{st.gpa}</td>
+                            <td style={{ padding: "12px" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, padding: "3px 8px", borderRadius: 4, background: st.status.includes("Cảnh báo") ? "#FEE2E2" : st.status.includes("tốt nghiệp") ? "#EFF6FF" : "#DCFCE7", color: st.status.includes("Cảnh báo") ? "#DC2626" : st.status.includes("tốt nghiệp") ? "#1D4ED8" : "#15803D" }}>
+                                {st.status}
+                              </span>
+                            </td>
+                            <td style={{ padding: "12px" }}>
+                              <span style={{ fontSize: 11, fontWeight: 800, color: st.riskColor }}>
+                                {st.risk}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
