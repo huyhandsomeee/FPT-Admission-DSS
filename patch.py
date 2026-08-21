@@ -1,0 +1,30 @@
+import re
+with open('frontend/src/pages/Officer/FinanceOfficerPortal.jsx', 'r', encoding='utf-8') as f:
+    code = f.read()
+code = code.replace('  const tuitionDebts = [', '  const [tuitionDebts, setTuitionDebts] = useState([')
+code = code.replace('Quá hạn", color: "#DC2626", bg: "#FEE2E2" }\n  ];', 'Quá hạn", color: "#DC2626", bg: "#FEE2E2" }\n  ]);')
+code = code.replace('  const scholarshipsData = [', '  const [scholarshipsData, setScholarshipsData] = useState([')
+code = code.replace('{ name: "Nguyễn Văn A"', '{ id: "SCH-01", name: "Nguyễn Văn A"')
+code = code.replace('{ name: "Trần Thị B"', '{ id: "SCH-02", name: "Trần Thị B"')
+code = code.replace('{ name: "Lê Hoàng C"', '{ id: "SCH-03", name: "Lê Hoàng C"')
+code = code.replace('conductReq: "Khá", discipline: "Cảnh cáo" }\n  ];', 'conductReq: "Khá", discipline: "Cảnh cáo" }\n  ]);')
+state_block = '''  const [showViewAllExpenditures, setShowViewAllExpenditures] = useState(false);
+  const [showTuitionReminderModal, setShowTuitionReminderModal] = useState(null);
+  const [showScholarshipApproveModal, setShowScholarshipApproveModal] = useState(null);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);'''
+code = code.replace('  const [showViewAllExpenditures, setShowViewAllExpenditures] = useState(false);', state_block)
+code = code.replace('onClick={() => showToast("Đã gửi email nhắc nợ tự động tới 5 sinh viên quá hạn")}', 'onClick={() => setShowTuitionReminderModal("ALL")}')
+code = code.replace('onClick={() => showToast("Đã xuất danh sách công nợ ra file Excel")}', 'onClick={() => { showToast("Đang chuẩn bị file Excel..."); setTimeout(() => showToast("Đã xuất danh sách công nợ ra file Excel thành công!"), 1500); }}')
+code = code.replace('onClick={() => showToast(`Đã gửi thông báo nhắc nợ tới ${item.name}`)}', 'onClick={() => setShowTuitionReminderModal(item)} disabled={item.status === "Đã nhắc nợ"}')
+code = code.replace('Nhắc nợ\n                          </button>', '{item.status === "Đã nhắc nợ" ? "Đã nhắc" : "Nhắc nợ"}\n                          </button>')
+code = code.replace('onClick={() => showToast(`Đã duyệt giải ngân học bổng cho sinh viên ${s.name}`)}', 'onClick={() => setShowScholarshipApproveModal(s)} disabled={s.status !== "Chờ duyệt" && s.status !== "Đủ điều kiện"}')
+code = code.replace('Duyệt\n                          </button>', '{s.status === "Đã giải ngân" ? "Đã duyệt" : s.status === "Vi phạm" ? "Từ chối" : "Duyệt"}\n                          </button>')
+code = code.replace('onClick={() => showToast("Đã mở cấu hình tham số thuế & phụ cấp")}', 'onClick={() => setShowSettingsModal(true)}')
+code = code.replace('onClick={() => showToast("Đã kích hoạt bộ lọc phòng ban và mức lương")}', 'onClick={() => setShowFilterModal(true)}')
+with open('modals.txt', 'r', encoding='utf-8') as fm:
+    modals = fm.read()
+if 'TUITION REMINDER MODAL' not in code:
+    code = code.replace('    </div>\n  );\n}\nexport default FinanceOfficerPortal;', modals + '\n    </div>\n  );\n}\nexport default FinanceOfficerPortal;')
+with open('frontend/src/pages/Officer/FinanceOfficerPortal.jsx', 'w', encoding='utf-8') as f:
+    f.write(code)

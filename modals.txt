@@ -1,0 +1,159 @@
+      {/* ── NEW MODALS ── */}
+      {/* TUITION REMINDER MODAL */}
+      {showTuitionReminderModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#FFFFFF", width: 450, borderRadius: 16, overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
+                <Mail size={20} color="#2563EB" /> Xác nhận gửi thông báo nhắc nợ
+              </h3>
+              <button onClick={() => setShowTuitionReminderModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: 24, fontSize: 14, color: "#475569" }}>
+              {showTuitionReminderModal === "ALL" ? (
+                <p>Hệ thống sẽ tự động gửi email và thông báo SMS tới <strong>tất cả sinh viên</strong> đang có trạng thái "Quá hạn" hoặc "Chờ xử lý". Bạn có chắc chắn muốn thực hiện?</p>
+              ) : (
+                <p>Bạn có chắc chắn muốn gửi email và thông báo SMS nhắc nợ tới sinh viên <strong>{showTuitionReminderModal.name}</strong> ({showTuitionReminderModal.code}) với số tiền nợ là <strong>{showTuitionReminderModal.amount} VND</strong>?</p>
+              )}
+            </div>
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowTuitionReminderModal(null)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, cursor: "pointer" }}>Hủy</button>
+              <button
+                onClick={() => {
+                  if (showTuitionReminderModal === "ALL") {
+                    setTuitionDebts(prev => prev.map(d => (d.status === "Quá hạn" || d.status === "Chờ xử lý") ? { ...d, status: "Đã nhắc nợ", color: "#2563EB", bg: "#DBEAFE" } : d));
+                    showToast("Đã gửi email nhắc nợ tự động tới các sinh viên quá hạn");
+                  } else {
+                    setTuitionDebts(prev => prev.map(d => d.id === showTuitionReminderModal.id ? { ...d, status: "Đã nhắc nợ", color: "#2563EB", bg: "#DBEAFE" } : d));
+                    showToast(`Đã gửi thông báo nhắc nợ tới ${showTuitionReminderModal.name}`);
+                  }
+                  setShowTuitionReminderModal(null);
+                }}
+                style={{ padding: "10px 16px", borderRadius: 8, background: "#2563EB", color: "#FFFFFF", border: "none", fontWeight: 700, cursor: "pointer" }}>Xác nhận gửi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SCHOLARSHIP APPROVE MODAL */}
+      {showScholarshipApproveModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#FFFFFF", width: 500, borderRadius: 16, overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
+                <CheckCircle size={20} color="#16A34A" /> Duyệt Giải Ngân Học Bổng
+              </h3>
+              <button onClick={() => setShowScholarshipApproveModal(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: 24, fontSize: 14, color: "#475569" }}>
+              <p>Bạn đang tiến hành duyệt giải ngân học bổng <strong>{showScholarshipApproveModal.type}</strong> cho sinh viên:</p>
+              <div style={{ background: "#F8FAFC", padding: 16, borderRadius: 8, marginTop: 12, border: "1px solid #E2E8F0" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span>Họ tên:</span> <strong>{showScholarshipApproveModal.name}</strong></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span>MSSV:</span> <strong>{showScholarshipApproveModal.code}</strong></div>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}><span>Mức duyệt:</span> <strong>{showScholarshipApproveModal.rate}</strong></div>
+                <div style={{ display: "flex", justifyContent: "space-between" }}><span>Số tiền giải ngân:</span> <strong style={{ color: "#16A34A", fontSize: 16 }}>{showScholarshipApproveModal.amount}</strong></div>
+              </div>
+              <p style={{ marginTop: 16, fontSize: 13, color: "#64748B", fontStyle: "italic" }}>Lưu ý: Tiền sẽ được chuyển thẳng vào số tài khoản sinh viên đã đăng ký hoặc khấu trừ vào học phí kỳ tiếp theo.</p>
+            </div>
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowScholarshipApproveModal(null)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, cursor: "pointer" }}>Hủy</button>
+              <button
+                onClick={() => {
+                  setScholarshipsData(prev => prev.map(s => s.id === showScholarshipApproveModal.id ? { ...s, status: "Đã giải ngân" } : s));
+                  showToast(`Đã duyệt giải ngân ${showScholarshipApproveModal.amount} cho SV ${showScholarshipApproveModal.name}`);
+                  setShowScholarshipApproveModal(null);
+                }}
+                style={{ padding: "10px 16px", borderRadius: 8, background: "#16A34A", color: "#FFFFFF", border: "none", fontWeight: 700, cursor: "pointer" }}>Xác nhận giải ngân</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SETTINGS MODAL */}
+      {showSettingsModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#FFFFFF", width: 550, borderRadius: 16, overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
+                <Settings size={20} color="#475569" /> Cài Đặt Tham Số Tài Chính
+              </h3>
+              <button onClick={() => setShowSettingsModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: 24, fontSize: 14, color: "#475569", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Tỷ lệ đóng BHXH, BHYT, BHTN (%)</label>
+                <input type="number" defaultValue={10.5} style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Mức giảm trừ gia cảnh bản thân (VND)</label>
+                <input type="text" defaultValue="11,000,000" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Mức giảm trừ người phụ thuộc (VND)</label>
+                <input type="text" defaultValue="4,400,000" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+              </div>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Đơn giá giờ giảng tiêu chuẩn (VND/giờ)</label>
+                <input type="text" defaultValue="200,000" style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+              </div>
+            </div>
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowSettingsModal(false)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, cursor: "pointer" }}>Hủy</button>
+              <button
+                onClick={() => {
+                  showToast("Đã lưu cấu hình tham số hệ thống thành công!");
+                  setShowSettingsModal(false);
+                }}
+                style={{ padding: "10px 16px", borderRadius: 8, background: "#EA580C", color: "#FFFFFF", border: "none", fontWeight: 700, cursor: "pointer" }}>Lưu Thay Đổi</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* FILTER MODAL */}
+      {showFilterModal && (
+        <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15,23,42,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ background: "#FFFFFF", width: 400, borderRadius: 16, overflow: "hidden", boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)" }}>
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #E2E8F0", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: "#0F172A", display: "flex", alignItems: "center", gap: 8 }}>
+                <SlidersHorizontal size={20} color="#475569" /> Bộ Lọc Nâng Cao
+              </h3>
+              <button onClick={() => setShowFilterModal(false)} style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}><X size={20} /></button>
+            </div>
+            <div style={{ padding: 24, fontSize: 14, color: "#475569", display: "flex", flexDirection: "column", gap: 16 }}>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Phòng Ban / Khoa</label>
+                <select style={{ width: "100%", padding: "10px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", background: "#FFF", boxSizing: "border-box" }}>
+                  <option>Tất cả phòng ban</option>
+                  <option>Khoa CNTT</option>
+                  <option>Khoa Kinh Tế</option>
+                  <option>Phòng Đào Tạo</option>
+                  <option>Phòng CTSV</option>
+                </select>
+              </div>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Khoảng Lương Cơ Bản</label>
+                <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <input type="number" placeholder="Từ" style={{ width: "100%", padding: "8px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+                  <span>-</span>
+                  <input type="number" placeholder="Đến" style={{ width: "100%", padding: "8px", borderRadius: 8, border: "1px solid #CBD5E1", outline: "none", boxSizing: "border-box" }} />
+                </div>
+              </div>
+              <div>
+                <label style={{ display: "block", fontWeight: 600, color: "#1E293B", marginBottom: 6 }}>Trạng Thái Tính Lương</label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}><input type="checkbox" defaultChecked /> Đã tính xong</label>
+                <label style={{ display: "flex", alignItems: "center", gap: 8 }}><input type="checkbox" defaultChecked /> Đang chờ nhập giờ dạy</label>
+              </div>
+            </div>
+            <div style={{ padding: "16px 24px", background: "#F8FAFC", borderTop: "1px solid #E2E8F0", display: "flex", justifyContent: "flex-end", gap: 10 }}>
+              <button onClick={() => setShowFilterModal(false)} style={{ padding: "10px 16px", borderRadius: 8, border: "1px solid #CBD5E1", background: "#FFFFFF", color: "#334155", fontWeight: 700, cursor: "pointer" }}>Thiết lập lại</button>
+              <button
+                onClick={() => {
+                  showToast("Đã áp dụng bộ lọc");
+                  setShowFilterModal(false);
+                }}
+                style={{ padding: "10px 16px", borderRadius: 8, background: "#0F172A", color: "#FFFFFF", border: "none", fontWeight: 700, cursor: "pointer" }}>Áp Dụng Lọc</button>
+            </div>
+          </div>
+        </div>
+      )}
